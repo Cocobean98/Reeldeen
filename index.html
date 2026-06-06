@@ -9,6 +9,12 @@
     <meta name="keywords" content="Quran reel generator, Islamic video maker, free Quran app, Muslim content creator, TikTok Quran videos, Instagram Reels Islam, YouTube Shorts Quran, Sadaqah Jariyah, ReelDeen">
     <meta name="author" content="ReelDeen">
     
+    <!-- AdsTerra Popunder -->
+    <script src="https://pl29657904.effectivecpmnetwork.com/e2/6e/2b/e26e2b9c47e9c71a20dff8a3ba0e74c7.js"></script>
+    
+    <!-- AdsTerra Social Bar -->
+    <script src="https://pl29657905.effectivecpmnetwork.com/25/79/76/257976f0f2bb98d5c25504bd28927638.js"></script>
+    
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -84,7 +90,6 @@
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         
-        /* Premium Animated Gradient Fallback */
         .fallback-bg {
             background: linear-gradient(-45deg, #0A2F2F, #1A5F5F, #B8945F, #144D4D);
             background-size: 400% 400%;
@@ -146,8 +151,11 @@
                 </h4>
                 <p class="text-sm text-slate-700 leading-relaxed mb-4">I'm a 28-year-old engineer supporting a family of six on a tight budget. I built ReelDeen as a Sadaqah Jariyah—a project for my Akhira. My dream is to one day buy a home, get married, and fulfill a vow I made to Allah to sponsor a child's education (Kafalah) and give to the poor.</p>
                 <p class="text-sm text-slate-700 leading-relaxed mb-4">ReelDeen is and always will be 100% free. But if this tool benefits you, and you wish to help a brother realize his dreams, you can support me below. <strong class="text-teal-700">5% of every donation goes directly to charity.</strong></p>
-                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full gold-btn text-white font-semibold py-3 rounded-xl text-center shadow-lg">
+                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full gold-btn text-white font-semibold py-3 rounded-xl text-center shadow-lg mb-3">
                     Support ReelDeen & Our Charity
+                </a>
+                <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="block w-full bg-slate-600 hover:bg-slate-700 text-white font-medium py-2.5 rounded-xl text-center transition-colors text-sm">
+                    Support Free (Click Here)
                 </a>
             </div>
 
@@ -229,10 +237,7 @@
 
         <div class="lg:col-span-8 flex flex-col items-center justify-center min-h-[500px]">
             <div class="reel-container w-full max-w-md bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-cream-300 relative group">
-                <!-- Animated Gradient Fallback (Shows if API fails) -->
                 <div id="fallbackBg" class="absolute inset-0 fallback-bg hidden"></div>
-                
-                <!-- Background Video -->
                 <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover opacity-80" loop muted playsinline></video>
                 
                 <div class="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80 pointer-events-none"></div>
@@ -279,9 +284,16 @@
                 </h3>
                 <p class="text-slate-600 mb-6 max-w-2xl mx-auto">ReelDeen will always be 100% free. But if this tool brings light to your day and you wish to help a brother realize his dreams of a home, a family, and financial peace, you can support me here. You aren't just helping me; you're contributing to a global cause.</p>
                 
-                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block gold-btn text-white font-semibold py-4 px-10 rounded-full transition-all shadow-lg text-lg mb-6">
+                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block gold-btn text-white font-semibold py-4 px-10 rounded-full transition-all shadow-lg text-lg mb-4">
                     Support ReelDeen
                 </a>
+                
+                <div class="mt-4">
+                    <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="inline-block bg-slate-600 hover:bg-slate-700 text-white font-medium py-3 px-8 rounded-full transition-colors text-sm">
+                        Support Free (No Cost to You)
+                    </a>
+                    <p class="text-xs text-slate-500 mt-2">Click to support without spending money</p>
+                </div>
                 
                 <div class="mt-8 pt-8 border-t border-cream-300">
                     <p class="text-sm text-slate-600 mb-2">As a promise to Allah, 5% of every donation goes directly to charity.</p>
@@ -486,12 +498,8 @@
             updateSelectedCount();
         });
 
-        // ============================================
-        // SECURE VIDEO FETCH WITH PREMIUM FALLBACK
-        // ============================================
         async function fetchVideoBatch() {
             try {
-                // Calls your secure Vercel API route
                 const response = await fetch('/api/pexels');
                 if (!response.ok) throw new Error('Server error');
                 const data = await response.json();
@@ -506,7 +514,6 @@
                     });
                     videoPool = [...videoPool, ...newVideos];
                     
-                    // Success: Show video element, hide gradient
                     bgVideo.classList.remove('hidden');
                     fallbackBg.classList.add('hidden');
                     return;
@@ -515,7 +522,6 @@
                 console.warn('Pexels API unavailable, using premium gradient fallback.');
             }
             
-            // Fallback: Hide video element, show animated gradient
             bgVideo.classList.add('hidden');
             fallbackBg.classList.remove('hidden');
         }
@@ -524,7 +530,6 @@
             if (videoPoolIndex >= videoPool.length - 5) fetchVideoBatch();
             if (videoPoolIndex >= videoPool.length) videoPoolIndex = 0;
             
-            // If we have videos, use them. Otherwise, keep the gradient showing.
             if (videoPool.length > 0) {
                 const url = videoPool[videoPoolIndex++];
                 bgVideo.src = url;
@@ -613,7 +618,7 @@
                     const textClass = getArabicTextClass(currentAyahs[0].text);
                     arabicText.className = `font-arabic leading-loose text-white text-shadow mb-6 animate-fade-in dir-rtl ${textClass}`;
                     
-                    getNextVideo(); // Fetch next video or keep gradient
+                    getNextVideo();
                     
                     showStatus(`Reel ready! ${currentAyahs.length} ayah${currentAyahs.length !== 1 ? 's' : ''} selected.`, 'success');
                 } else {
@@ -700,18 +705,13 @@
             setTimeout(() => statusMsg.classList.add('hidden'), 3000);
         }
 
-        // ============================================
-        // FIXED CHARITY COUNTER (Silent Fallback)
-        // ============================================
         async function fetchCharityCounter() {
             try {
-                // Use the /up endpoint with ?up=0 to fetch without incrementing
                 const res = await fetch('https://api.counterapi.dev/v1/reeldeen/charity_raised/up?up=0');
                 if (!res.ok) throw new Error();
                 const data = await res.json();
                 document.getElementById('charityCounter').textContent = data.count || 0;
             } catch (e) {
-                // Silently fail and default to 0
                 document.getElementById('charityCounter').textContent = '0';
             }
         }
