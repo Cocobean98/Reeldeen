@@ -389,26 +389,42 @@
         const playPauseIcon = document.getElementById('playPauseIcon');
 
         // ============================================
-        // BISMILLAH CLEANUP FUNCTION
-        // Removes the duplicated Bismillah from ayah 1
-        // of all Surahs EXCEPT Al-Fatihah (1) and At-Tawbah (9)
+        // ROBUST BISMILLAH REMOVAL FUNCTION
         // ============================================
-        function cleanBismillah(text, surahNumber, ayahNumber) {
-            if (!text) return text;
-            // Keep Bismillah for Al-Fatihah (it IS ayah 1)
-            // Keep it for At-Tawbah (there is no Bismillah anyway)
-            if (ayahNumber !== 1 || surahNumber === 1 || surahNumber === 9) {
+        function removeBismillah(text, surahNumber, ayahNumber) {
+            if (!text || typeof text !== 'string') return text;
+            
+            // Keep Bismillah for:
+            // 1. Al-Fatihah (Surah 1) - Bismillah IS ayah 1
+            // 2. At-Tawbah (Surah 9) - No Bismillah exists
+            // 3. Any ayah that is NOT the first ayah
+            if (surahNumber === 1 || surahNumber === 9 || ayahNumber !== 1) {
                 return text;
             }
             
-            // Match Bismillah at the start of the text
-            // Handles variations in Unicode/diacritics between "بِسْمِ" and "الرَّحِيمِ"
-            const bismillahPattern = /^بِسْمِ[\s\S]*?الرَّحِيمِ\s*/;
-            const match = text.match(bismillahPattern);
+            // Common Bismillah patterns in the API
+            const bismillahPatterns = [
+                /^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\s*/,
+                /^بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ\s*/,
+                /^بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ\s*/,
+                /^بسم الله الرحمن الرحيم\s*/
+            ];
             
-            // Only remove if the match is reasonable length (Bismillah is ~40 chars)
-            if (match && match[0].length < 80) {
-                return text.substring(match[0].length).trim();
+            for (const pattern of bismillahPatterns) {
+                if (pattern.test(text)) {
+                    const cleaned = text.replace(pattern, '').trim();
+                    console.log('✓ Removed Bismillah from Surah', surahNumber, 'Ayah', ayahNumber);
+                    return cleaned;
+                }
+            }
+            
+            // Fallback: if text starts with بسم and is reasonably long, try to remove first ~40-80 chars
+            if (text.startsWith('بسم') && text.length > 80) {
+                const match = text.match(/^بسم[\s\S]{0,80}?الرحيم[\s]*/);
+                if (match) {
+                    console.log('✓ Removed Bismillah (fallback) from Surah', surahNumber);
+                    return text.substring(match[0].length).trim();
+                }
             }
             
             return text;
@@ -499,8 +515,8 @@
                 const englishAyah = englishAyahs[index];
                 const ayahNumber = ayah.numberInSurah;
                 
-                // CLEAN the Arabic text to remove duplicated Bismillah
-                const cleanArabicText = cleanBismillah(ayah.text, surahNum, ayahNumber);
+                // Remove Bismillah for display in selector
+                const cleanArabicText = removeBismillah(ayah.text, surahNum, ayahNumber);
                 
                 const ayahItem = document.createElement('div');
                 ayahItem.className = `ayah-item p-3 rounded-lg border border-transparent hover:border-gold-400/30 ${selectedAyahs.has(ayahNumber) ? 'selected' : ''}`;
@@ -665,13 +681,17 @@
                     filteredArabic.sort((a, b) => a.numberInSurah - b.numberInSurah);
                     filteredEnglish.sort((a, b) => a.numberInSurah - b.numberInSurah);
 
-                    // Apply Bismillah cleanup when building the reel data
-                    currentAyahs = filteredArabic.map((ayah, index) => ({
-                        ...ayah,
-                        text: cleanBismillah(ayah.text, surahNum, ayah.numberInSurah),
-                        translation: filteredEnglish[index] ? filteredEnglish[index].text : '',
-                        surah: arabicEdition
-                    }));
+                    // Apply Bismillah removal and create reel data
+                    // EACH AYAH GETS ITS OWN SLIDE
+                    currentAyahs = filteredArabic.map((ayah, index) => {
+                        const cleanedText = removeBismillah(ayah.text, surahNum, ayah.numberInSurah);
+                        return {
+                            ...ayah,
+                            text: cleanedText, // Bismillah removed
+                            translation: filteredEnglish[index] ? filteredEnglish[index].text : '',
+                            surah: arabicEdition
+                        };
+                    });
 
                     currentAyahIndex = 0;
                     displaySurahName.textContent = currentAyahs[0].surah.englishName;
@@ -684,6 +704,7 @@
                     bgVideo.play().catch(e => console.log('Video autoplay prevented:', e));
                     
                     showStatus(`Reel ready! ${currentAyahs.length} ayah${currentAyahs.length !== 1 ? 's' : ''} selected.`, 'success');
+                    console.log('✓ Generated reel with', currentAyahs.length, 'ayahs (one per slide)');
                 } else {
                     throw new Error('API returned unexpected data');
                 }
@@ -713,18 +734,21 @@
             progressBar.style.width = '0%';
         }
 
+        // EACH AYAH APPEARS ON ITS OWN SLIDE
         function playCurrentAyah() {
             if (!isPlaying) return;
             if (currentAyahIndex >= currentAyahs.length) {
-                currentAyahIndex = 0;
+                currentAyahIndex = 0; // Loop back to start
             }
 
             const ayah = currentAyahs[currentAyahIndex];
             
+            // Fade out current text
             arabicText.style.opacity = '0';
             translationText.style.opacity = '0';
             
             setTimeout(() => {
+                // Update to NEXT ayah (one ayah per slide)
                 arabicText.textContent = ayah.text || '';
                 translationText.textContent = ayah.translation || '';
                 ayahIndicator.textContent = `Ayah ${ayah.numberInSurah}`;
@@ -732,16 +756,19 @@
                 const textClass = getArabicTextClass(ayah.text);
                 arabicText.className = `font-arabic leading-loose text-white text-shadow mb-6 animate-fade-in dir-rtl ${textClass}`;
                 
+                // Fade in new text
                 arabicText.style.opacity = '1';
                 translationText.style.opacity = '1';
             }, 200);
 
+            // Play audio for THIS ayah only
             audioPlayer.src = ayah.audio;
             const totalAyahs = currentAyahs.length;
             progressBar.style.width = `${((currentAyahIndex + 1) / totalAyahs) * 100}%`;
 
             audioPlayer.play().catch(e => console.error('Audio play failed:', e));
 
+            // When this ayah's audio ends, move to NEXT ayah (next slide)
             audioPlayer.onended = () => {
                 currentAyahIndex++;
                 if (isPlaying) playCurrentAyah();
