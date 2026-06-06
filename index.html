@@ -30,12 +30,8 @@
                         teal: { 600: '#1A5F5F', 700: '#144D4D', 800: '#0F3D3D', 900: '#0A2F2F' },
                         gold: { 400: '#D4AF37', 500: '#B8945F', 600: '#9A7B4F' }
                     },
-                    animation: { 
-                        'fade-in': 'fadeIn 0.8s ease-out forwards',
-                    },
-                    keyframes: { 
-                        fadeIn: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
-                    }
+                    animation: { 'fade-in': 'fadeIn 0.8s ease-out forwards' },
+                    keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
                 }
             }
         }
@@ -45,7 +41,6 @@
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #EBE4D8; }
         ::-webkit-scrollbar-thumb { background: #1A5F5F; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #144D4D; }
         
         .reel-container { aspect-ratio: 9 / 16; max-height: 85vh; }
         .text-shadow { text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
@@ -70,9 +65,7 @@
         
         .premium-btn {
             background: linear-gradient(135deg, #1A5F5F 0%, #0F3D3D 100%);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
+            position: relative; overflow: hidden; transition: all 0.3s ease;
         }
         .premium-btn::before {
             content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
@@ -89,6 +82,18 @@
         .pulse-ring::before {
             content: ''; position: absolute; inset: 0; border-radius: 50%; border: 4px solid #1A5F5F;
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        
+        /* Premium Animated Gradient Fallback */
+        .fallback-bg {
+            background: linear-gradient(-45deg, #0A2F2F, #1A5F5F, #B8945F, #144D4D);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         
         .arabic-text-short { font-size: 2.2rem; }
@@ -224,7 +229,12 @@
 
         <div class="lg:col-span-8 flex flex-col items-center justify-center min-h-[500px]">
             <div class="reel-container w-full max-w-md bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-cream-300 relative group">
+                <!-- Animated Gradient Fallback (Shows if API fails) -->
+                <div id="fallbackBg" class="absolute inset-0 fallback-bg hidden"></div>
+                
+                <!-- Background Video -->
                 <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover opacity-80" loop muted playsinline></video>
+                
                 <div class="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80 pointer-events-none"></div>
                 <div class="absolute inset-0 flex flex-col justify-center items-center p-6 text-center z-10">
                     <div class="mb-6 animate-fade-in">
@@ -291,7 +301,6 @@
     <script>
         lucide.createIcons();
 
-        const PEXELS_API_KEY = '53oonQev08x5D7BdjSFNnA92huCjZ4RJ84m4Zvby7mRTMBnSgAwK2Sxz';
         const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
         
         let surahsData = [];
@@ -316,6 +325,7 @@
         const reciterSelect = document.getElementById('reciterSelect');
         const generateBtn = document.getElementById('generateBtn');
         const bgVideo = document.getElementById('bgVideo');
+        const fallbackBg = document.getElementById('fallbackBg');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const countdownTimer = document.getElementById('countdownTimer');
         
@@ -327,25 +337,17 @@
         const playPauseOverlay = document.getElementById('playPauseOverlay');
         const playPauseIcon = document.getElementById('playPauseIcon');
 
-        // ============================================
-        // NORMALIZE API DATA (Fixes the Bismillah issue)
-        // ============================================
         function normalizeAyahData(arabicAyahs, englishAyahs, surahNumber) {
-            // Create copies to avoid mutating original API data
             let ar = [...arabicAyahs];
             let en = [...englishAyahs];
 
-            // For all Surahs EXCEPT Al-Fatihah (1) and At-Tawbah (9),
-            // the API includes the Bismillah as the first element (index 0).
-            // We remove it so the actual first verse becomes index 0.
             if (surahNumber !== 1 && surahNumber !== 9) {
                 if (ar.length > 0 && ar[0].text && ar[0].text.includes('بِسْمِ')) {
-                    ar.shift(); // Remove Bismillah from Arabic
-                    en.shift(); // Remove Bismillah from English
+                    ar.shift();
+                    en.shift();
                 }
             }
 
-            // Re-index the numberInSurah so it matches the actual Mushaf (1, 2, 3...)
             ar.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
             en.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
 
@@ -393,35 +395,28 @@
         toggleLanguageBtn.addEventListener('click', () => {
             showEnglishInSelector = !showEnglishInSelector;
             toggleLanguageBtn.textContent = showEnglishInSelector ? 'Show Arabic' : 'Show English';
-            if (currentSurahData) {
-                renderAyahSelector(currentSurahData);
-            }
+            if (currentSurahData) renderAyahSelector(currentSurahData);
         });
 
         async function loadAyahSelector(surahNum) {
             try {
                 ayahSelector.innerHTML = '<div class="text-center py-4 text-slate-500 text-sm">Loading ayahs...</div>';
-                
                 const response = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/ar.alafasy,en.sahih`);
                 const data = await response.json();
                 
                 if (data.code === 200 && Array.isArray(data.data) && data.data.length === 2) {
-                    // Normalize the data (removes Bismillah and re-indexes)
                     const normalized = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(surahNum));
-                    
                     currentSurahData = {
                         arabic: { ayahs: normalized.arabic },
                         english: { ayahs: normalized.english },
                         number: parseInt(surahNum)
                     };
-                    
                     renderAyahSelector(currentSurahData);
                 } else {
                     throw new Error('Invalid API response');
                 }
             } catch (error) {
-                console.error('Error loading ayahs:', error);
-                ayahSelector.innerHTML = '<div class="text-center py-4 text-red-500 text-sm">Error loading ayahs. Please try again.</div>';
+                ayahSelector.innerHTML = '<div class="text-center py-4 text-red-500 text-sm">Error loading ayahs.</div>';
             }
         }
 
@@ -429,11 +424,6 @@
             ayahSelector.innerHTML = '';
             const arabicAyahs = surahData.arabic.ayahs;
             const englishAyahs = surahData.english.ayahs;
-            
-            if (!arabicAyahs || arabicAyahs.length === 0) {
-                ayahSelector.innerHTML = '<div class="text-center py-4 text-slate-500 text-sm">No ayahs found</div>';
-                return;
-            }
             
             arabicAyahs.forEach((ayah, index) => {
                 const englishAyah = englishAyahs[index];
@@ -452,9 +442,7 @@
                 
                 ayahItem.innerHTML = `
                     <div class="flex items-start gap-3">
-                        <div class="ayah-number w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                            ${ayahNumber}
-                        </div>
+                        <div class="ayah-number w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">${ayahNumber}</div>
                         <div class="flex-1 min-w-0">
                             <p class="${textClass} text-sm mb-1 leading-relaxed" dir="${dir}">${displayText}</p>
                             ${!showEnglishInSelector && englishAyah ? `<p class="text-xs text-slate-500 italic mt-1 line-clamp-2">${englishAyah.text ? englishAyah.text.substring(0, 60) + '...' : ''}</p>` : ''}
@@ -465,7 +453,6 @@
                 ayahItem.addEventListener('click', () => toggleAyahSelection(ayahNumber, ayahItem));
                 ayahSelector.appendChild(ayahItem);
             });
-            
             updateSelectedCount();
         }
 
@@ -486,63 +473,66 @@
         }
 
         selectAllBtn.addEventListener('click', () => {
-            const ayahItems = ayahSelector.querySelectorAll('.ayah-item');
-            ayahItems.forEach(item => {
-                const number = parseInt(item.dataset.number);
-                selectedAyahs.add(number);
+            ayahSelector.querySelectorAll('.ayah-item').forEach(item => {
+                selectedAyahs.add(parseInt(item.dataset.number));
                 item.classList.add('selected');
             });
             updateSelectedCount();
         });
 
         clearAllBtn.addEventListener('click', () => {
-            const ayahItems = ayahSelector.querySelectorAll('.ayah-item');
-            ayahItems.forEach(item => {
-                item.classList.remove('selected');
-            });
+            ayahSelector.querySelectorAll('.ayah-item').forEach(item => item.classList.remove('selected'));
             selectedAyahs.clear();
             updateSelectedCount();
         });
 
-        // REMOVE the PEXELS_API_KEY constant from the top of your script!
-// const PEXELS_API_KEY = '...'; <-- Delete this line
-
-async function fetchVideoBatch() {
-    try {
-        // Call YOUR Vercel API route instead of Pexels directly
-        const response = await fetch('/api/pexels');
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch from server');
+        // ============================================
+        // SECURE VIDEO FETCH WITH PREMIUM FALLBACK
+        // ============================================
+        async function fetchVideoBatch() {
+            try {
+                // Calls your secure Vercel API route
+                const response = await fetch('/api/pexels');
+                if (!response.ok) throw new Error('Server error');
+                const data = await response.json();
+                
+                if (data.videos && data.videos.length > 0) {
+                    const shuffled = data.videos.sort(() => 0.5 - Math.random());
+                    const newVideos = shuffled.map(v => {
+                        const bestFile = v.video_files.find(f => f.height === 1920 && f.width === 1080) || 
+                                         v.video_files.find(f => f.height === 1280 && f.width === 720) || 
+                                         v.video_files[0];
+                        return bestFile.link;
+                    });
+                    videoPool = [...videoPool, ...newVideos];
+                    
+                    // Success: Show video element, hide gradient
+                    bgVideo.classList.remove('hidden');
+                    fallbackBg.classList.add('hidden');
+                    return;
+                }
+            } catch (error) {
+                console.warn('Pexels API unavailable, using premium gradient fallback.');
+            }
+            
+            // Fallback: Hide video element, show animated gradient
+            bgVideo.classList.add('hidden');
+            fallbackBg.classList.remove('hidden');
         }
-        
-        const data = await response.json();
-        
-        if (data.videos && data.videos.length > 0) {
-            const shuffled = data.videos.sort(() => 0.5 - Math.random());
-            const newVideos = shuffled.map(v => {
-                const bestFile = v.video_files.find(f => f.height === 1920 && f.width === 1080) || 
-                                 v.video_files.find(f => f.height === 1280 && f.width === 720) || 
-                                 v.video_files[0];
-                return bestFile.link;
-            });
-            videoPool = [...videoPool, ...newVideos];
-        }
-    } catch (error) {
-        console.error('Video Fetch Error:', error);
-        // Fallback video if the API fails
-        videoPool.push('https://videos.pexels.com/video-files/856973/856973-hd_1080_1920_25fps.mp4');
-    }
-}
 
         function getNextVideo() {
-            if (videoPoolIndex >= videoPool.length - 5) {
-                fetchVideoBatch();
+            if (videoPoolIndex >= videoPool.length - 5) fetchVideoBatch();
+            if (videoPoolIndex >= videoPool.length) videoPoolIndex = 0;
+            
+            // If we have videos, use them. Otherwise, keep the gradient showing.
+            if (videoPool.length > 0) {
+                const url = videoPool[videoPoolIndex++];
+                bgVideo.src = url;
+                bgVideo.load();
+                bgVideo.play().catch(() => {});
+                bgVideo.classList.remove('hidden');
+                fallbackBg.classList.add('hidden');
             }
-            if (videoPoolIndex >= videoPool.length) {
-                videoPoolIndex = 0;
-            }
-            return videoPool[videoPoolIndex++];
         }
 
         function startLoadingSequence(finalCallback) {
@@ -601,7 +591,6 @@ async function fetchVideoBatch() {
                 const data = await response.json();
 
                 if (data.code === 200 && Array.isArray(data.data) && data.data.length === 2) {
-                    // Normalize the data (removes Bismillah and re-indexes)
                     const normalized = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, surahNum);
                     const arabicAyahs = normalized.arabic;
                     const englishAyahs = normalized.english;
@@ -612,10 +601,8 @@ async function fetchVideoBatch() {
                     filteredArabic.sort((a, b) => a.numberInSurah - b.numberInSurah);
                     filteredEnglish.sort((a, b) => a.numberInSurah - b.numberInSurah);
 
-                    // Build the reel data (One Ayah per slide)
                     currentAyahs = filteredArabic.map((ayah, index) => ({
                         ...ayah,
-                        text: ayah.text, // Bismillah is already removed by normalizeAyahData
                         translation: filteredEnglish[index] ? filteredEnglish[index].text : '',
                         surah: data.data[0]
                     }));
@@ -626,16 +613,13 @@ async function fetchVideoBatch() {
                     const textClass = getArabicTextClass(currentAyahs[0].text);
                     arabicText.className = `font-arabic leading-loose text-white text-shadow mb-6 animate-fade-in dir-rtl ${textClass}`;
                     
-                    bgVideo.src = getNextVideo();
-                    bgVideo.load();
-                    bgVideo.play().catch(e => console.log('Video autoplay prevented:', e));
+                    getNextVideo(); // Fetch next video or keep gradient
                     
                     showStatus(`Reel ready! ${currentAyahs.length} ayah${currentAyahs.length !== 1 ? 's' : ''} selected.`, 'success');
                 } else {
                     throw new Error('API returned unexpected data');
                 }
             } catch (error) {
-                console.error('Generation Error:', error);
                 showStatus('Failed to fetch Quran data.', 'error');
                 loadingOverlay.classList.add('hidden');
                 loadingOverlay.classList.remove('flex');
@@ -660,21 +644,16 @@ async function fetchVideoBatch() {
             progressBar.style.width = '0%';
         }
 
-        // ONE AYAH PER SLIDE LOGIC
         function playCurrentAyah() {
             if (!isPlaying) return;
-            if (currentAyahIndex >= currentAyahs.length) {
-                currentAyahIndex = 0; // Loop back to start
-            }
+            if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
 
             const ayah = currentAyahs[currentAyahIndex];
             
-            // Fade out current text
             arabicText.style.opacity = '0';
             translationText.style.opacity = '0';
             
             setTimeout(() => {
-                // Update to the NEXT ayah (one ayah per slide)
                 arabicText.textContent = ayah.text || '';
                 translationText.textContent = ayah.translation || '';
                 ayahIndicator.textContent = `Ayah ${ayah.numberInSurah}`;
@@ -682,19 +661,14 @@ async function fetchVideoBatch() {
                 const textClass = getArabicTextClass(ayah.text);
                 arabicText.className = `font-arabic leading-loose text-white text-shadow mb-6 animate-fade-in dir-rtl ${textClass}`;
                 
-                // Fade in new text
                 arabicText.style.opacity = '1';
                 translationText.style.opacity = '1';
             }, 200);
 
-            // Play audio for THIS ayah only
             audioPlayer.src = ayah.audio;
-            const totalAyahs = currentAyahs.length;
-            progressBar.style.width = `${((currentAyahIndex + 1) / totalAyahs) * 100}%`;
-
+            progressBar.style.width = `${((currentAyahIndex + 1) / currentAyahs.length) * 100}%`;
             audioPlayer.play().catch(e => console.error('Audio play failed:', e));
 
-            // When this ayah's audio ends, move to NEXT ayah (next slide)
             audioPlayer.onended = () => {
                 currentAyahIndex++;
                 if (isPlaying) playCurrentAyah();
@@ -726,13 +700,18 @@ async function fetchVideoBatch() {
             setTimeout(() => statusMsg.classList.add('hidden'), 3000);
         }
 
+        // ============================================
+        // FIXED CHARITY COUNTER (Silent Fallback)
+        // ============================================
         async function fetchCharityCounter() {
             try {
-                const res = await fetch('https://api.counterapi.dev/v1/reeldeen/charity_raised/get');
+                // Use the /up endpoint with ?up=0 to fetch without incrementing
+                const res = await fetch('https://api.counterapi.dev/v1/reeldeen/charity_raised/up?up=0');
+                if (!res.ok) throw new Error();
                 const data = await res.json();
                 document.getElementById('charityCounter').textContent = data.count || 0;
             } catch (e) {
-                console.log('Counter API unavailable, using fallback.');
+                // Silently fail and default to 0
                 document.getElementById('charityCounter').textContent = '0';
             }
         }
