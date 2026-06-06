@@ -5,31 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <title>ReelDeen | Free Quran Reel Generator & Islamic Content Creator Tool</title>
-    <meta name="description" content="ReelDeen is a 100% free, professional Quran reel generator. Create stunning 9:16 Islamic videos with synchronized recitation, beautiful nature backgrounds, and English translations. Perfect for TikTok, Instagram, and YouTube Shorts.">
-    <meta name="keywords" content="Quran reel generator, Islamic video maker, free Quran app, Muslim content creator, TikTok Quran videos, Instagram Reels Islam, YouTube Shorts Quran, Sadaqah Jariyah, Islamic social media tools, ReelDeen, Quran recitation video maker">
+    <meta name="description" content="ReelDeen is a 100% free, professional Quran reel generator. Create stunning 9:16 Islamic videos with synchronized recitation, beautiful nature backgrounds, and English translations.">
+    <meta name="keywords" content="Quran reel generator, Islamic video maker, free Quran app, Muslim content creator, TikTok Quran videos, Instagram Reels Islam, YouTube Shorts Quran, Sadaqah Jariyah, ReelDeen">
     <meta name="author" content="ReelDeen">
-    <meta name="robots" content="index, follow">
-    
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="ReelDeen | Free Quran Reel Generator">
-    <meta property="og:description" content="Create beautiful, synchronized Quranic reels in seconds. 100% free, built for the Muslim creator economy.">
-    
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ReelDeen | Free Quran Reel Generator">
-    <meta name="twitter:description" content="Create beautiful, synchronized Quranic reels in seconds. 100% free, built for the Muslim creator economy.">
-
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "ReelDeen",
-      "url": "",
-      "description": "ReelDeen is a 100% free, professional Quran reel generator. Create stunning 9:16 Islamic videos with synchronized recitation and beautiful nature backgrounds.",
-      "applicationCategory": "MultimediaApplication",
-      "operatingSystem": "Any",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
-    }
-    </script>
     
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -54,13 +32,9 @@
                     },
                     animation: { 
                         'fade-in': 'fadeIn 0.8s ease-out forwards',
-                        'float': 'float 6s ease-in-out infinite',
-                        'shimmer': 'shimmer 2s linear infinite',
                     },
                     keyframes: { 
-                        fadeIn: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-                        float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
-                        shimmer: { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } }
+                        fadeIn: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
                     }
                 }
             }
@@ -101,40 +75,19 @@
             transition: all 0.3s ease;
         }
         .premium-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             transition: left 0.5s;
         }
         .premium-btn:hover::before { left: 100%; }
-        .premium-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(26, 95, 95, 0.3);
-        }
+        .premium-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(26, 95, 95, 0.3); }
         
-        .gold-btn {
-            background: linear-gradient(135deg, #D4AF37 0%, #B8945F 100%);
-            transition: all 0.3s ease;
-        }
-        .gold-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(184, 148, 95, 0.3);
-        }
+        .gold-btn { background: linear-gradient(135deg, #D4AF37 0%, #B8945F 100%); transition: all 0.3s ease; }
+        .gold-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(184, 148, 95, 0.3); }
         
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 1; }
-            100% { transform: scale(1.5); opacity: 0; }
-        }
+        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
         .pulse-ring::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 4px solid #1A5F5F;
+            content: ''; position: absolute; inset: 0; border-radius: 50%; border: 4px solid #1A5F5F;
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         
@@ -151,38 +104,24 @@
         }
         
         .elegant-input {
-            background: rgba(250, 248, 243, 0.8);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            transition: all 0.3s ease;
+            background: rgba(250, 248, 243, 0.8); border: 1px solid rgba(212, 175, 55, 0.3); transition: all 0.3s ease;
         }
-        .elegant-input:focus {
-            border-color: #1A5F5F;
-            box-shadow: 0 0 0 3px rgba(26, 95, 95, 0.1);
-            outline: none;
-        }
+        .elegant-input:focus { border-color: #1A5F5F; box-shadow: 0 0 0 3px rgba(26, 95, 95, 0.1); outline: none; }
         
         .decorative-border { position: relative; }
         .decorative-border::before {
-            content: '';
-            position: absolute;
-            top: 10px; bottom: 10px; left: 10px; right: 10px;
-            border: 1px solid rgba(184, 148, 95, 0.3);
-            pointer-events: none;
+            content: ''; position: absolute; top: 10px; bottom: 10px; left: 10px; right: 10px;
+            border: 1px solid rgba(184, 148, 95, 0.3); pointer-events: none;
         }
         
         .ayah-selector { max-height: 300px; overflow-y: auto; }
         .ayah-item { transition: all 0.2s ease; cursor: pointer; }
-        .ayah-item:hover {
-            background: rgba(212, 175, 55, 0.1);
-            transform: translateX(4px);
-        }
+        .ayah-item:hover { background: rgba(212, 175, 55, 0.1); transform: translateX(4px); }
         .ayah-item.selected {
             background: linear-gradient(135deg, rgba(26, 95, 95, 0.1) 0%, rgba(184, 148, 95, 0.1) 100%);
             border-left: 3px solid #1A5F5F;
         }
-        .ayah-number {
-            background: linear-gradient(135deg, #1A5F5F 0%, #B8945F 100%);
-        }
+        .ayah-number { background: linear-gradient(135deg, #1A5F5F 0%, #B8945F 100%); }
     </style>
 </head>
 <body class="bg-cream-50 text-slate-800 font-sans min-h-screen flex flex-col islamic-pattern">
@@ -389,45 +328,28 @@
         const playPauseIcon = document.getElementById('playPauseIcon');
 
         // ============================================
-        // ROBUST BISMILLAH REMOVAL FUNCTION
+        // NORMALIZE API DATA (Fixes the Bismillah issue)
         // ============================================
-        function removeBismillah(text, surahNumber, ayahNumber) {
-            if (!text || typeof text !== 'string') return text;
-            
-            // Keep Bismillah for:
-            // 1. Al-Fatihah (Surah 1) - Bismillah IS ayah 1
-            // 2. At-Tawbah (Surah 9) - No Bismillah exists
-            // 3. Any ayah that is NOT the first ayah
-            if (surahNumber === 1 || surahNumber === 9 || ayahNumber !== 1) {
-                return text;
-            }
-            
-            // Common Bismillah patterns in the API
-            const bismillahPatterns = [
-                /^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\s*/,
-                /^بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ\s*/,
-                /^بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ\s*/,
-                /^بسم الله الرحمن الرحيم\s*/
-            ];
-            
-            for (const pattern of bismillahPatterns) {
-                if (pattern.test(text)) {
-                    const cleaned = text.replace(pattern, '').trim();
-                    console.log('✓ Removed Bismillah from Surah', surahNumber, 'Ayah', ayahNumber);
-                    return cleaned;
+        function normalizeAyahData(arabicAyahs, englishAyahs, surahNumber) {
+            // Create copies to avoid mutating original API data
+            let ar = [...arabicAyahs];
+            let en = [...englishAyahs];
+
+            // For all Surahs EXCEPT Al-Fatihah (1) and At-Tawbah (9),
+            // the API includes the Bismillah as the first element (index 0).
+            // We remove it so the actual first verse becomes index 0.
+            if (surahNumber !== 1 && surahNumber !== 9) {
+                if (ar.length > 0 && ar[0].text && ar[0].text.includes('بِسْمِ')) {
+                    ar.shift(); // Remove Bismillah from Arabic
+                    en.shift(); // Remove Bismillah from English
                 }
             }
-            
-            // Fallback: if text starts with بسم and is reasonably long, try to remove first ~40-80 chars
-            if (text.startsWith('بسم') && text.length > 80) {
-                const match = text.match(/^بسم[\s\S]{0,80}?الرحيم[\s]*/);
-                if (match) {
-                    console.log('✓ Removed Bismillah (fallback) from Surah', surahNumber);
-                    return text.substring(match[0].length).trim();
-                }
-            }
-            
-            return text;
+
+            // Re-index the numberInSurah so it matches the actual Mushaf (1, 2, 3...)
+            ar.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
+            en.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
+
+            return { arabic: ar, english: en };
         }
 
         async function init() {
@@ -484,9 +406,12 @@
                 const data = await response.json();
                 
                 if (data.code === 200 && Array.isArray(data.data) && data.data.length === 2) {
+                    // Normalize the data (removes Bismillah and re-indexes)
+                    const normalized = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(surahNum));
+                    
                     currentSurahData = {
-                        arabic: data.data[0],
-                        english: data.data[1],
+                        arabic: { ayahs: normalized.arabic },
+                        english: { ayahs: normalized.english },
                         number: parseInt(surahNum)
                     };
                     
@@ -504,7 +429,6 @@
             ayahSelector.innerHTML = '';
             const arabicAyahs = surahData.arabic.ayahs;
             const englishAyahs = surahData.english.ayahs;
-            const surahNum = surahData.number;
             
             if (!arabicAyahs || arabicAyahs.length === 0) {
                 ayahSelector.innerHTML = '<div class="text-center py-4 text-slate-500 text-sm">No ayahs found</div>';
@@ -515,16 +439,13 @@
                 const englishAyah = englishAyahs[index];
                 const ayahNumber = ayah.numberInSurah;
                 
-                // Remove Bismillah for display in selector
-                const cleanArabicText = removeBismillah(ayah.text, surahNum, ayahNumber);
-                
                 const ayahItem = document.createElement('div');
                 ayahItem.className = `ayah-item p-3 rounded-lg border border-transparent hover:border-gold-400/30 ${selectedAyahs.has(ayahNumber) ? 'selected' : ''}`;
                 ayahItem.dataset.number = ayahNumber;
                 
                 const displayText = showEnglishInSelector 
                     ? (englishAyah && englishAyah.text ? englishAyah.text.substring(0, 80) + '...' : '...')
-                    : (cleanArabicText ? cleanArabicText.substring(0, 60) + '...' : '...');
+                    : (ayah.text ? ayah.text.substring(0, 60) + '...' : '...');
                 
                 const textClass = showEnglishInSelector ? 'text-slate-700 font-serif' : 'font-arabic text-right text-teal-800';
                 const dir = showEnglishInSelector ? 'ltr' : 'rtl';
@@ -672,26 +593,24 @@
                 const data = await response.json();
 
                 if (data.code === 200 && Array.isArray(data.data) && data.data.length === 2) {
-                    const arabicEdition = data.data[0]; 
-                    const englishEdition = data.data[1]; 
+                    // Normalize the data (removes Bismillah and re-indexes)
+                    const normalized = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, surahNum);
+                    const arabicAyahs = normalized.arabic;
+                    const englishAyahs = normalized.english;
 
-                    const filteredArabic = arabicEdition.ayahs.filter(a => selectedAyahs.has(a.numberInSurah));
-                    const filteredEnglish = englishEdition.ayahs.filter(a => selectedAyahs.has(a.numberInSurah));
+                    const filteredArabic = arabicAyahs.filter(a => selectedAyahs.has(a.numberInSurah));
+                    const filteredEnglish = englishAyahs.filter(a => selectedAyahs.has(a.numberInSurah));
 
                     filteredArabic.sort((a, b) => a.numberInSurah - b.numberInSurah);
                     filteredEnglish.sort((a, b) => a.numberInSurah - b.numberInSurah);
 
-                    // Apply Bismillah removal and create reel data
-                    // EACH AYAH GETS ITS OWN SLIDE
-                    currentAyahs = filteredArabic.map((ayah, index) => {
-                        const cleanedText = removeBismillah(ayah.text, surahNum, ayah.numberInSurah);
-                        return {
-                            ...ayah,
-                            text: cleanedText, // Bismillah removed
-                            translation: filteredEnglish[index] ? filteredEnglish[index].text : '',
-                            surah: arabicEdition
-                        };
-                    });
+                    // Build the reel data (One Ayah per slide)
+                    currentAyahs = filteredArabic.map((ayah, index) => ({
+                        ...ayah,
+                        text: ayah.text, // Bismillah is already removed by normalizeAyahData
+                        translation: filteredEnglish[index] ? filteredEnglish[index].text : '',
+                        surah: data.data[0]
+                    }));
 
                     currentAyahIndex = 0;
                     displaySurahName.textContent = currentAyahs[0].surah.englishName;
@@ -704,7 +623,6 @@
                     bgVideo.play().catch(e => console.log('Video autoplay prevented:', e));
                     
                     showStatus(`Reel ready! ${currentAyahs.length} ayah${currentAyahs.length !== 1 ? 's' : ''} selected.`, 'success');
-                    console.log('✓ Generated reel with', currentAyahs.length, 'ayahs (one per slide)');
                 } else {
                     throw new Error('API returned unexpected data');
                 }
@@ -734,7 +652,7 @@
             progressBar.style.width = '0%';
         }
 
-        // EACH AYAH APPEARS ON ITS OWN SLIDE
+        // ONE AYAH PER SLIDE LOGIC
         function playCurrentAyah() {
             if (!isPlaying) return;
             if (currentAyahIndex >= currentAyahs.length) {
@@ -748,7 +666,7 @@
             translationText.style.opacity = '0';
             
             setTimeout(() => {
-                // Update to NEXT ayah (one ayah per slide)
+                // Update to the NEXT ayah (one ayah per slide)
                 arabicText.textContent = ayah.text || '';
                 translationText.textContent = ayah.translation || '';
                 ayahIndicator.textContent = `Ayah ${ayah.numberInSurah}`;
