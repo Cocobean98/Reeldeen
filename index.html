@@ -350,21 +350,39 @@
         const playPauseIcon = document.getElementById('playPauseIcon');
 
         function normalizeAyahData(arabicAyahs, englishAyahs, surahNumber) {
-            let ar = [...arabicAyahs];
-            let en = [...englishAyahs];
+    let ar = [...arabicAyahs];
+    let en = [...englishAyahs];
 
-            if (surahNumber !== 1 && surahNumber !== 9) {
-                if (ar.length > 0 && ar[0].text && ar[0].text.includes('بِسْمِ')) {
-                    ar.shift();
-                    en.shift();
+    // For all Surahs EXCEPT Al-Fatihah (1) and At-Tawbah (9)
+    if (surahNumber !== 1 && surahNumber !== 9) {
+        if (ar.length > 0) {
+            const firstAyahText = ar[0].text || '';
+            
+            // Case 1: Bismillah is a SEPARATE ayah (short text, ~40 chars)
+            // Remove the entire ayah object
+            if (firstAyahText.includes('بِسْمِ') && firstAyahText.length < 80) {
+                ar.shift();
+                if (en.length > 0) en.shift();
+            } 
+            // Case 2: Bismillah is PREPENDED to the first verse's text
+            // Remove only the Bismillah part, keep the actual verse
+            else if (firstAyahText.startsWith('بِسْمِ')) {
+                ar[0].text = firstAyahText.replace(/^بِسْمِ[\s\S]*?الرَّحِيمِ[\s]*/, '').trim();
+                
+                // Also clean English translation if it has the Bismillah translation
+                if (en.length > 0 && en[0].text) {
+                    en[0].text = en[0].text.replace(/^(In the name of Allah,? (the )?(Entirely )?Merciful,? (the )?(Especially )?Merciful\.?[\s]*)/i, '').trim();
                 }
             }
-
-            ar.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
-            en.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
-
-            return { arabic: ar, english: en };
         }
+    }
+
+    // Re-index the numberInSurah so it matches the actual Mushaf (1, 2, 3...)
+    ar.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
+    en.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
+
+    return { arabic: ar, english: en };
+}
 
         async function init() {
             try {
