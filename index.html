@@ -50,13 +50,6 @@
         .arabic-text-medium { font-size: 1.6rem; }
         .arabic-text-long { font-size: 1.2rem; }
         .arabic-text-very-long { font-size: 1rem; }
-
-        .tag-chip {
-            transition: all 0.2s;
-        }
-        .tag-chip:hover {
-            transform: translateY(-1px);
-        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -80,7 +73,7 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
-        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto">
+        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
                 <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
@@ -105,37 +98,6 @@
                 <div class="flex items-center justify-between text-xs text-white/60 mb-2">
                     <span>Selected</span>
                     <span id="selectedCount" class="font-mono text-white">0</span>
-                </div>
-            </div>
-
-            <!-- Tags & Captions Section -->
-            <div id="tagsSection" class="hidden p-4 border-t border-white/5">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Auto-Generated Tags</span>
-                    <button id="toggleTagFormat" class="text-xs text-accent-500 hover:text-accent-400">
-                        Switch Format
-                    </button>
-                </div>
-                
-                <div class="mb-3">
-                    <div class="flex gap-2 mb-2">
-                        <button id="copyTagsBtn" class="flex-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-1.5 rounded transition flex items-center justify-center gap-1">
-                            <i data-lucide="copy" class="w-3 h-3"></i> Copy Tags
-                        </button>
-                    </div>
-                    <div id="tagsContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-24 overflow-y-auto">
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider block mb-2">Caption</span>
-                    <div class="flex gap-2 mb-2">
-                        <button id="copyCaptionBtn" class="flex-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-1.5 rounded transition flex items-center justify-center gap-1">
-                            <i data-lucide="copy" class="w-3 h-3"></i> Copy Caption
-                        </button>
-                    </div>
-                    <div id="captionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
-                    </div>
                 </div>
             </div>
         </aside>
@@ -173,7 +135,7 @@
             <p class="mt-6 text-xs text-white/30 font-mono">9:16 Preview • Click to Play/Pause</p>
         </main>
 
-        <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0">
+        <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
                 <select id="reciterSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
@@ -184,14 +146,41 @@
                 </select>
             </div>
 
-            <div class="p-4 flex-1">
+            <div class="p-4 border-b border-white/5">
                 <button id="generateBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 rounded-md flex items-center justify-center gap-2 transition text-sm">
                     <i data-lucide="wand-2" class="w-4 h-4"></i> Generate Reel
                 </button>
                 <div id="statusMsg" class="mt-3 text-xs text-center hidden"></div>
             </div>
 
-            <div class="p-4 border-t border-white/5 bg-dark-900/50">
+            <!-- Tags & Captions Section (MOVED TO RIGHT) -->
+            <div id="tagsSection" class="hidden p-4 border-b border-white/5">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Auto-Generated Tags</span>
+                    <button id="toggleTagFormat" class="text-xs text-accent-500 hover:text-accent-400 font-medium">
+                        Switch Format
+                    </button>
+                </div>
+                
+                <div class="mb-3">
+                    <button id="copyTagsBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
+                        <i data-lucide="copy" class="w-3 h-3"></i> Copy Tags
+                    </button>
+                    <div id="tagsContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-24 overflow-y-auto break-words">
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider block mb-2">Caption</span>
+                    <button id="copyCaptionBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
+                        <i data-lucide="copy" class="w-3 h-3"></i> Copy Caption
+                    </button>
+                    <div id="captionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 mt-auto">
                 <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="block w-full bg-white/5 hover:bg-white/10 text-white/80 text-xs py-2 rounded-md text-center transition">
                     Support me for free by watching ads
                 </a>
@@ -282,7 +271,7 @@
         let videoPool = [], videoPoolIndex = 0;
         let mediaRecorder, recordedChunks = [];
         let isRecording = false;
-        let currentTagFormat = 'hashtags'; // 'hashtags' or 'comma'
+        let currentTagFormat = 'hashtags';
 
         const surahSelect = document.getElementById('surahSelect');
         const ayahList = document.getElementById('ayahList');
@@ -304,7 +293,6 @@
         const playPauseOverlay = document.getElementById('playPauseOverlay');
         const playPauseIcon = document.getElementById('playPauseIcon');
 
-        // Viral tags database
         const viralTags = {
             general: ['#quran', '#islam', '#muslim', '#allah', '#islamic', '#muslimtiktok', '#quranrecitation', '#islamicreels', '#muslimreels', '#fyp', '#viral', '#trending', '#islamicvideo', '#quranverses', '#deen', '#sunnah', '#muslimah', '#islamicpost', '#quranquotes', '#islamicreminder'],
             short: ['#shorts', '#youtubeshorts', '#tiktok', '#reels', '#viral', '#fyp', '#trending', '#quran', '#islam', '#muslim'],
@@ -422,7 +410,7 @@
             const allTags = [...surahTags, ...viralTags.general, ...viralTags.recitation];
             const uniqueTags = [...new Set(allTags)].slice(0, 25);
             
-            const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.translation || ''}"\n\n Beautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${uniqueTags.join(' ')}`;
+            const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.translation || ''}"\n\nBeautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${uniqueTags.join(' ')}`;
             
             return {
                 hashtags: uniqueTags.join(' '),
@@ -438,6 +426,7 @@
             const tagsContainer = document.getElementById('tagsContainer');
             const captionContainer = document.getElementById('captionContainer');
             
+            // EITHER hashtags OR comma, not both
             if (currentTagFormat === 'hashtags') {
                 tagsContainer.textContent = tagsData.hashtags;
             } else {
@@ -583,7 +572,6 @@
                     downloadBtn.classList.remove('hidden');
                     downloadBtn.style.display = 'flex';
                     
-                    // Show tags section
                     tagsSection.classList.remove('hidden');
                     updateTagsDisplay();
                     
@@ -594,7 +582,6 @@
             });
         });
 
-        // Copy tags button
         document.getElementById('copyTagsBtn').addEventListener('click', () => {
             const tagsContainer = document.getElementById('tagsContainer');
             const text = tagsContainer.textContent;
@@ -610,7 +597,6 @@
             });
         });
 
-        // Copy caption button
         document.getElementById('copyCaptionBtn').addEventListener('click', () => {
             const captionContainer = document.getElementById('captionContainer');
             const text = captionContainer.textContent;
@@ -626,7 +612,6 @@
             });
         });
 
-        // Toggle tag format
         document.getElementById('toggleTagFormat').addEventListener('click', () => {
             currentTagFormat = currentTagFormat === 'hashtags' ? 'comma' : 'hashtags';
             updateTagsDisplay();
@@ -797,26 +782,30 @@
                 
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
+                    // CORRECTED POSITIONS - matching preview exactly
+                    // Preview is ~360x640, canvas is 1080x1920 (3x scale)
+                    // Badge at ~30% from top in preview = 0.30 * 1920 = 576px
                     ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    const badgeW = 160, badgeH = 30;
+                    const badgeW = 180, badgeH = 36;
                     const badgeX = (canvas.width - badgeW) / 2;
-                    const badgeY = 320;
+                    const badgeY = 576;  // CORRECTED: 30% from top
                     
                     ctx.beginPath();
-                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 15);
+                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 18);
                     ctx.fill();
                     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
                     ctx.lineWidth = 1;
                     ctx.stroke();
                     
                     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.font = '600 11px Inter';
+                    ctx.font = '600 14px Inter';  // CORRECTED: 14px (was 11px)
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, badgeY + badgeH/2);
                     
+                    // Arabic text at ~40% from top = 0.40 * 1920 = 768px
                     const arabicMaxWidth = 900;
-                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 85, 45);
+                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 90, 50);  // CORRECTED: 90px base
                     ctx.font = `${arabicFontSize}px Amiri`;
                     ctx.fillStyle = '#ffffff';
                     ctx.textAlign = 'center';
@@ -825,30 +814,32 @@
                     const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
                     const arabicLineHeight = arabicFontSize * 1.5;
                     const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                    const arabicStartY = 650;
+                    const arabicStartY = 768;  // CORRECTED: 40% from top
                     
                     arabicLines.forEach((line, i) => {
                         ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
                     });
                     
+                    // English translation at ~55% from top = 0.55 * 1920 = 1056px
                     const englishMaxWidth = 800;
-                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 32, 22);
+                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 36, 24);  // CORRECTED: 36px base
                     ctx.font = `italic ${englishFontSize}px Inter`;
                     ctx.fillStyle = 'rgba(255,255,255,0.75)';
                     ctx.textAlign = 'center';
                     
                     const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
-                    const englishStartY = arabicStartY + arabicTotalHeight + 60;
+                    const englishStartY = 1056;  // CORRECTED: 55% from top
                     const englishLineHeight = englishFontSize * 1.4;
                     
                     englishLines.forEach((line, i) => {
                         ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
                     });
                     
+                    // Ayah indicator at ~65% from top = 0.65 * 1920 = 1248px
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                    ctx.font = '400 16px JetBrains Mono';
+                    ctx.font = '400 18px JetBrains Mono';  // CORRECTED: 18px
                     ctx.textAlign = 'center';
-                    ctx.fillText(`AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1600);
+                    ctx.fillText(`AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1248);  // CORRECTED: 65% from top
                 }
                 
                 animationId = requestAnimationFrame(drawFrame);
