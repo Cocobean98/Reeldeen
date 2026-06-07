@@ -237,7 +237,6 @@
         lucide.createIcons();
 
         const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
-        const CORS_PROXY = 'https://corsproxy.io/?';
         
         let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
         let selectedAyahs = new Set(), currentSurahData = null;
@@ -326,19 +325,6 @@
             a.forEach((x, i) => x.numberInSurah = i + 1);
             e.forEach((x, i) => x.numberInSurah = i + 1);
             return { arabic: a, english: e };
-        }
-
-        async function fetchAudioViaProxy(originalUrl) {
-            try {
-                const proxyUrl = `${CORS_PROXY}${encodeURIComponent(originalUrl)}`;
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error('Proxy failed');
-                const blob = await response.blob();
-                return URL.createObjectURL(blob);
-            } catch (err) {
-                console.warn('Proxy failed for:', originalUrl);
-                return originalUrl;
-            }
         }
 
         function getArabicTextClass(text) {
@@ -587,6 +573,7 @@
             }
         });
 
+        // IMPROVED DOWNLOAD - Matches preview exactly
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -602,13 +589,18 @@
             const ctx = canvas.getContext('2d');
             const stream = canvas.captureStream(30);
             
-            const audioContext = new AudioContext();
-            const source = audioContext.createMediaElementSource(audioPlayer);
-            const destination = audioContext.createMediaStreamDestination();
-            source.connect(destination);
-            source.connect(audioContext.destination);
-            
-            destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+            // Try to capture audio (will fail silently if CORS blocks it)
+            try {
+                const audioContext = new AudioContext();
+                const source = audioContext.createMediaElementSource(audioPlayer);
+                const destination = audioContext.createMediaStreamDestination();
+                source.connect(destination);
+                source.connect(audioContext.destination);
+                
+                destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+            } catch (e) {
+                console.warn('Audio capture not available, recording video only');
+            }
 
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
             recordedChunks = [];
@@ -627,8 +619,6 @@
                 downloadBtn.disabled = false;
                 downloadLabel.textContent = 'Download Video';
                 lucide.createIcons();
-                
-                audioContext.close();
             };
 
             mediaRecorder.start();
@@ -638,6 +628,7 @@
             function drawFrame() {
                 if (!isRecording) return;
                 
+                // Draw video background (matching preview)
                 if (bgVideo.readyState >= 2) {
                     const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                     const canvasAspect = canvas.width / canvas.height;
@@ -662,25 +653,28 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
+                // Apply same gradient overlay as preview
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
-                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-                    const badgeW = 400, badgeH = 60;
-                    ctx.fillRect((canvas.width - badgeW) / 2, 350, badgeW, badgeH);
-                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                    ctx.strokeRect((canvas.width - badgeW) / 2, 350, badgeW, badgeH);
+                    // Surah name badge (matching preview exactly)
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    const badgeW = 200, badgeH = 35;
+                    ctx.fillRect((canvas.width - badgeW) / 2, 400, badgeW, badgeH);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.strokeRect((canvas.width - badgeW) / 2, 400, badgeW, badgeH);
                     
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = '500 26px Inter';
+                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.font = '500 14px Inter';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, 380);
+                    ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, 417);
                     
+                    // Arabic text (matching preview)
                     const arabicMaxWidth = 900;
-                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 90, 40);
+                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 80, 40);
                     ctx.font = `${arabicFontSize}px Amiri`;
                     ctx.fillStyle = '#ffffff';
                     ctx.textAlign = 'center';
@@ -695,10 +689,11 @@
                         ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
                     });
                     
+                    // English translation (matching preview)
                     const englishMaxWidth = 800;
-                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 45, 24);
+                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 32, 20);
                     ctx.font = `italic ${englishFontSize}px Inter`;
-                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
                     ctx.textAlign = 'center';
                     
                     const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
@@ -709,16 +704,18 @@
                         ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
                     });
                     
-                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                    ctx.font = '500 24px JetBrains Mono';
+                    // Ayah indicator with speaker icon (matching preview)
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.font = '500 20px JetBrains Mono';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1650);
+                    ctx.fillText(`${String(ayah.numberInSurah).padStart(2, '0')} ${String(currentAyahs.length).padStart(2, '0')}`, canvas.width/2, 1650);
                 }
                 
                 animationId = requestAnimationFrame(drawFrame);
             }
             drawFrame();
 
+            // Play through all ayahs
             try {
                 for (let i = 0; i < currentAyahs.length; i++) {
                     if (!isRecording) break;
@@ -727,19 +724,12 @@
                     const progress = Math.round(((i + 1) / currentAyahs.length) * 100);
                     downloadLabel.textContent = `Recording... ${progress}%`;
                     
-                    const blobUrl = await fetchAudioViaProxy(currentAyahs[i].audio);
-                    
-                    await new Promise((resolve, reject) => {
-                        audioPlayer.src = blobUrl;
-                        audioPlayer.onended = () => {
-                            URL.revokeObjectURL(blobUrl);
-                            resolve();
-                        };
-                        audioPlayer.onerror = () => {
-                            URL.revokeObjectURL(blobUrl);
-                            reject(new Error('Audio play error'));
-                        };
-                        audioPlayer.play().catch(reject);
+                    // Wait for audio to finish
+                    await new Promise((resolve) => {
+                        audioPlayer.src = currentAyahs[i].audio;
+                        audioPlayer.onended = resolve;
+                        audioPlayer.onerror = resolve; // Continue even if audio fails
+                        audioPlayer.play().catch(() => resolve());
                     });
                     
                     await new Promise(r => setTimeout(r, 300));
