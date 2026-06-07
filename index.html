@@ -50,6 +50,13 @@
         .arabic-text-medium { font-size: 1.6rem; }
         .arabic-text-long { font-size: 1.2rem; }
         .arabic-text-very-long { font-size: 1rem; }
+
+        .tag-chip {
+            transition: all 0.2s;
+        }
+        .tag-chip:hover {
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -73,7 +80,7 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
-        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
+        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
                 <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
@@ -98,6 +105,37 @@
                 <div class="flex items-center justify-between text-xs text-white/60 mb-2">
                     <span>Selected</span>
                     <span id="selectedCount" class="font-mono text-white">0</span>
+                </div>
+            </div>
+
+            <!-- Tags & Captions Section -->
+            <div id="tagsSection" class="hidden p-4 border-t border-white/5">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Auto-Generated Tags</span>
+                    <button id="toggleTagFormat" class="text-xs text-accent-500 hover:text-accent-400">
+                        Switch Format
+                    </button>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="flex gap-2 mb-2">
+                        <button id="copyTagsBtn" class="flex-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-1.5 rounded transition flex items-center justify-center gap-1">
+                            <i data-lucide="copy" class="w-3 h-3"></i> Copy Tags
+                        </button>
+                    </div>
+                    <div id="tagsContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-24 overflow-y-auto">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider block mb-2">Caption</span>
+                    <div class="flex gap-2 mb-2">
+                        <button id="copyCaptionBtn" class="flex-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-1.5 rounded transition flex items-center justify-center gap-1">
+                            <i data-lucide="copy" class="w-3 h-3"></i> Copy Caption
+                        </button>
+                    </div>
+                    <div id="captionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
+                    </div>
                 </div>
             </div>
         </aside>
@@ -244,6 +282,7 @@
         let videoPool = [], videoPoolIndex = 0;
         let mediaRecorder, recordedChunks = [];
         let isRecording = false;
+        let currentTagFormat = 'hashtags'; // 'hashtags' or 'comma'
 
         const surahSelect = document.getElementById('surahSelect');
         const ayahList = document.getElementById('ayahList');
@@ -256,6 +295,7 @@
         const countdownTimer = document.getElementById('countdownTimer');
         const storyModal = document.getElementById('storyModal');
         const displaySurahName = document.getElementById('displaySurahName');
+        const tagsSection = document.getElementById('tagsSection');
         
         const arabicText = document.getElementById('arabicText');
         const translationText = document.getElementById('translationText');
@@ -263,6 +303,14 @@
         const progressBar = document.getElementById('progressBar');
         const playPauseOverlay = document.getElementById('playPauseOverlay');
         const playPauseIcon = document.getElementById('playPauseIcon');
+
+        // Viral tags database
+        const viralTags = {
+            general: ['#quran', '#islam', '#muslim', '#allah', '#islamic', '#muslimtiktok', '#quranrecitation', '#islamicreels', '#muslimreels', '#fyp', '#viral', '#trending', '#islamicvideo', '#quranverses', '#deen', '#sunnah', '#muslimah', '#islamicpost', '#quranquotes', '#islamicreminder'],
+            short: ['#shorts', '#youtubeshorts', '#tiktok', '#reels', '#viral', '#fyp', '#trending', '#quran', '#islam', '#muslim'],
+            recitation: ['#quranrecitation', '#tilawat', '#tajweed', '#quranreciter', '#beautifulrecitation', '#quranaudio', '#recitation', '#quranlover', '#quranlife', '#qurandaily'],
+            motivation: ['#islamicmotivation', '#muslimmotivation', '#islamicreminder', '#reminder', '#motivation', '#inspiration', '#faith', '#hope', '#patience', '#gratitude']
+        };
 
         function getQuranComAudioUrl(surah, ayah) {
             const surahPadded = String(surah).padStart(3, '0');
@@ -367,6 +415,36 @@
             }
             if (currentLine) lines.push(currentLine);
             return lines;
+        }
+
+        function generateTagsAndCaption(surahName, ayahCount) {
+            const surahTags = [`#${surahName.toLowerCase().replace(/-/g, '')}`, `#surah${surahName.toLowerCase()}`, '#quran'];
+            const allTags = [...surahTags, ...viralTags.general, ...viralTags.recitation];
+            const uniqueTags = [...new Set(allTags)].slice(0, 25);
+            
+            const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.translation || ''}"\n\n Beautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${uniqueTags.join(' ')}`;
+            
+            return {
+                hashtags: uniqueTags.join(' '),
+                comma: uniqueTags.join(', '),
+                caption: caption
+            };
+        }
+
+        function updateTagsDisplay() {
+            const surahName = currentAyahs[0]?.surah?.englishName || 'Quran';
+            const tagsData = generateTagsAndCaption(surahName, currentAyahs.length);
+            
+            const tagsContainer = document.getElementById('tagsContainer');
+            const captionContainer = document.getElementById('captionContainer');
+            
+            if (currentTagFormat === 'hashtags') {
+                tagsContainer.textContent = tagsData.hashtags;
+            } else {
+                tagsContainer.textContent = tagsData.comma;
+            }
+            
+            captionContainer.textContent = tagsData.caption;
         }
 
         async function init() {
@@ -504,11 +582,54 @@
                     getNextVideo();
                     downloadBtn.classList.remove('hidden');
                     downloadBtn.style.display = 'flex';
+                    
+                    // Show tags section
+                    tagsSection.classList.remove('hidden');
+                    updateTagsDisplay();
+                    
                     startPlayback();
                 } catch (e) {
                     console.error('Generation failed:', e);
                 }
             });
+        });
+
+        // Copy tags button
+        document.getElementById('copyTagsBtn').addEventListener('click', () => {
+            const tagsContainer = document.getElementById('tagsContainer');
+            const text = tagsContainer.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyTagsBtn');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    lucide.createIcons();
+                }, 2000);
+            });
+        });
+
+        // Copy caption button
+        document.getElementById('copyCaptionBtn').addEventListener('click', () => {
+            const captionContainer = document.getElementById('captionContainer');
+            const text = captionContainer.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyCaptionBtn');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    lucide.createIcons();
+                }, 2000);
+            });
+        });
+
+        // Toggle tag format
+        document.getElementById('toggleTagFormat').addEventListener('click', () => {
+            currentTagFormat = currentTagFormat === 'hashtags' ? 'comma' : 'hashtags';
+            updateTagsDisplay();
         });
 
         function startPlayback() {
@@ -643,7 +764,6 @@
             function drawFrame() {
                 if (!isRecording) return;
                 
-                // Draw video background
                 if (bgVideo.readyState >= 2) {
                     const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                     const canvasAspect = canvas.width / canvas.height;
@@ -668,7 +788,6 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
-                // Apply EXACT same gradient as preview
                 const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
                 gradient.addColorStop(0, 'rgba(0,0,0,0.6)');
                 gradient.addColorStop(0.5, 'rgba(0,0,0,0.4)');
@@ -678,7 +797,6 @@
                 
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
-                    // Surah badge - EXACT position from preview
                     ctx.fillStyle = 'rgba(255,255,255,0.1)';
                     const badgeW = 160, badgeH = 30;
                     const badgeX = (canvas.width - badgeW) / 2;
@@ -697,7 +815,6 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, badgeY + badgeH/2);
                     
-                    // Arabic text - EXACT position from preview
                     const arabicMaxWidth = 900;
                     const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 85, 45);
                     ctx.font = `${arabicFontSize}px Amiri`;
@@ -714,7 +831,6 @@
                         ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
                     });
                     
-                    // English translation - EXACT position from preview
                     const englishMaxWidth = 800;
                     const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 32, 22);
                     ctx.font = `italic ${englishFontSize}px Inter`;
@@ -729,7 +845,6 @@
                         ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
                     });
                     
-                    // Ayah indicator - EXACT position from preview
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
                     ctx.font = '400 16px JetBrains Mono';
                     ctx.textAlign = 'center';
