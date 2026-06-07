@@ -39,18 +39,27 @@
         .reel-container { aspect-ratio: 9/16; height: 100%; max-height: 80vh; }
         .glass { background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
         
-        /* Professional Loading Steps */
         .step-item { opacity: 0.3; transition: all 0.3s; }
         .step-item.active { opacity: 1; color: #10b981; }
         .step-item.done { opacity: 0.6; color: #10b981; }
         
-        /* Ayah List */
         .ayah-row { transition: all 0.15s; border-left: 2px solid transparent; }
         .ayah-row:hover { background: #1a1a1a; }
         .ayah-row.selected { background: #1a1a1a; border-left-color: #10b981; }
         
-        /* Canvas for recording (hidden) */
         #recordCanvas { display: none; }
+        
+        /* Animated gradient for download recording */
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .recording-bg {
+            background: linear-gradient(-45deg, #0a0a0a, #10b981, #059669, #1a1a1a);
+            background-size: 400% 400%;
+            animation: gradientShift 10s ease infinite;
+        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -64,7 +73,7 @@
             <span class="font-semibold text-white tracking-tight">ReelDeen <span class="text-white/40 font-normal">Studio</span></span>
         </div>
         <div class="flex items-center gap-4 text-sm">
-            <a href="#story" class="text-white/60 hover:text-white transition">About</a>
+            <a href="#story-section" class="text-white/60 hover:text-white transition">Our Story</a>
             <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support</a>
             <button id="downloadBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition">
                 <i data-lucide="download" class="w-4 h-4"></i> Download MP4
@@ -106,8 +115,8 @@
         </aside>
 
         <!-- Center: Preview -->
-        <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative">
-            <div class="reel-container w-full max-w-[360px] bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10 relative group">
+        <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative overflow-y-auto">
+            <div class="reel-container w-full max-w-[360px] bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10 relative group mb-8">
                 <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover" loop muted playsinline></video>
                 <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
                 
@@ -125,20 +134,53 @@
                     </div>
                 </div>
 
-                <!-- Progress -->
                 <div class="absolute bottom-0 left-0 w-full h-0.5 bg-white/10">
                     <div id="progressBar" class="h-full bg-accent-500 w-0 transition-all duration-100"></div>
                 </div>
 
-                <!-- Play/Pause Overlay -->
                 <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-20" id="playPauseOverlay">
                     <div class="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
                         <i data-lucide="play" class="w-6 h-6 text-white fill-white ml-1" id="playPauseIcon"></i>
                     </div>
                 </div>
             </div>
-            
-            <p class="mt-6 text-xs text-white/30 font-mono">9:16 Preview • Click to Play/Pause</p>
+
+            <!-- Story Section (Scrollable below preview) -->
+            <section id="story-section" class="w-full max-w-4xl mx-auto px-6 py-12">
+                <h2 class="text-3xl font-bold text-white text-center mb-2">The Story Behind ReelDeen</h2>
+                <p class="text-accent-500 text-center mb-10 text-lg">One project for my Dunya, one for my Akhira.</p>
+                
+                <div class="space-y-6 text-white/80 leading-relaxed text-center max-w-3xl mx-auto">
+                    <p>Assalamu Alaikum. I'm a 28-year-old engineer, and I'm the sole provider for my family of six. Like many, I've been navigating the heavy realities of low wages and financial strain, constantly searching for a way to build a stable future. I've built two AI tools: one is a premium subscription service for my <em>dunya</em> (worldly life), and the other is ReelDeen—a completely free project for my <em>Akhira</em> (hereafter).</p>
+                    <p>My dream is simple but heavy on my heart: to one day buy a home, get married, and achieve the financial independence that has always felt just out of reach. I've knocked on many doors, but I am waiting to walk through the one where Allah has placed my <em>rizq</em>.</p>
+                    <p>I made a vow to Allah: if He grants me financial stability through this project, I will take <em>Kafalah</em> (sponsor the education of an orphan), give generously to the poor, support my friends, and most importantly, continue to provide for my family with dignity.</p>
+                    <p>If you're reading this, thank you from the bottom of my heart. May Allah increase you in <em>rizq</em> and <em>barakah</em>.</p>
+                </div>
+
+                <div class="mt-16 p-8 glass rounded-xl text-center">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center justify-center gap-2 text-white">
+                        <i data-lucide="heart" class="w-6 h-6 text-accent-500"></i> Support the Mission
+                    </h3>
+                    <p class="text-white/60 mb-6 max-w-2xl mx-auto">ReelDeen will always be 100% free. But if this tool brings light to your day and you wish to help a brother realize his dreams of a home, a family, and financial peace, you can support me here. You aren't just helping me; you're contributing to a global cause.</p>
+                    
+                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block bg-accent-500 hover:bg-accent-600 text-white font-semibold py-3 px-8 rounded-lg transition shadow-lg text-base mb-4">
+                        Support ReelDeen
+                    </a>
+                    
+                    <div class="mt-4">
+                        <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="inline-block bg-white/10 hover:bg-white/20 text-white font-medium py-2.5 px-6 rounded-lg transition text-sm">
+                            Support me for free by watching ads
+                        </a>
+                        <p class="text-xs text-white/40 mt-2">No cost to you — just helps the project grow</p>
+                    </div>
+                    
+                    <div class="mt-8 pt-8 border-t border-white/10">
+                        <p class="text-sm text-white/60 mb-2">As a promise to Allah, 5% of every donation goes directly to charity.</p>
+                        <div class="text-4xl font-bold text-accent-500 mb-1">$<span id="charityCounter">0</span></div>
+                        <p class="text-sm text-white/50 font-medium uppercase tracking-widest">Raised for Charity</p>
+                    </div>
+                </div>
+            </section>
         </main>
 
         <!-- Right Sidebar: Settings -->
@@ -200,7 +242,6 @@
         </div>
     </div>
 
-    <!-- Hidden Canvas for Recording -->
     <canvas id="recordCanvas" width="1080" height="1920"></canvas>
     <audio id="audioPlayer" preload="auto"></audio>
 
@@ -230,7 +271,6 @@
         const playPauseOverlay = document.getElementById('playPauseOverlay');
         const playPauseIcon = document.getElementById('playPauseIcon');
 
-        // --- Bismillah Cleanup ---
         function normalizeAyahData(ar, en, surahNum) {
             let a = [...ar], e = [...en];
             if (surahNum !== 1 && surahNum !== 9 && a.length > 0) {
@@ -248,7 +288,6 @@
             return { arabic: a, english: e };
         }
 
-        // --- Init ---
         async function init() {
             const res = await fetch(`${QURAN_API_BASE}/surah`);
             const data = await res.json();
@@ -256,10 +295,10 @@
                 surahsData = data.data;
                 surahSelect.innerHTML = '<option value="">Select Surah</option>' + surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName}</option>`).join('');
                 fetchVideoBatch();
+                fetchCharityCounter();
             }
         }
 
-        // --- Ayah Selector ---
         surahSelect.addEventListener('change', async (e) => {
             if (!e.target.value) return;
             ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Loading...</div>';
@@ -309,7 +348,6 @@
             document.getElementById('selectedCount').textContent = 0;
         };
 
-        // --- Video Pool ---
         async function fetchVideoBatch() {
             try {
                 const res = await fetch('/api/pexels');
@@ -332,14 +370,12 @@
             }
         }
 
-        // --- Generate ---
         generateBtn.addEventListener('click', async () => {
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.classList.add('flex');
             
-            // Simulate steps
             const steps = ['step1', 'step2', 'step3', 'step4'];
             for (let i = 0; i < steps.length; i++) {
                 document.getElementById(steps[i]).classList.add('active');
@@ -369,7 +405,6 @@
             }
         });
 
-        // --- Playback (Fixed) ---
         function startPlayback() {
             if (!currentAyahs.length) return;
             isPlaying = true;
@@ -422,21 +457,27 @@
             lucide.createIcons();
         }
 
-        // --- Download (MP4 via MediaRecorder) ---
-        downloadBtn.addEventListener('click', () => {
+        // Download with gradient background (no cross-origin video)
+        downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length) return;
+            
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Recording...';
             
             const canvas = document.getElementById('recordCanvas');
             const ctx = canvas.getContext('2d');
             const stream = canvas.captureStream(30);
             
-            // Add audio track
-            const audioStream = audioPlayer.captureStream ? audioPlayer.captureStream() : null;
-            if (audioStream) {
-                audioStream.getAudioTracks().forEach(track => stream.addTrack(track));
-            }
+            // Create audio context to capture audio
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaElementSource(audioPlayer);
+            const destination = audioContext.createMediaStreamDestination();
+            source.connect(destination);
+            source.connect(audioContext.destination);
+            
+            destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
             recordedChunks = [];
             
             mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
@@ -445,57 +486,86 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `reeldeen-${surahSelect.value}.mp4`; // Browsers will handle webm/mp4
+                a.download = `reeldeen-${surahSelect.value}.webm`;
                 a.click();
+                
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i> Download MP4';
+                lucide.createIcons();
             };
 
-            // Start recording from beginning
             currentAyahIndex = 0;
             isPlaying = true;
-            bgVideo.play();
             mediaRecorder.start();
 
-            // Draw loop
+            // Draw frames with gradient background
             function drawFrame() {
-                if (!isPlaying && mediaRecorder.state === 'inactive') return;
+                if (mediaRecorder.state === 'inactive') return;
                 
-                // Draw video
-                ctx.fillStyle = '#000';
+                // Draw animated gradient
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#0a0a0a');
+                gradient.addColorStop(0.5, '#10b981');
+                gradient.addColorStop(1, '#059669');
+                ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                if (bgVideo.readyState >= 2) {
-                    const scale = Math.max(canvas.width / bgVideo.videoWidth, canvas.height / bgVideo.videoHeight);
-                    const x = (canvas.width / 2) - (bgVideo.videoWidth / 2) * scale;
-                    const y = (canvas.height / 2) - (bgVideo.videoHeight / 2) * scale;
-                    ctx.drawImage(bgVideo, x, y, bgVideo.videoWidth * scale, bgVideo.videoHeight * scale);
-                }
                 
                 // Draw overlay
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Draw text (simplified)
-                ctx.fillStyle = '#fff';
-                ctx.font = '60px Amiri';
-                ctx.textAlign = 'center';
-                ctx.textDirection = 'rtl';
+                // Draw text
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
-                    ctx.fillText(ayah.text, canvas.width/2, canvas.height/2);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '60px Amiri';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(ayah.text, canvas.width/2, canvas.height/2 - 50);
+                    
+                    ctx.font = '30px Inter';
+                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                    const words = ayah.translation.split(' ');
+                    let line = '';
+                    let y = canvas.height/2 + 50;
+                    for (let word of words) {
+                        const testLine = line + word + ' ';
+                        if (ctx.measureText(testLine).width > 800) {
+                            ctx.fillText(line, canvas.width/2, y);
+                            line = word + ' ';
+                            y += 40;
+                        } else {
+                            line = testLine;
+                        }
+                    }
+                    ctx.fillText(line, canvas.width/2, y);
                 }
                 
                 requestAnimationFrame(drawFrame);
             }
             drawFrame();
 
-            // Stop after one full loop
-            const totalDuration = currentAyahs.reduce((acc, a) => acc + (a.duration || 5), 0) * 1000;
-            setTimeout(() => {
-                mediaRecorder.stop();
-                isPlaying = false;
-                bgVideo.pause();
-                audioPlayer.pause();
-            }, totalDuration);
+            // Play audio and stop after completion
+            audioPlayer.currentTime = 0;
+            audioPlayer.play();
+            
+            audioPlayer.onended = () => {
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    isPlaying = false;
+                    audioContext.close();
+                }, 1000);
+            };
         });
+
+        async function fetchCharityCounter() {
+            try {
+                const res = await fetch('https://api.counterapi.dev/v1/reeldeen/charity_raised/up?up=0');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('charityCounter').textContent = data.count || 0;
+                }
+            } catch (e) {}
+        }
 
         init();
     </script>
