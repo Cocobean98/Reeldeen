@@ -231,12 +231,13 @@
     </div>
 
     <canvas id="recordCanvas" width="1080" height="1920"></canvas>
-    <audio id="audioPlayer" preload="auto"></audio>
+    <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
 
     <script>
         lucide.createIcons();
 
-        const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
+        // Using Quran.com API which has CORS support
+        const QURAN_COM_BASE = 'https://verses.quran.com';
         
         let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
         let selectedAyahs = new Set(), currentSurahData = null;
@@ -263,6 +264,13 @@
         const progressBar = document.getElementById('progressBar');
         const playPauseOverlay = document.getElementById('playPauseOverlay');
         const playPauseIcon = document.getElementById('playPauseIcon');
+
+        // Get Quran.com audio URL - CORS enabled
+        function getQuranComAudioUrl(surah, ayah) {
+            const surahPadded = String(surah).padStart(3, '0');
+            const ayahPadded = String(ayah).padStart(3, '0');
+            return `${QURAN_COM_BASE}/Alafasy/mp3/${surahPadded}${ayahPadded}.mp3`;
+        }
 
         function removeBismillah(text) {
             if (!text) return text;
@@ -364,7 +372,7 @@
         }
 
         async function init() {
-            const res = await fetch(`${QURAN_API_BASE}/surah`);
+            const res = await fetch('https://api.alquran.cloud/v1/surah');
             const data = await res.json();
             if (data.code === 200) {
                 surahsData = data.data;
@@ -377,7 +385,7 @@
         surahSelect.addEventListener('change', async (e) => {
             if (!e.target.value) return;
             ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Loading...</div>';
-            const res = await fetch(`${QURAN_API_BASE}/surah/${e.target.value}/editions/ar.alafasy,en.sahih`);
+            const res = await fetch(`https://api.alquran.cloud/v1/surah/${e.target.value}/editions/ar.alafasy,en.sahih`);
             const data = await res.json();
             if (data.code === 200) {
                 const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(e.target.value));
@@ -474,16 +482,25 @@
         generateBtn.addEventListener('click', async () => {
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             
+            const surahNum = parseInt(surahSelect.value);
+            
             startLoadingSequence(async () => {
                 try {
-                    const res = await fetch(`${QURAN_API_BASE}/surah/${surahSelect.value}/editions/${reciterSelect.value},en.sahih`);
+                    const res = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/editions/ar.alafasy,en.sahih`);
                     const data = await res.json();
-                    const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(surahSelect.value));
+                    const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, surahNum);
                     
                     const ar = norm.arabic.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     const en = norm.english.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     
-                    currentAyahs = ar.map((a, i) => ({ ...a, translation: en[i]?.text || '', surah: data.data[0] }));
+                    // Use Quran.com API for audio (CORS enabled)
+                    currentAyahs = ar.map((a, i) => ({
+                        ...a,
+                        audio: getQuranComAudioUrl(surahNum, a.numberInSurah),
+                        translation: en[i]?.text || '',
+                        surah: data.data[0]
+                    }));
+                    
                     currentAyahIndex = 0;
                     displaySurahName.textContent = currentAyahs[0].surah.englishName.toUpperCase();
                     
@@ -573,7 +590,6 @@
             }
         });
 
-        // IMPROVED DOWNLOAD - Matches preview exactly
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -589,7 +605,7 @@
             const ctx = canvas.getContext('2d');
             const stream = canvas.captureStream(30);
             
-            // Try to capture audio (will fail silently if CORS blocks it)
+            // Capture audio with Quran.com (CORS enabled)
             try {
                 const audioContext = new AudioContext();
                 const source = audioContext.createMediaElementSource(audioPlayer);
@@ -599,7 +615,7 @@
                 
                 destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
             } catch (e) {
-                console.warn('Audio capture not available, recording video only');
+                console.warn('Audio capture not available');
             }
 
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
@@ -628,7 +644,6 @@
             function drawFrame() {
                 if (!isRecording) return;
                 
-                // Draw video background (matching preview)
                 if (bgVideo.readyState >= 2) {
                     const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                     const canvasAspect = canvas.width / canvas.height;
@@ -653,13 +668,11 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
-                // Apply same gradient overlay as preview
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
-                    // Surah name badge (matching preview exactly)
                     ctx.fillStyle = 'rgba(255,255,255,0.1)';
                     const badgeW = 200, badgeH = 35;
                     ctx.fillRect((canvas.width - badgeW) / 2, 400, badgeW, badgeH);
@@ -672,7 +685,6 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, 417);
                     
-                    // Arabic text (matching preview)
                     const arabicMaxWidth = 900;
                     const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 80, 40);
                     ctx.font = `${arabicFontSize}px Amiri`;
@@ -689,7 +701,6 @@
                         ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
                     });
                     
-                    // English translation (matching preview)
                     const englishMaxWidth = 800;
                     const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 32, 20);
                     ctx.font = `italic ${englishFontSize}px Inter`;
@@ -704,7 +715,6 @@
                         ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
                     });
                     
-                    // Ayah indicator with speaker icon (matching preview)
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
                     ctx.font = '500 20px JetBrains Mono';
                     ctx.textAlign = 'center';
@@ -715,7 +725,6 @@
             }
             drawFrame();
 
-            // Play through all ayahs
             try {
                 for (let i = 0; i < currentAyahs.length; i++) {
                     if (!isRecording) break;
@@ -724,11 +733,10 @@
                     const progress = Math.round(((i + 1) / currentAyahs.length) * 100);
                     downloadLabel.textContent = `Recording... ${progress}%`;
                     
-                    // Wait for audio to finish
                     await new Promise((resolve) => {
                         audioPlayer.src = currentAyahs[i].audio;
                         audioPlayer.onended = resolve;
-                        audioPlayer.onerror = resolve; // Continue even if audio fails
+                        audioPlayer.onerror = resolve;
                         audioPlayer.play().catch(() => resolve());
                     });
                     
