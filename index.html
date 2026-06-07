@@ -6,9 +6,6 @@
     <title>ReelDeen Studio | Professional Quran Reel Generator</title>
     <meta name="description" content="Create stunning 9:16 Islamic videos with synchronized recitation.">
     
-    <script src="https://pl29657904.effectivecpmnetwork.com/e2/6e/2b/e26e2b9c47e9c71a20dff8a3ba0e74c7.js"></script>
-    <script src="https://pl29657905.effectivecpmnetwork.com/25/79/76/257976f0f2bb98d5c25504bd28927638.js"></script>
-    
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,7 +49,6 @@
         .arabic-text-long { font-size: 1.2rem; }
         .arabic-text-very-long { font-size: 1rem; }
 
-        /* Hide UI elements during recording */
         .preview-element.recording .playPauseOverlay,
         .preview-element.recording .progressBar {
             opacity: 0 !important;
@@ -124,7 +120,7 @@
                     <div id="arabicText" class="font-arabic leading-relaxed text-white mb-6 transition-all duration-300 arabic-text-short" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
                     <div id="translationText" class="text-sm text-white/70 font-light leading-relaxed max-w-[280px] transition-opacity duration-300 italic">In the name of Allah, the Entirely Merciful, the Especially Merciful.</div>
                     <div class="mt-8 flex items-center justify-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-widest">
-                        <span id="speakerIcon" class="text-white/50">♪</span>
+                        <span class="text-white/50">♪</span>
                         <span id="ayahIndicator">01</span>
                     </div>
                 </div>
@@ -186,15 +182,10 @@
                     </div>
                 </div>
             </div>
-
-            <div class="p-4 mt-auto">
-                <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="block w-full bg-white/5 hover:bg-white/10 text-white/80 text-xs py-2 rounded-md text-center transition">
-                    Support me for free by watching ads
-                </a>
-            </div>
         </aside>
     </div>
 
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
             <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
@@ -212,12 +203,12 @@
                 </h4>
                 <p class="text-xs text-white/60 leading-relaxed mb-4">I'm a 28-year-old engineer supporting a family of six on a tight budget. I built ReelDeen as a Sadaqah Jariyah—a project for my Akhira. My dream is to one day buy a home, get married, and fulfill a vow I made to Allah to sponsor a child's education (Kafalah) and give to the poor.</p>
                 <p class="text-xs text-white/60 leading-relaxed mb-4">ReelDeen is and always will be 100% free. But if this tool benefits you, and you wish to help a brother realize his dreams, you can support me below. <strong class="text-white">5% of every donation goes directly to charity.</strong></p>
-                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full bg-accent-500 hover:bg-accent-600 text-white text-xs font-medium py-2.5 rounded text-center transition mb-2">Support ReelDeen & Our Charity</a>
-                <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="block w-full bg-white/10 hover:bg-white/20 text-white/80 text-xs py-2 rounded text-center transition">Support me for free by watching ads</a>
+                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full bg-accent-500 hover:bg-accent-600 text-white text-xs font-medium py-2.5 rounded text-center transition">Support ReelDeen & Our Charity</a>
             </div>
         </div>
     </div>
 
+    <!-- Story Modal -->
     <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
         <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div class="p-8">
@@ -247,13 +238,6 @@
                         Support ReelDeen
                     </a>
                     
-                    <div>
-                        <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="inline-block bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-5 rounded-lg transition text-xs">
-                            Support me for free by watching ads
-                        </a>
-                        <p class="text-xs text-white/40 mt-2">No cost to you — just helps the project grow</p>
-                    </div>
-                    
                     <div class="mt-6 pt-6 border-t border-white/10">
                         <p class="text-xs text-white/60 mb-2">As a promise to Allah, 5% of every donation goes directly to charity.</p>
                         <div class="text-3xl font-bold text-accent-500 mb-1">$<span id="charityCounter">0</span></div>
@@ -279,7 +263,7 @@
         let mediaRecorder, recordedChunks = [];
         let isRecording = false;
         let currentTagFormat = 'hashtags';
-        let cachedOverlay = null; // Cache html2canvas overlay
+        let cachedOverlay = null;
 
         const surahSelect = document.getElementById('surahSelect');
         const ayahList = document.getElementById('ayahList');
@@ -384,13 +368,12 @@
             return 'arabic-text-very-long';
         }
 
-        function generateTagsAndCaption(surahName, ayahCount) {
+        function generateTagsAndCaption(surahName) {
             const surahSlug = surahName.toLowerCase().replace(/-/g, '');
             const surahTags = [surahSlug, `surah${surahSlug}`, 'quran'];
             const allTags = [...surahTags, ...viralTags.general, ...viralTags.recitation];
             const uniqueTags = [...new Set(allTags)].slice(0, 25);
             
-            // FIXED: hashtags format has #, comma format does NOT
             const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
             const commaFormat = uniqueTags.join(', ');
             
@@ -405,12 +388,11 @@
 
         function updateTagsDisplay() {
             const surahName = currentAyahs[0]?.surah?.englishName || 'Quran';
-            const tagsData = generateTagsAndCaption(surahName, currentAyahs.length);
+            const tagsData = generateTagsAndCaption(surahName);
             
             const tagsContainer = document.getElementById('tagsContainer');
             const captionContainer = document.getElementById('captionContainer');
             
-            // FIXED: Show ONLY one format
             if (currentTagFormat === 'hashtags') {
                 tagsContainer.textContent = tagsData.hashtags;
             } else {
@@ -677,7 +659,6 @@
             }
         });
 
-        // FIXED DOWNLOAD: Hybrid approach - direct video draw + cached html2canvas overlay
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -736,7 +717,6 @@
             bgVideo.play();
             previewElement.classList.add('recording');
             
-            // Capture overlay once with html2canvas (high quality, cached)
             try {
                 const overlayCanvas = await html2canvas(previewElement, {
                     scale: 3,
@@ -756,7 +736,6 @@
             function drawFrame() {
                 if (!isRecording) return;
                 
-                // Draw video directly (smooth, no lag)
                 if (bgVideo.readyState >= 2) {
                     const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                     const canvasAspect = canvas.width / canvas.height;
@@ -781,7 +760,6 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
-                // Draw cached overlay (text, badge, etc.)
                 if (cachedOverlay) {
                     ctx.drawImage(cachedOverlay, 0, 0, canvas.width, canvas.height);
                 }
@@ -797,11 +775,9 @@
                     currentAyahIndex = i;
                     downloadLabel.textContent = `Recording... ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
                     
-                    // Update preview UI
                     updateAyahUI(currentAyahs[i]);
                     
-                    // Re-capture overlay for new ayah
-                    await new Promise(resolve => setTimeout(resolve, 250)); // Wait for fade transition
+                    await new Promise(resolve => setTimeout(resolve, 250));
                     try {
                         const newOverlay = await html2canvas(previewElement, {
                             scale: 3,
@@ -816,7 +792,6 @@
                         console.error('Overlay capture error:', err);
                     }
                     
-                    // Play audio
                     await new Promise((resolve) => {
                         audioPlayer.src = currentAyahs[i].audio;
                         audioPlayer.onended = resolve;
