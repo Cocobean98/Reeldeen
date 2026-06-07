@@ -109,8 +109,8 @@
                 
                 <div class="absolute inset-0 flex flex-col justify-center items-center p-8 text-center z-10">
                     <div class="mb-8">
-                        <span class="inline-block px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-semibold text-white/80 tracking-widest uppercase">
-                            <span id="displaySurahName">AL-FATIHAH</span>
+                        <span id="displaySurahName" class="inline-block px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-semibold text-white/80 tracking-widest uppercase">
+                            AL-FATIHAH
                         </span>
                     </div>
                     <div id="arabicText" class="font-arabic leading-relaxed text-white mb-6 transition-all duration-300 arabic-text-short" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
@@ -236,8 +236,7 @@
     <script>
         lucide.createIcons();
 
-        // Using Quran.com API which has CORS support
-        const QURAN_COM_BASE = 'https://verses.quran.com';
+        const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
         
         let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
         let selectedAyahs = new Set(), currentSurahData = null;
@@ -256,8 +255,8 @@
         const loadingOverlay = document.getElementById('loadingOverlay');
         const countdownTimer = document.getElementById('countdownTimer');
         const storyModal = document.getElementById('storyModal');
-        
         const displaySurahName = document.getElementById('displaySurahName');
+        
         const arabicText = document.getElementById('arabicText');
         const translationText = document.getElementById('translationText');
         const ayahIndicator = document.getElementById('ayahIndicator');
@@ -265,11 +264,10 @@
         const playPauseOverlay = document.getElementById('playPauseOverlay');
         const playPauseIcon = document.getElementById('playPauseIcon');
 
-        // Get Quran.com audio URL - CORS enabled
         function getQuranComAudioUrl(surah, ayah) {
             const surahPadded = String(surah).padStart(3, '0');
             const ayahPadded = String(ayah).padStart(3, '0');
-            return `${QURAN_COM_BASE}/Alafasy/mp3/${surahPadded}${ayahPadded}.mp3`;
+            return `https://verses.quran.com/Alafasy/mp3/${surahPadded}${ayahPadded}.mp3`;
         }
 
         function removeBismillah(text) {
@@ -372,7 +370,7 @@
         }
 
         async function init() {
-            const res = await fetch('https://api.alquran.cloud/v1/surah');
+            const res = await fetch(`${QURAN_API_BASE}/surah`);
             const data = await res.json();
             if (data.code === 200) {
                 surahsData = data.data;
@@ -385,7 +383,7 @@
         surahSelect.addEventListener('change', async (e) => {
             if (!e.target.value) return;
             ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Loading...</div>';
-            const res = await fetch(`https://api.alquran.cloud/v1/surah/${e.target.value}/editions/ar.alafasy,en.sahih`);
+            const res = await fetch(`${QURAN_API_BASE}/surah/${e.target.value}/editions/ar.alafasy,en.sahih`);
             const data = await res.json();
             if (data.code === 200) {
                 const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(e.target.value));
@@ -486,14 +484,13 @@
             
             startLoadingSequence(async () => {
                 try {
-                    const res = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/editions/ar.alafasy,en.sahih`);
+                    const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/ar.alafasy,en.sahih`);
                     const data = await res.json();
                     const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, surahNum);
                     
                     const ar = norm.arabic.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     const en = norm.english.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     
-                    // Use Quran.com API for audio (CORS enabled)
                     currentAyahs = ar.map((a, i) => ({
                         ...a,
                         audio: getQuranComAudioUrl(surahNum, a.numberInSurah),
@@ -596,23 +593,23 @@
             isRecording = true;
             isPlaying = false;
             audioPlayer.pause();
+            bgVideo.currentTime = 0;
             
             downloadBtn.disabled = true;
-            downloadLabel.textContent = 'Recording... 0%';
+            downloadLabel.textContent = 'Recording...';
             lucide.createIcons();
             
             const canvas = document.getElementById('recordCanvas');
             const ctx = canvas.getContext('2d');
             const stream = canvas.captureStream(30);
             
-            // Capture audio with Quran.com (CORS enabled)
+            let audioContext, source, destination;
             try {
-                const audioContext = new AudioContext();
-                const source = audioContext.createMediaElementSource(audioPlayer);
-                const destination = audioContext.createMediaStreamDestination();
+                audioContext = new AudioContext();
+                source = audioContext.createMediaElementSource(audioPlayer);
+                destination = audioContext.createMediaStreamDestination();
                 source.connect(destination);
                 source.connect(audioContext.destination);
-                
                 destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
             } catch (e) {
                 console.warn('Audio capture not available');
@@ -635,6 +632,8 @@
                 downloadBtn.disabled = false;
                 downloadLabel.textContent = 'Download Video';
                 lucide.createIcons();
+                
+                if (audioContext) audioContext.close();
             };
 
             mediaRecorder.start();
@@ -664,61 +663,78 @@
                     
                     ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
                 } else {
-                    ctx.fillStyle = '#0a0a0a';
+                    ctx.fillStyle = '#000000';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                // Apply EXACT same gradient as preview
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, 'rgba(0,0,0,0.6)');
+                gradient.addColorStop(0.5, 'rgba(0,0,0,0.4)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
+                ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
+                    // Surah badge - EXACTLY like preview (rounded pill shape)
                     ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    const badgeW = 200, badgeH = 35;
-                    ctx.fillRect((canvas.width - badgeW) / 2, 400, badgeW, badgeH);
-                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                    ctx.strokeRect((canvas.width - badgeW) / 2, 400, badgeW, badgeH);
+                    const badgeW = 180, badgeH = 32;
+                    const badgeX = (canvas.width - badgeW) / 2;
+                    const badgeY = 400;
                     
+                    // Draw rounded rectangle for badge
+                    ctx.beginPath();
+                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 16);
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    
+                    // Badge text
                     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.font = '500 14px Inter';
+                    ctx.font = '600 12px Inter';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, 417);
+                    ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, badgeY + badgeH/2);
                     
-                    const arabicMaxWidth = 900;
-                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 80, 40);
+                    // Arabic text - EXACTLY like preview
+                    const arabicMaxWidth = 850;
+                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 75, 40);
                     ctx.font = `${arabicFontSize}px Amiri`;
                     ctx.fillStyle = '#ffffff';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     
                     const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-                    const arabicLineHeight = arabicFontSize * 1.6;
+                    const arabicLineHeight = arabicFontSize * 1.5;
                     const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                    const arabicStartY = 700 + (400 - arabicTotalHeight) / 2;
+                    const arabicStartY = 680 + (350 - arabicTotalHeight) / 2;
                     
                     arabicLines.forEach((line, i) => {
                         ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
                     });
                     
-                    const englishMaxWidth = 800;
-                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 32, 20);
+                    // English translation - EXACTLY like preview
+                    const englishMaxWidth = 750;
+                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 30, 20);
                     ctx.font = `italic ${englishFontSize}px Inter`;
                     ctx.fillStyle = 'rgba(255,255,255,0.7)';
                     ctx.textAlign = 'center';
                     
                     const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
-                    const englishStartY = arabicStartY + arabicTotalHeight + 80;
-                    const englishLineHeight = englishFontSize * 1.5;
+                    const englishStartY = arabicStartY + arabicTotalHeight + 70;
+                    const englishLineHeight = englishFontSize * 1.4;
                     
                     englishLines.forEach((line, i) => {
                         ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
                     });
                     
+                    // Ayah indicator with volume icon - EXACTLY like preview
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                    ctx.font = '500 20px JetBrains Mono';
+                    ctx.font = '500 18px JetBrains Mono';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`${String(ayah.numberInSurah).padStart(2, '0')} ${String(currentAyahs.length).padStart(2, '0')}`, canvas.width/2, 1650);
+                    ctx.fillText(`AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1620);
                 }
                 
                 animationId = requestAnimationFrame(drawFrame);
@@ -730,8 +746,7 @@
                     if (!isRecording) break;
                     
                     currentAyahIndex = i;
-                    const progress = Math.round(((i + 1) / currentAyahs.length) * 100);
-                    downloadLabel.textContent = `Recording... ${progress}%`;
+                    downloadLabel.textContent = `Recording... ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
                     
                     await new Promise((resolve) => {
                         audioPlayer.src = currentAyahs[i].audio;
@@ -749,7 +764,7 @@
             cancelAnimationFrame(animationId);
             bgVideo.pause();
             setTimeout(() => {
-                if (mediaRecorder.state !== 'inactive') {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                     mediaRecorder.stop();
                 }
             }, 500);
