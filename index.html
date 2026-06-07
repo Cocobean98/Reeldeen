@@ -643,6 +643,7 @@
             function drawFrame() {
                 if (!isRecording) return;
                 
+                // Draw video background
                 if (bgVideo.readyState >= 2) {
                     const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                     const canvasAspect = canvas.width / canvas.height;
@@ -677,30 +678,28 @@
                 
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
-                    // Surah badge - EXACTLY like preview (rounded pill shape)
+                    // Surah badge - EXACT position from preview
                     ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    const badgeW = 180, badgeH = 32;
+                    const badgeW = 160, badgeH = 30;
                     const badgeX = (canvas.width - badgeW) / 2;
-                    const badgeY = 400;
+                    const badgeY = 320;
                     
-                    // Draw rounded rectangle for badge
                     ctx.beginPath();
-                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 16);
+                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 15);
                     ctx.fill();
                     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
                     ctx.lineWidth = 1;
                     ctx.stroke();
                     
-                    // Badge text
                     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.font = '600 12px Inter';
+                    ctx.font = '600 11px Inter';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, badgeY + badgeH/2);
                     
-                    // Arabic text - EXACTLY like preview
-                    const arabicMaxWidth = 850;
-                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 75, 40);
+                    // Arabic text - EXACT position from preview
+                    const arabicMaxWidth = 900;
+                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 85, 45);
                     ctx.font = `${arabicFontSize}px Amiri`;
                     ctx.fillStyle = '#ffffff';
                     ctx.textAlign = 'center';
@@ -709,32 +708,32 @@
                     const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
                     const arabicLineHeight = arabicFontSize * 1.5;
                     const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                    const arabicStartY = 680 + (350 - arabicTotalHeight) / 2;
+                    const arabicStartY = 650;
                     
                     arabicLines.forEach((line, i) => {
                         ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
                     });
                     
-                    // English translation - EXACTLY like preview
-                    const englishMaxWidth = 750;
-                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 30, 20);
+                    // English translation - EXACT position from preview
+                    const englishMaxWidth = 800;
+                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 32, 22);
                     ctx.font = `italic ${englishFontSize}px Inter`;
-                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.75)';
                     ctx.textAlign = 'center';
                     
                     const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
-                    const englishStartY = arabicStartY + arabicTotalHeight + 70;
+                    const englishStartY = arabicStartY + arabicTotalHeight + 60;
                     const englishLineHeight = englishFontSize * 1.4;
                     
                     englishLines.forEach((line, i) => {
                         ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
                     });
                     
-                    // Ayah indicator with volume icon - EXACTLY like preview
+                    // Ayah indicator - EXACT position from preview
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                    ctx.font = '500 18px JetBrains Mono';
+                    ctx.font = '400 16px JetBrains Mono';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1620);
+                    ctx.fillText(`AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1600);
                 }
                 
                 animationId = requestAnimationFrame(drawFrame);
