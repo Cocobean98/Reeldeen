@@ -14,9 +14,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- FFmpeg.wasm for MP4 conversion -->
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -70,7 +67,7 @@
             </button>
             <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support</a>
             <button id="downloadBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium items-center gap-2 transition">
-                <i data-lucide="download" class="w-4 h-4"></i> <span id="downloadLabel">Download MP4</span>
+                <i data-lucide="download" class="w-4 h-4"></i> <span id="downloadLabel">Download Video</span>
             </button>
         </div>
     </header>
@@ -164,7 +161,6 @@
         </aside>
     </div>
 
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
             <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
@@ -188,7 +184,6 @@
         </div>
     </div>
 
-    <!-- Story Modal -->
     <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
         <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div class="p-8">
@@ -239,12 +234,11 @@
     <audio id="audioPlayer" preload="auto"></audio>
 
     <script>
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
-        
         lucide.createIcons();
 
         const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
+        const CORS_PROXY = 'https://corsproxy.io/?';
+        
         let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
         let selectedAyahs = new Set(), currentSurahData = null;
         let audioPlayer = document.getElementById('audioPlayer');
@@ -336,13 +330,13 @@
 
         async function fetchAudioViaProxy(originalUrl) {
             try {
-                const proxyUrl = `/api/audio-proxy?url=${encodeURIComponent(originalUrl)}`;
+                const proxyUrl = `${CORS_PROXY}${encodeURIComponent(originalUrl)}`;
                 const response = await fetch(proxyUrl);
                 if (!response.ok) throw new Error('Proxy failed');
                 const blob = await response.blob();
                 return URL.createObjectURL(blob);
             } catch (err) {
-                console.warn('Proxy failed, using original URL');
+                console.warn('Proxy failed for:', originalUrl);
                 return originalUrl;
             }
         }
@@ -593,7 +587,6 @@
             }
         });
 
-        // DOWNLOAD WITH MP4 CONVERSION
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -622,65 +615,29 @@
             
             mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
             
-            mediaRecorder.onstop = async () => {
-                downloadLabel.textContent = 'Converting to MP4...';
-                
-                const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                
-                try {
-                    // Load FFmpeg if not loaded
-                    if (!ffmpeg.isLoaded()) {
-                        await ffmpeg.load();
-                    }
-                    
-                    // Write WebM file
-                    ffmpeg.FS('writeFile', 'input.webm', await fetchFile(webmBlob));
-                    
-                    // Convert to MP4
-                    await ffmpeg.run('-i', 'input.webm', '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', 'output.mp4');
-                    
-                    // Read MP4 file
-                    const data = ffmpeg.FS('readFile', 'output.mp4');
-                    const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
-                    
-                    // Download MP4
-                    const url = URL.createObjectURL(mp4Blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `reeldeen-${surahSelect.value}.mp4`;
-                    a.click();
-                    
-                    // Cleanup
-                    ffmpeg.FS('unlink', 'input.webm');
-                    ffmpeg.FS('unlink', 'output.mp4');
-                    
-                } catch (err) {
-                    console.error('MP4 conversion failed, downloading WebM instead:', err);
-                    const url = URL.createObjectURL(webmBlob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `reeldeen-${surahSelect.value}.webm`;
-                    a.click();
-                }
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reeldeen-${surahSelect.value}.webm`;
+                a.click();
                 
                 isRecording = false;
                 downloadBtn.disabled = false;
-                downloadLabel.textContent = 'Download MP4';
+                downloadLabel.textContent = 'Download Video';
                 lucide.createIcons();
                 
                 audioContext.close();
             };
 
             mediaRecorder.start();
-            
-            // Play video during recording
             bgVideo.play();
             
             let animationId;
             function drawFrame() {
                 if (!isRecording) return;
                 
-                // Draw video background
                 if (bgVideo.readyState >= 2) {
                     const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                     const canvasAspect = canvas.width / canvas.height;
@@ -705,13 +662,11 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
-                // Dark overlay
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
-                    // Surah name badge
                     ctx.fillStyle = 'rgba(255,255,255,0.15)';
                     const badgeW = 400, badgeH = 60;
                     ctx.fillRect((canvas.width - badgeW) / 2, 350, badgeW, badgeH);
@@ -724,7 +679,6 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, 380);
                     
-                    // Arabic text
                     const arabicMaxWidth = 900;
                     const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 90, 40);
                     ctx.font = `${arabicFontSize}px Amiri`;
@@ -741,7 +695,6 @@
                         ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
                     });
                     
-                    // English translation
                     const englishMaxWidth = 800;
                     const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 45, 24);
                     ctx.font = `italic ${englishFontSize}px Inter`;
@@ -756,7 +709,6 @@
                         ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
                     });
                     
-                    // Ayah indicator
                     ctx.fillStyle = 'rgba(255,255,255,0.6)';
                     ctx.font = '500 24px JetBrains Mono';
                     ctx.textAlign = 'center';
@@ -767,7 +719,6 @@
             }
             drawFrame();
 
-            // Sequential playback
             try {
                 for (let i = 0; i < currentAyahs.length; i++) {
                     if (!isRecording) break;
