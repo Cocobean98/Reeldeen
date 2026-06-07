@@ -3,343 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReelDeen Studio | Professional Quran Reel Generator</title>
+    <meta name="description" content="Create stunning 9:16 Islamic videos with synchronized recitation.">
     
-    <title>ReelDeen | Free Quran Reel Generator & Islamic Content Creator Tool</title>
-    <meta name="description" content="ReelDeen is a 100% free, professional Quran reel generator. Create stunning 9:16 Islamic videos with synchronized recitation, beautiful nature backgrounds, and English translations.">
-    <meta name="keywords" content="Quran reel generator, Islamic video maker, free Quran app, Muslim content creator, TikTok Quran videos, Instagram Reels Islam, YouTube Shorts Quran, Sadaqah Jariyah, ReelDeen">
-    <meta name="author" content="ReelDeen">
-    
-    <!-- AdsTerra Popunder -->
+    <!-- AdsTerra -->
     <script src="https://pl29657904.effectivecpmnetwork.com/e2/6e/2b/e26e2b9c47e9c71a20dff8a3ba0e74c7.js"></script>
-    
-    <!-- AdsTerra Social Bar -->
     <script src="https://pl29657905.effectivecpmnetwork.com/25/79/76/257976f0f2bb98d5c25504bd28927638.js"></script>
     
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { 
-                        sans: ['Cairo', 'sans-serif'], 
-                        arabic: ['Amiri', 'serif'],
-                        serif: ['Playfair Display', 'serif']
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], arabic: ['Amiri', 'serif'], mono: ['JetBrains Mono', 'monospace'] },
                     colors: {
-                        cream: { 50: '#FAF8F3', 100: '#F5F0E8', 200: '#EBE4D8', 300: '#E0D4C3' },
-                        teal: { 600: '#1A5F5F', 700: '#144D4D', 800: '#0F3D3D', 900: '#0A2F2F' },
-                        gold: { 400: '#D4AF37', 500: '#B8945F', 600: '#9A7B4F' }
-                    },
-                    animation: { 'fade-in': 'fadeIn 0.8s ease-out forwards' },
-                    keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
+                        dark: { 900: '#0a0a0a', 800: '#121212', 700: '#1a1a1a', 600: '#242424' },
+                        accent: { 500: '#10b981', 600: '#059669' }
+                    }
                 }
             }
         }
     </script>
 
     <style>
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #EBE4D8; }
-        ::-webkit-scrollbar-thumb { background: #1A5F5F; border-radius: 4px; }
+        body { background: #0a0a0a; color: #e5e5e5; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #121212; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
         
-        .reel-container { aspect-ratio: 9 / 16; max-height: 85vh; }
-        .text-shadow { text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-        #arabicText, #translationText { transition: opacity 0.4s ease-in-out; }
+        .reel-container { aspect-ratio: 9/16; height: 100%; max-height: 80vh; }
+        .glass { background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
         
-        .islamic-pattern {
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231A5F5F' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
+        /* Professional Loading Steps */
+        .step-item { opacity: 0.3; transition: all 0.3s; }
+        .step-item.active { opacity: 1; color: #10b981; }
+        .step-item.done { opacity: 0.6; color: #10b981; }
         
-        .gradient-text {
-            background: linear-gradient(135deg, #1A5F5F 0%, #B8945F 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+        /* Ayah List */
+        .ayah-row { transition: all 0.15s; border-left: 2px solid transparent; }
+        .ayah-row:hover { background: #1a1a1a; }
+        .ayah-row.selected { background: #1a1a1a; border-left-color: #10b981; }
         
-        .elegant-card {
-            background: linear-gradient(135deg, rgba(250, 248, 243, 0.95) 0%, rgba(245, 240, 232, 0.95) 100%);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-        }
-        
-        .premium-btn {
-            background: linear-gradient(135deg, #1A5F5F 0%, #0F3D3D 100%);
-            position: relative; overflow: hidden; transition: all 0.3s ease;
-        }
-        .premium-btn::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-        .premium-btn:hover::before { left: 100%; }
-        .premium-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(26, 95, 95, 0.3); }
-        
-        .gold-btn { background: linear-gradient(135deg, #D4AF37 0%, #B8945F 100%); transition: all 0.3s ease; }
-        .gold-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(184, 148, 95, 0.3); }
-        
-        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
-        .pulse-ring::before {
-            content: ''; position: absolute; inset: 0; border-radius: 50%; border: 4px solid #1A5F5F;
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-        
-        .fallback-bg {
-            background: linear-gradient(-45deg, #0A2F2F, #1A5F5F, #B8945F, #144D4D);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-        }
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        
-        .arabic-text-short { font-size: 2.2rem; }
-        .arabic-text-medium { font-size: 1.8rem; }
-        .arabic-text-long { font-size: 1.4rem; }
-        .arabic-text-very-long { font-size: 1.1rem; }
-        
-        @media (max-width: 640px) {
-            .arabic-text-short { font-size: 1.8rem; }
-            .arabic-text-medium { font-size: 1.5rem; }
-            .arabic-text-long { font-size: 1.2rem; }
-            .arabic-text-very-long { font-size: 1rem; }
-        }
-        
-        .elegant-input {
-            background: rgba(250, 248, 243, 0.8); border: 1px solid rgba(212, 175, 55, 0.3); transition: all 0.3s ease;
-        }
-        .elegant-input:focus { border-color: #1A5F5F; box-shadow: 0 0 0 3px rgba(26, 95, 95, 0.1); outline: none; }
-        
-        .decorative-border { position: relative; }
-        .decorative-border::before {
-            content: ''; position: absolute; top: 10px; bottom: 10px; left: 10px; right: 10px;
-            border: 1px solid rgba(184, 148, 95, 0.3); pointer-events: none;
-        }
-        
-        .ayah-selector { max-height: 300px; overflow-y: auto; }
-        .ayah-item { transition: all 0.2s ease; cursor: pointer; }
-        .ayah-item:hover { background: rgba(212, 175, 55, 0.1); transform: translateX(4px); }
-        .ayah-item.selected {
-            background: linear-gradient(135deg, rgba(26, 95, 95, 0.1) 0%, rgba(184, 148, 95, 0.1) 100%);
-            border-left: 3px solid #1A5F5F;
-        }
-        .ayah-number { background: linear-gradient(135deg, #1A5F5F 0%, #B8945F 100%); }
+        /* Canvas for recording (hidden) */
+        #recordCanvas { display: none; }
     </style>
 </head>
-<body class="bg-cream-50 text-slate-800 font-sans min-h-screen flex flex-col islamic-pattern">
+<body class="font-sans h-screen flex flex-col overflow-hidden">
 
-    <!-- 90-Second Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 z-[100] bg-cream-100/95 backdrop-blur-xl hidden flex-col items-center justify-center p-6 overflow-y-auto">
-        <div class="max-w-lg w-full text-center my-auto">
-            <div class="mb-8 relative inline-block">
-                <div class="w-24 h-24 mx-auto rounded-full border-4 border-teal-600/20 border-t-teal-600 animate-spin mb-6 pulse-ring"></div>
-                <h3 class="text-2xl font-serif font-bold text-teal-800 mb-2">Preparing Your Reel</h3>
-                <p class="text-slate-600">Syncing recitation and rendering backgrounds...</p>
+    <!-- Top Bar -->
+    <header class="h-14 border-b border-white/5 bg-dark-900 flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-7 h-7 bg-accent-500 rounded-md flex items-center justify-center">
+                <i data-lucide="play" class="w-4 h-4 text-white fill-white"></i>
+            </div>
+            <span class="font-semibold text-white tracking-tight">ReelDeen <span class="text-white/40 font-normal">Studio</span></span>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+            <a href="#story" class="text-white/60 hover:text-white transition">About</a>
+            <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support</a>
+            <button id="downloadBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition">
+                <i data-lucide="download" class="w-4 h-4"></i> Download MP4
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Left Sidebar: Ayah Selector -->
+        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
+            <div class="p-4 border-b border-white/5">
+                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
+                <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                    <option value="">Loading...</option>
+                </select>
             </div>
             
-            <div class="elegant-card rounded-2xl p-6 mb-8 text-left shadow-2xl decorative-border">
-                <h4 class="text-lg font-semibold text-teal-700 mb-3 flex items-center gap-2">
-                    <i data-lucide="heart" class="w-5 h-5 text-gold-500"></i> The Heart Behind ReelDeen
-                </h4>
-                <p class="text-sm text-slate-700 leading-relaxed mb-4">I'm a 28-year-old engineer supporting a family of six on a tight budget. I built ReelDeen as a Sadaqah Jariyah—a project for my Akhira. My dream is to one day buy a home, get married, and fulfill a vow I made to Allah to sponsor a child's education (Kafalah) and give to the poor.</p>
-                <p class="text-sm text-slate-700 leading-relaxed mb-4">ReelDeen is and always will be 100% free. But if this tool benefits you, and you wish to help a brother realize his dreams, you can support me below. <strong class="text-teal-700">5% of every donation goes directly to charity.</strong></p>
-                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full gold-btn text-white font-semibold py-3 rounded-xl text-center shadow-lg mb-3">
-                    Support ReelDeen & Our Charity
-                </a>
-                <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="block w-full bg-slate-600 hover:bg-slate-700 text-white font-medium py-2.5 rounded-xl text-center transition-colors text-sm">
-                    Support Free (Click Here)
-                </a>
+            <div class="flex-1 overflow-y-auto p-2">
+                <div class="flex items-center justify-between px-2 py-2 mb-2">
+                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Verses</span>
+                    <div class="flex gap-2">
+                        <button id="selectAllBtn" class="text-xs text-white/40 hover:text-white">All</button>
+                        <button id="clearAllBtn" class="text-xs text-white/40 hover:text-white">None</button>
+                    </div>
+                </div>
+                <div id="ayahList" class="space-y-1">
+                    <div class="text-center text-white/30 text-sm py-8">Select a Surah to view verses</div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-white/5 bg-dark-900/50">
+                <div class="flex items-center justify-between text-xs text-white/60 mb-2">
+                    <span>Selected</span>
+                    <span id="selectedCount" class="font-mono text-white">0</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center: Preview -->
+        <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative">
+            <div class="reel-container w-full max-w-[360px] bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10 relative group">
+                <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover" loop muted playsinline></video>
+                <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
+                
+                <div class="absolute inset-0 flex flex-col justify-center items-center p-8 text-center z-10">
+                    <div class="mb-8">
+                        <span class="inline-block px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-semibold text-white/80 tracking-widest uppercase">
+                            <span id="displaySurahName">AL-FATIHAH</span>
+                        </span>
+                    </div>
+                    <div id="arabicText" class="font-arabic text-3xl leading-relaxed text-white mb-6 transition-opacity duration-300" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+                    <div id="translationText" class="text-sm text-white/70 font-light leading-relaxed max-w-[280px] transition-opacity duration-300 italic">In the name of Allah, the Entirely Merciful, the Especially Merciful.</div>
+                    <div class="mt-8 flex items-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-widest">
+                        <i data-lucide="volume-2" class="w-3 h-3"></i>
+                        <span id="ayahIndicator">01</span>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="absolute bottom-0 left-0 w-full h-0.5 bg-white/10">
+                    <div id="progressBar" class="h-full bg-accent-500 w-0 transition-all duration-100"></div>
+                </div>
+
+                <!-- Play/Pause Overlay -->
+                <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-20" id="playPauseOverlay">
+                    <div class="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+                        <i data-lucide="play" class="w-6 h-6 text-white fill-white ml-1" id="playPauseIcon"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="mt-6 text-xs text-white/30 font-mono">9:16 Preview • Click to Play/Pause</p>
+        </main>
+
+        <!-- Right Sidebar: Settings -->
+        <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0">
+            <div class="p-4 border-b border-white/5">
+                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
+                <select id="reciterSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                    <option value="ar.alafasy">Mishary Rashid Alafasy</option>
+                    <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
+                    <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
+                    <option value="ar.sudais">Abdur-Rahman as-Sudais</option>
+                </select>
             </div>
 
-            <div class="flex items-center justify-center gap-2 text-slate-600 text-sm">
-                <span>Reel starts in</span>
-                <span id="countdownTimer" class="font-mono font-bold text-teal-700 text-lg">1:30</span>
+            <div class="p-4 flex-1">
+                <button id="generateBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 rounded-md flex items-center justify-center gap-2 transition text-sm">
+                    <i data-lucide="wand-2" class="w-4 h-4"></i> Generate Reel
+                </button>
+                <div id="statusMsg" class="mt-3 text-xs text-center hidden"></div>
+            </div>
+
+            <div class="p-4 border-t border-white/5 bg-dark-900/50">
+                <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="block w-full bg-white/5 hover:bg-white/10 text-white/80 text-xs py-2 rounded-md text-center transition">
+                    Support me for free by watching ads
+                </a>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
+        <div class="max-w-sm w-full">
+            <div class="w-12 h-12 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
+            <h3 class="text-lg font-semibold text-white text-center mb-8">Rendering Reel</h3>
+            
+            <div class="space-y-4">
+                <div class="step-item flex items-center gap-3 text-sm" id="step1">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>Fetching audio recitation...</span>
+                </div>
+                <div class="step-item flex items-center gap-3 text-sm" id="step2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>Syncing verses and translations...</span>
+                </div>
+                <div class="step-item flex items-center gap-3 text-sm" id="step3">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>Preparing background media...</span>
+                </div>
+                <div class="step-item flex items-center gap-3 text-sm" id="step4">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>Finalizing reel...</span>
+                </div>
+            </div>
+
+            <div class="mt-8 p-4 glass rounded-lg">
+                <p class="text-xs text-white/60 leading-relaxed mb-3">ReelDeen is a free Sadaqah Jariyah project. 5% of all donations go to charity.</p>
+                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full bg-accent-500 hover:bg-accent-600 text-white text-xs font-medium py-2 rounded text-center transition">Support the Project</a>
             </div>
         </div>
     </div>
 
-    <!-- Header -->
-    <header class="border-b border-cream-300 bg-cream-50/80 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-teal-600 to-teal-800 rounded-lg flex items-center justify-center shadow-lg">
-                    <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold text-teal-800 tracking-tight">Reel<span class="text-gold-500">Deen</span></h1>
-                    <p class="text-xs text-slate-600 -mt-1">Free Quran Reels</p>
-                </div>
-            </div>
-            <nav class="flex items-center gap-6 text-sm font-medium text-slate-700">
-                <a href="#story" class="hover:text-teal-700 transition-colors">Our Story</a>
-                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="gold-btn text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 shadow-md">
-                    <i data-lucide="heart" class="w-4 h-4"></i> Support
-                </a>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Main App -->
-    <main class="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div class="lg:col-span-4 space-y-6">
-            <div class="elegant-card rounded-2xl p-6 shadow-xl">
-                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-teal-800">
-                    <i data-lucide="sliders-horizontal" class="w-5 h-5 text-gold-500"></i> Configuration
-                </h2>
-                
-                <div class="space-y-2 mb-4">
-                    <label class="text-sm font-medium text-slate-700">Select Surah</label>
-                    <select id="surahSelect" class="w-full elegant-input rounded-lg px-4 py-2.5 text-sm">
-                        <option value="">Loading Surahs...</option>
-                    </select>
-                </div>
-
-                <div id="ayahSelectorContainer" class="mb-4 hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="text-sm font-medium text-slate-700">Select Ayahs</label>
-                        <button id="toggleLanguageBtn" class="text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-full transition-colors font-medium">
-                            Show English
-                        </button>
-                    </div>
-                    <div class="flex gap-2 mb-2">
-                        <button id="selectAllBtn" class="flex-1 text-xs text-teal-600 hover:bg-teal-50 py-1.5 rounded border border-teal-600/30 font-medium transition-colors">Select All</button>
-                        <button id="clearAllBtn" class="flex-1 text-xs text-slate-600 hover:bg-slate-100 py-1.5 rounded border border-slate-300 font-medium transition-colors">Clear</button>
-                    </div>
-                    <div id="ayahSelector" class="ayah-selector elegant-input rounded-lg p-2 space-y-1"></div>
-                    <p id="selectedCount" class="text-xs text-slate-500 mt-2">0 ayahs selected</p>
-                </div>
-
-                <div class="space-y-2 mb-6">
-                    <label class="text-sm font-medium text-slate-700">Reciter</label>
-                    <select id="reciterSelect" class="w-full elegant-input rounded-lg px-4 py-2.5 text-sm">
-                        <option value="ar.alafasy">Mishary Rashid Alafasy</option>
-                        <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
-                        <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
-                        <option value="ar.sudais">Abdur-Rahman as-Sudais</option>
-                    </select>
-                </div>
-
-                <button id="generateBtn" class="w-full premium-btn text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i data-lucide="wand-2" class="w-5 h-5"></i>
-                    <span>Generate Reel</span>
-                </button>
-                <div id="statusMsg" class="mt-4 text-sm text-center hidden"></div>
-            </div>
-        </div>
-
-        <div class="lg:col-span-8 flex flex-col items-center justify-center min-h-[500px]">
-            <div class="reel-container w-full max-w-md bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-cream-300 relative group">
-                <div id="fallbackBg" class="absolute inset-0 fallback-bg hidden"></div>
-                <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover opacity-80" loop muted playsinline></video>
-                
-                <div class="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80 pointer-events-none"></div>
-                <div class="absolute inset-0 flex flex-col justify-center items-center p-6 text-center z-10">
-                    <div class="mb-6 animate-fade-in">
-                        <span class="inline-block px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-gold-400/30 text-xs font-semibold text-gold-300 tracking-wider uppercase">
-                            <span id="displaySurahName">Al-Fatihah</span>
-                        </span>
-                    </div>
-                    <div id="arabicText" class="font-arabic leading-loose text-white text-shadow mb-6 animate-fade-in arabic-text-short" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
-                    <div id="translationText" class="text-sm text-slate-200 font-light leading-relaxed max-w-xs mx-auto mb-8 animate-fade-in italic font-serif">In the name of Allah, the Entirely Merciful, the Especially Merciful.</div>
-                    <div class="flex items-center gap-2 text-xs text-white font-medium tracking-widest uppercase animate-fade-in">
-                        <i data-lucide="volume-2" class="w-4 h-4 text-gold-300"></i>
-                        <span id="ayahIndicator" class="text-gold-300">Ayah 1</span>
-                    </div>
-                </div>
-                <div class="absolute bottom-0 left-0 w-full h-1 bg-white/10">
-                    <div id="progressBar" class="h-full bg-gradient-to-r from-teal-500 to-gold-500 w-0 transition-all duration-300 ease-linear"></div>
-                </div>
-                <div class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 cursor-pointer" id="playPauseOverlay">
-                    <div class="w-16 h-16 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center border-2 border-white/50">
-                        <i data-lucide="pause" class="w-8 h-8 text-white" id="playPauseIcon"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <section id="story" class="py-20 bg-gradient-to-b from-cream-100 to-cream-50 border-t border-cream-300">
-        <div class="max-w-4xl mx-auto px-6">
-            <h2 class="text-3xl md:text-4xl font-serif font-bold text-center mb-2 gradient-text">The Story Behind ReelDeen</h2>
-            <p class="text-teal-700 text-center mb-10 text-lg font-medium">One project for my Dunya, one for my Akhira.</p>
-            
-            <article class="prose prose-lg max-w-none text-slate-700 leading-relaxed space-y-6 text-left md:text-center">
-                <p>Assalamu Alaikum. I'm a 28-year-old engineer, and I'm the sole provider for my family of six. Like many, I've been navigating the heavy realities of low wages and financial strain, constantly searching for a way to build a stable future. I've built two AI tools: one is a premium subscription service for my <em>dunya</em> (worldly life), and the other is ReelDeen—a completely free project for my <em>Akhira</em> (hereafter).</p>
-                <p>My dream is simple but heavy on my heart: to one day buy a home, get married, and achieve the financial independence that has always felt just out of reach. I've knocked on many doors, but I am waiting to walk through the one where Allah has placed my <em>rizq</em>.</p>
-                <p>I made a vow to Allah: if He grants me financial stability through this project, I will take <em>Kafalah</em> (sponsor the education of an orphan), give generously to the poor, support my friends, and most importantly, continue to provide for my family with dignity.</p>
-                <p>If you're reading this, thank you from the bottom of my heart. May Allah increase you in <em>rizq</em> and <em>barakah</em>.</p>
-            </article>
-
-            <div class="mt-16 p-8 md:p-12 elegant-card rounded-3xl decorative-border text-center shadow-2xl">
-                <h3 class="text-2xl font-serif font-bold mb-4 flex items-center justify-center gap-2 text-teal-800">
-                    <i data-lucide="hand-heart" class="w-6 h-6 text-gold-500"></i> Support the Mission
-                </h3>
-                <p class="text-slate-600 mb-6 max-w-2xl mx-auto">ReelDeen will always be 100% free. But if this tool brings light to your day and you wish to help a brother realize his dreams of a home, a family, and financial peace, you can support me here. You aren't just helping me; you're contributing to a global cause.</p>
-                
-                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block gold-btn text-white font-semibold py-4 px-10 rounded-full transition-all shadow-lg text-lg mb-4">
-                    Support ReelDeen
-                </a>
-                
-                <div class="mt-4">
-                    <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" class="inline-block bg-slate-600 hover:bg-slate-700 text-white font-medium py-3 px-8 rounded-full transition-colors text-sm">
-                        Support Free (No Cost to You)
-                    </a>
-                    <p class="text-xs text-slate-500 mt-2">Click to support without spending money</p>
-                </div>
-                
-                <div class="mt-8 pt-8 border-t border-cream-300">
-                    <p class="text-sm text-slate-600 mb-2">As a promise to Allah, 5% of every donation goes directly to charity.</p>
-                    <div class="text-5xl font-bold gradient-text mb-1">$<span id="charityCounter">0</span></div>
-                    <p class="text-sm text-slate-500 font-medium uppercase tracking-widest">Raised for Charity</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <footer class="bg-teal-900 border-t border-teal-800 py-8 text-center text-cream-200 text-sm">
-        <p>&copy; 2026 ReelDeen. Built with love and faith. May Allah accept it from us.</p>
-    </footer>
-
+    <!-- Hidden Canvas for Recording -->
+    <canvas id="recordCanvas" width="1080" height="1920"></canvas>
     <audio id="audioPlayer" preload="auto"></audio>
 
     <script>
         lucide.createIcons();
 
         const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
-        
-        let surahsData = [];
-        let currentAyahs = [];
-        let currentAyahIndex = 0;
-        let isPlaying = false;
-        let selectedAyahs = new Set();
-        let currentSurahData = null;
-        let showEnglishInSelector = false;
+        let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
+        let selectedAyahs = new Set(), currentSurahData = null;
         let audioPlayer = document.getElementById('audioPlayer');
-
-        let videoPool = [];
-        let videoPoolIndex = 0;
+        let videoPool = [], videoPoolIndex = 0;
+        let mediaRecorder, recordedChunks = [];
 
         const surahSelect = document.getElementById('surahSelect');
-        const ayahSelectorContainer = document.getElementById('ayahSelectorContainer');
-        const ayahSelector = document.getElementById('ayahSelector');
-        const selectAllBtn = document.getElementById('selectAllBtn');
-        const clearAllBtn = document.getElementById('clearAllBtn');
-        const toggleLanguageBtn = document.getElementById('toggleLanguageBtn');
-        const selectedCount = document.getElementById('selectedCount');
+        const ayahList = document.getElementById('ayahList');
         const reciterSelect = document.getElementById('reciterSelect');
         const generateBtn = document.getElementById('generateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
         const bgVideo = document.getElementById('bgVideo');
-        const fallbackBg = document.getElementById('fallbackBg');
         const loadingOverlay = document.getElementById('loadingOverlay');
-        const countdownTimer = document.getElementById('countdownTimer');
         
         const displaySurahName = document.getElementById('displaySurahName');
         const arabicText = document.getElementById('arabicText');
@@ -349,348 +230,173 @@
         const playPauseOverlay = document.getElementById('playPauseOverlay');
         const playPauseIcon = document.getElementById('playPauseIcon');
 
-        function normalizeAyahData(arabicAyahs, englishAyahs, surahNumber) {
-    let ar = [...arabicAyahs];
-    let en = [...englishAyahs];
-
-    // For all Surahs EXCEPT Al-Fatihah (1) and At-Tawbah (9)
-    if (surahNumber !== 1 && surahNumber !== 9) {
-        if (ar.length > 0) {
-            const firstAyahText = ar[0].text || '';
-            
-            // Case 1: Bismillah is a SEPARATE ayah (short text, ~40 chars)
-            // Remove the entire ayah object
-            if (firstAyahText.includes('بِسْمِ') && firstAyahText.length < 80) {
-                ar.shift();
-                if (en.length > 0) en.shift();
-            } 
-            // Case 2: Bismillah is PREPENDED to the first verse's text
-            // Remove only the Bismillah part, keep the actual verse
-            else if (firstAyahText.startsWith('بِسْمِ')) {
-                ar[0].text = firstAyahText.replace(/^بِسْمِ[\s\S]*?الرَّحِيمِ[\s]*/, '').trim();
-                
-                // Also clean English translation if it has the Bismillah translation
-                if (en.length > 0 && en[0].text) {
-                    en[0].text = en[0].text.replace(/^(In the name of Allah,? (the )?(Entirely )?Merciful,? (the )?(Especially )?Merciful\.?[\s]*)/i, '').trim();
+        // --- Bismillah Cleanup ---
+        function normalizeAyahData(ar, en, surahNum) {
+            let a = [...ar], e = [...en];
+            if (surahNum !== 1 && surahNum !== 9 && a.length > 0) {
+                const t = a[0].text || '';
+                if (t.includes('بِسْمِ') && t.includes('الرَّحِيمِ')) {
+                    if (t.length < 80) { a.shift(); if(e.length) e.shift(); }
+                    else {
+                        a[0].text = t.replace(/^بِسْمِ[\s\S]*?الرَّحِيمِ[\s]*/, '').trim();
+                        if(e[0]) e[0].text = e[0].text.replace(/^(In the name of Allah,?[\s\S]*?Merciful\.?[\s]*)/i, '').trim();
+                    }
                 }
             }
+            a.forEach((x, i) => x.numberInSurah = i + 1);
+            e.forEach((x, i) => x.numberInSurah = i + 1);
+            return { arabic: a, english: e };
         }
-    }
 
-    // Re-index the numberInSurah so it matches the actual Mushaf (1, 2, 3...)
-    ar.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
-    en.forEach((ayah, index) => { ayah.numberInSurah = index + 1; });
-
-    return { arabic: ar, english: en };
-}
-
+        // --- Init ---
         async function init() {
-            try {
-                const response = await fetch(`${QURAN_API_BASE}/surah`);
-                const data = await response.json();
-                if (data.code === 200) {
-                    surahsData = data.data;
-                    populateSurahDropdown();
-                    fetchVideoBatch();
-                    fetchCharityCounter();
-                }
-            } catch (error) { console.error('Init error:', error); }
+            const res = await fetch(`${QURAN_API_BASE}/surah`);
+            const data = await res.json();
+            if (data.code === 200) {
+                surahsData = data.data;
+                surahSelect.innerHTML = '<option value="">Select Surah</option>' + surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName}</option>`).join('');
+                fetchVideoBatch();
+            }
         }
 
-        function populateSurahDropdown() {
-            surahSelect.innerHTML = '<option value="">Select a Surah...</option>';
-            surahsData.forEach(surah => {
-                const option = document.createElement('option');
-                option.value = surah.number;
-                option.textContent = `${surah.number}. ${surah.englishName} (${surah.numberOfAyahs} Ayahs)`;
-                option.dataset.ayahs = surah.numberOfAyahs;
-                surahSelect.appendChild(option);
-            });
-        }
-
+        // --- Ayah Selector ---
         surahSelect.addEventListener('change', async (e) => {
-            const surahNum = e.target.value;
-            if (!surahNum) {
-                ayahSelectorContainer.classList.add('hidden');
-                return;
+            if (!e.target.value) return;
+            ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Loading...</div>';
+            const res = await fetch(`${QURAN_API_BASE}/surah/${e.target.value}/editions/ar.alafasy,en.sahih`);
+            const data = await res.json();
+            if (data.code === 200) {
+                const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(e.target.value));
+                currentSurahData = { arabic: { ayahs: norm.arabic }, english: { ayahs: norm.english } };
+                renderAyahList();
             }
-            
-            ayahSelectorContainer.classList.remove('hidden');
-            selectedAyahs.clear();
-            showEnglishInSelector = false;
-            toggleLanguageBtn.textContent = 'Show English';
-            await loadAyahSelector(surahNum);
         });
 
-        toggleLanguageBtn.addEventListener('click', () => {
-            showEnglishInSelector = !showEnglishInSelector;
-            toggleLanguageBtn.textContent = showEnglishInSelector ? 'Show Arabic' : 'Show English';
-            if (currentSurahData) renderAyahSelector(currentSurahData);
-        });
-
-        async function loadAyahSelector(surahNum) {
-            try {
-                ayahSelector.innerHTML = '<div class="text-center py-4 text-slate-500 text-sm">Loading ayahs...</div>';
-                const response = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/ar.alafasy,en.sahih`);
-                const data = await response.json();
-                
-                if (data.code === 200 && Array.isArray(data.data) && data.data.length === 2) {
-                    const normalized = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(surahNum));
-                    currentSurahData = {
-                        arabic: { ayahs: normalized.arabic },
-                        english: { ayahs: normalized.english },
-                        number: parseInt(surahNum)
-                    };
-                    renderAyahSelector(currentSurahData);
-                } else {
-                    throw new Error('Invalid API response');
-                }
-            } catch (error) {
-                ayahSelector.innerHTML = '<div class="text-center py-4 text-red-500 text-sm">Error loading ayahs.</div>';
-            }
-        }
-
-        function renderAyahSelector(surahData) {
-            ayahSelector.innerHTML = '';
-            const arabicAyahs = surahData.arabic.ayahs;
-            const englishAyahs = surahData.english.ayahs;
-            
-            arabicAyahs.forEach((ayah, index) => {
-                const englishAyah = englishAyahs[index];
-                const ayahNumber = ayah.numberInSurah;
-                
-                const ayahItem = document.createElement('div');
-                ayahItem.className = `ayah-item p-3 rounded-lg border border-transparent hover:border-gold-400/30 ${selectedAyahs.has(ayahNumber) ? 'selected' : ''}`;
-                ayahItem.dataset.number = ayahNumber;
-                
-                const displayText = showEnglishInSelector 
-                    ? (englishAyah && englishAyah.text ? englishAyah.text.substring(0, 80) + '...' : '...')
-                    : (ayah.text ? ayah.text.substring(0, 60) + '...' : '...');
-                
-                const textClass = showEnglishInSelector ? 'text-slate-700 font-serif' : 'font-arabic text-right text-teal-800';
-                const dir = showEnglishInSelector ? 'ltr' : 'rtl';
-                
-                ayahItem.innerHTML = `
+        function renderAyahList() {
+            ayahList.innerHTML = '';
+            currentSurahData.arabic.ayahs.forEach((ayah, i) => {
+                const en = currentSurahData.english.ayahs[i];
+                const div = document.createElement('div');
+                div.className = `ayah-row p-3 rounded-md cursor-pointer ${selectedAyahs.has(ayah.numberInSurah) ? 'selected' : ''}`;
+                div.innerHTML = `
                     <div class="flex items-start gap-3">
-                        <div class="ayah-number w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">${ayahNumber}</div>
+                        <span class="font-mono text-xs text-white/40 mt-1 w-6">${ayah.numberInSurah}</span>
                         <div class="flex-1 min-w-0">
-                            <p class="${textClass} text-sm mb-1 leading-relaxed" dir="${dir}">${displayText}</p>
-                            ${!showEnglishInSelector && englishAyah ? `<p class="text-xs text-slate-500 italic mt-1 line-clamp-2">${englishAyah.text ? englishAyah.text.substring(0, 60) + '...' : ''}</p>` : ''}
+                            <p class="font-arabic text-right text-white text-sm mb-1 truncate" dir="rtl">${ayah.text}</p>
+                            <p class="text-[10px] text-white/40 truncate">${en ? en.text : ''}</p>
                         </div>
                     </div>
                 `;
-                
-                ayahItem.addEventListener('click', () => toggleAyahSelection(ayahNumber, ayahItem));
-                ayahSelector.appendChild(ayahItem);
+                div.onclick = () => {
+                    if (selectedAyahs.has(ayah.numberInSurah)) selectedAyahs.delete(ayah.numberInSurah);
+                    else selectedAyahs.add(ayah.numberInSurah);
+                    div.classList.toggle('selected');
+                    document.getElementById('selectedCount').textContent = selectedAyahs.size;
+                };
+                ayahList.appendChild(div);
             });
-            updateSelectedCount();
         }
 
-        function toggleAyahSelection(number, element) {
-            if (selectedAyahs.has(number)) {
-                selectedAyahs.delete(number);
-                element.classList.remove('selected');
-            } else {
-                selectedAyahs.add(number);
-                element.classList.add('selected');
-            }
-            updateSelectedCount();
-        }
-
-        function updateSelectedCount() {
-            const count = selectedAyahs.size;
-            selectedCount.textContent = `${count} ayah${count !== 1 ? 's' : ''} selected`;
-        }
-
-        selectAllBtn.addEventListener('click', () => {
-            ayahSelector.querySelectorAll('.ayah-item').forEach(item => {
-                selectedAyahs.add(parseInt(item.dataset.number));
-                item.classList.add('selected');
-            });
-            updateSelectedCount();
-        });
-
-        clearAllBtn.addEventListener('click', () => {
-            ayahSelector.querySelectorAll('.ayah-item').forEach(item => item.classList.remove('selected'));
+        document.getElementById('selectAllBtn').onclick = () => {
             selectedAyahs.clear();
-            updateSelectedCount();
-        });
+            currentSurahData.arabic.ayahs.forEach(a => selectedAyahs.add(a.numberInSurah));
+            renderAyahList();
+            document.getElementById('selectedCount').textContent = selectedAyahs.size;
+        };
+        document.getElementById('clearAllBtn').onclick = () => {
+            selectedAyahs.clear();
+            renderAyahList();
+            document.getElementById('selectedCount').textContent = 0;
+        };
 
+        // --- Video Pool ---
         async function fetchVideoBatch() {
             try {
-                const response = await fetch('/api/pexels');
-                if (!response.ok) throw new Error('Server error');
-                const data = await response.json();
-                
-                if (data.videos && data.videos.length > 0) {
-                    const shuffled = data.videos.sort(() => 0.5 - Math.random());
-                    const newVideos = shuffled.map(v => {
-                        const bestFile = v.video_files.find(f => f.height === 1920 && f.width === 1080) || 
-                                         v.video_files.find(f => f.height === 1280 && f.width === 720) || 
-                                         v.video_files[0];
-                        return bestFile.link;
+                const res = await fetch('/api/pexels');
+                const data = await res.json();
+                if (data.videos) {
+                    const vids = data.videos.sort(() => 0.5 - Math.random()).map(v => {
+                        const f = v.video_files.find(f => f.height === 1920) || v.video_files[0];
+                        return f.link;
                     });
-                    videoPool = [...videoPool, ...newVideos];
-                    
-                    bgVideo.classList.remove('hidden');
-                    fallbackBg.classList.add('hidden');
-                    return;
+                    videoPool = [...videoPool, ...vids];
                 }
-            } catch (error) {
-                console.warn('Pexels API unavailable, using premium gradient fallback.');
-            }
-            
-            bgVideo.classList.add('hidden');
-            fallbackBg.classList.remove('hidden');
+            } catch (e) { console.warn('Video fetch failed'); }
         }
 
         function getNextVideo() {
             if (videoPoolIndex >= videoPool.length - 5) fetchVideoBatch();
-            if (videoPoolIndex >= videoPool.length) videoPoolIndex = 0;
-            
             if (videoPool.length > 0) {
-                const url = videoPool[videoPoolIndex++];
-                bgVideo.src = url;
+                bgVideo.src = videoPool[videoPoolIndex++ % videoPool.length];
                 bgVideo.load();
-                bgVideo.play().catch(() => {});
-                bgVideo.classList.remove('hidden');
-                fallbackBg.classList.add('hidden');
             }
         }
 
-        function startLoadingSequence(finalCallback) {
+        // --- Generate ---
+        generateBtn.addEventListener('click', async () => {
+            if (!surahSelect.value || selectedAyahs.size === 0) return;
+            
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.classList.add('flex');
-            lucide.createIcons();
             
-            let timeLeft = 90;
-            updateTimerDisplay(timeLeft);
-            
-            const interval = setInterval(() => {
-                timeLeft--;
-                updateTimerDisplay(timeLeft);
-                if (timeLeft <= 0) {
-                    clearInterval(interval);
-                    loadingOverlay.classList.add('hidden');
-                    loadingOverlay.classList.remove('flex');
-                    finalCallback();
-                }
-            }, 1000);
-        }
-
-        function updateTimerDisplay(seconds) {
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
-            countdownTimer.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
-        }
-
-        function getArabicTextClass(text) {
-            const charCount = text ? text.length : 0;
-            if (charCount < 50) return 'arabic-text-short';
-            if (charCount < 100) return 'arabic-text-medium';
-            if (charCount < 200) return 'arabic-text-long';
-            return 'arabic-text-very-long';
-        }
-
-        generateBtn.addEventListener('click', async () => {
-            const surahNum = parseInt(surahSelect.value);
-            const reciter = reciterSelect.value;
-
-            if (!surahNum) return showStatus('Please select a Surah', 'error');
-            if (selectedAyahs.size === 0) return showStatus('Please select at least one Ayah', 'error');
-
-            generateBtn.disabled = true;
-            stopPlayback();
-
-            startLoadingSequence(() => {
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i data-lucide="wand-2" class="w-5 h-5"></i><span>Generate Reel</span>';
-                lucide.createIcons();
-                startPlayback();
-            });
+            // Simulate steps
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            for (let i = 0; i < steps.length; i++) {
+                document.getElementById(steps[i]).classList.add('active');
+                await new Promise(r => setTimeout(r, 1500));
+                document.getElementById(steps[i]).classList.remove('active');
+                document.getElementById(steps[i]).classList.add('done');
+            }
 
             try {
-                const response = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/${reciter},en.sahih`);
-                const data = await response.json();
-
-                if (data.code === 200 && Array.isArray(data.data) && data.data.length === 2) {
-                    const normalized = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, surahNum);
-                    const arabicAyahs = normalized.arabic;
-                    const englishAyahs = normalized.english;
-
-                    const filteredArabic = arabicAyahs.filter(a => selectedAyahs.has(a.numberInSurah));
-                    const filteredEnglish = englishAyahs.filter(a => selectedAyahs.has(a.numberInSurah));
-
-                    filteredArabic.sort((a, b) => a.numberInSurah - b.numberInSurah);
-                    filteredEnglish.sort((a, b) => a.numberInSurah - b.numberInSurah);
-
-                    currentAyahs = filteredArabic.map((ayah, index) => ({
-                        ...ayah,
-                        translation: filteredEnglish[index] ? filteredEnglish[index].text : '',
-                        surah: data.data[0]
-                    }));
-
-                    currentAyahIndex = 0;
-                    displaySurahName.textContent = currentAyahs[0].surah.englishName;
-                    
-                    const textClass = getArabicTextClass(currentAyahs[0].text);
-                    arabicText.className = `font-arabic leading-loose text-white text-shadow mb-6 animate-fade-in dir-rtl ${textClass}`;
-                    
-                    getNextVideo();
-                    
-                    showStatus(`Reel ready! ${currentAyahs.length} ayah${currentAyahs.length !== 1 ? 's' : ''} selected.`, 'success');
-                } else {
-                    throw new Error('API returned unexpected data');
-                }
-            } catch (error) {
-                showStatus('Failed to fetch Quran data.', 'error');
+                const res = await fetch(`${QURAN_API_BASE}/surah/${surahSelect.value}/editions/${reciterSelect.value},en.sahih`);
+                const data = await res.json();
+                const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(surahSelect.value));
+                
+                const ar = norm.arabic.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                const en = norm.english.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                
+                currentAyahs = ar.map((a, i) => ({ ...a, translation: en[i]?.text || '', surah: data.data[0] }));
+                currentAyahIndex = 0;
+                displaySurahName.textContent = currentAyahs[0].surah.englishName.toUpperCase();
+                
+                getNextVideo();
+                downloadBtn.classList.remove('hidden');
                 loadingOverlay.classList.add('hidden');
-                loadingOverlay.classList.remove('flex');
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i data-lucide="wand-2" class="w-5 h-5"></i><span>Generate Reel</span>';
-                lucide.createIcons();
+                startPlayback();
+            } catch (e) {
+                loadingOverlay.classList.add('hidden');
             }
         });
 
+        // --- Playback (Fixed) ---
         function startPlayback() {
-            if (currentAyahs.length === 0) return;
+            if (!currentAyahs.length) return;
             isPlaying = true;
-            updatePlayPauseIcon();
+            updatePlayIcon();
+            bgVideo.play();
             playCurrentAyah();
-        }
-
-        function stopPlayback() {
-            isPlaying = false;
-            audioPlayer.pause();
-            audioPlayer.currentTime = 0;
-            updatePlayPauseIcon();
-            progressBar.style.width = '0%';
         }
 
         function playCurrentAyah() {
             if (!isPlaying) return;
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
-
-            const ayah = currentAyahs[currentAyahIndex];
             
+            const ayah = currentAyahs[currentAyahIndex];
             arabicText.style.opacity = '0';
             translationText.style.opacity = '0';
             
             setTimeout(() => {
-                arabicText.textContent = ayah.text || '';
-                translationText.textContent = ayah.translation || '';
-                ayahIndicator.textContent = `Ayah ${ayah.numberInSurah}`;
-                
-                const textClass = getArabicTextClass(ayah.text);
-                arabicText.className = `font-arabic leading-loose text-white text-shadow mb-6 animate-fade-in dir-rtl ${textClass}`;
-                
+                arabicText.textContent = ayah.text;
+                translationText.textContent = ayah.translation;
+                ayahIndicator.textContent = String(ayah.numberInSurah).padStart(2, '0');
                 arabicText.style.opacity = '1';
                 translationText.style.opacity = '1';
             }, 200);
 
             audioPlayer.src = ayah.audio;
             progressBar.style.width = `${((currentAyahIndex + 1) / currentAyahs.length) * 100}%`;
-            audioPlayer.play().catch(e => console.error('Audio play failed:', e));
+            audioPlayer.play();
 
             audioPlayer.onended = () => {
                 currentAyahIndex++;
@@ -699,40 +405,97 @@
         }
 
         playPauseOverlay.addEventListener('click', () => {
-            if (currentAyahs.length === 0) return;
+            if (!currentAyahs.length) return;
+            isPlaying = !isPlaying;
+            updatePlayIcon();
             if (isPlaying) {
-                isPlaying = false;
-                audioPlayer.pause();
+                bgVideo.play();
+                audioPlayer.play();
             } else {
-                isPlaying = true;
-                playCurrentAyah();
+                bgVideo.pause();
+                audioPlayer.pause();
             }
-            updatePlayPauseIcon();
         });
 
-        function updatePlayPauseIcon() {
+        function updatePlayIcon() {
             playPauseIcon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
             lucide.createIcons();
         }
 
-        function showStatus(message, type) {
-            const statusMsg = document.getElementById('statusMsg');
-            statusMsg.textContent = message;
-            statusMsg.classList.remove('hidden', 'text-teal-700', 'text-red-600');
-            statusMsg.classList.add(type === 'success' ? 'text-teal-700' : 'text-red-600');
-            setTimeout(() => statusMsg.classList.add('hidden'), 3000);
-        }
-
-        async function fetchCharityCounter() {
-            try {
-                const res = await fetch('https://api.counterapi.dev/v1/reeldeen/charity_raised/up?up=0');
-                if (!res.ok) throw new Error();
-                const data = await res.json();
-                document.getElementById('charityCounter').textContent = data.count || 0;
-            } catch (e) {
-                document.getElementById('charityCounter').textContent = '0';
+        // --- Download (MP4 via MediaRecorder) ---
+        downloadBtn.addEventListener('click', () => {
+            if (!currentAyahs.length) return;
+            
+            const canvas = document.getElementById('recordCanvas');
+            const ctx = canvas.getContext('2d');
+            const stream = canvas.captureStream(30);
+            
+            // Add audio track
+            const audioStream = audioPlayer.captureStream ? audioPlayer.captureStream() : null;
+            if (audioStream) {
+                audioStream.getAudioTracks().forEach(track => stream.addTrack(track));
             }
-        }
+
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+            recordedChunks = [];
+            
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reeldeen-${surahSelect.value}.mp4`; // Browsers will handle webm/mp4
+                a.click();
+            };
+
+            // Start recording from beginning
+            currentAyahIndex = 0;
+            isPlaying = true;
+            bgVideo.play();
+            mediaRecorder.start();
+
+            // Draw loop
+            function drawFrame() {
+                if (!isPlaying && mediaRecorder.state === 'inactive') return;
+                
+                // Draw video
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                if (bgVideo.readyState >= 2) {
+                    const scale = Math.max(canvas.width / bgVideo.videoWidth, canvas.height / bgVideo.videoHeight);
+                    const x = (canvas.width / 2) - (bgVideo.videoWidth / 2) * scale;
+                    const y = (canvas.height / 2) - (bgVideo.videoHeight / 2) * scale;
+                    ctx.drawImage(bgVideo, x, y, bgVideo.videoWidth * scale, bgVideo.videoHeight * scale);
+                }
+                
+                // Draw overlay
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw text (simplified)
+                ctx.fillStyle = '#fff';
+                ctx.font = '60px Amiri';
+                ctx.textAlign = 'center';
+                ctx.textDirection = 'rtl';
+                const ayah = currentAyahs[currentAyahIndex];
+                if (ayah) {
+                    ctx.fillText(ayah.text, canvas.width/2, canvas.height/2);
+                }
+                
+                requestAnimationFrame(drawFrame);
+            }
+            drawFrame();
+
+            // Stop after one full loop
+            const totalDuration = currentAyahs.reduce((acc, a) => acc + (a.duration || 5), 0) * 1000;
+            setTimeout(() => {
+                mediaRecorder.stop();
+                isPlaying = false;
+                bgVideo.pause();
+                audioPlayer.pause();
+            }, totalDuration);
+        });
 
         init();
     </script>
