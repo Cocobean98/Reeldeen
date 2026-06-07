@@ -38,20 +38,19 @@
         .reel-container { aspect-ratio: 9/16; height: 100%; max-height: 80vh; }
         .glass { background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
         
-        .step-item { opacity: 0.3; transition: all 0.3s; }
-        .step-item.active { opacity: 1; color: #10b981; }
-        .step-item.done { opacity: 0.6; color: #10b981; }
-        
         .ayah-row { transition: all 0.15s; border-left: 2px solid transparent; }
         .ayah-row:hover { background: #1a1a1a; }
         .ayah-row.selected { background: #1a1a1a; border-left-color: #10b981; }
         
         #recordCanvas { display: none; }
         
-        .modal-overlay {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
-        }
+        .modal-overlay { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
+        
+        /* Responsive Arabic text in preview */
+        .arabic-text-short { font-size: 2.2rem; }
+        .arabic-text-medium { font-size: 1.6rem; }
+        .arabic-text-long { font-size: 1.2rem; }
+        .arabic-text-very-long { font-size: 1rem; }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -69,7 +68,7 @@
             </button>
             <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support</a>
             <button id="downloadBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium items-center gap-2 transition">
-                <i data-lucide="download" class="w-4 h-4"></i> Download MP4
+                <i data-lucide="download" class="w-4 h-4"></i> <span id="downloadLabel">Download MP4</span>
             </button>
         </div>
     </header>
@@ -106,7 +105,7 @@
 
         <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative">
             <div class="reel-container w-full max-w-[360px] bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10 relative group">
-                <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover" loop muted playsinline crossorigin="anonymous"></video>
+                <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover" loop muted playsinline></video>
                 <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
                 
                 <div class="absolute inset-0 flex flex-col justify-center items-center p-8 text-center z-10">
@@ -115,7 +114,7 @@
                             <span id="displaySurahName">AL-FATIHAH</span>
                         </span>
                     </div>
-                    <div id="arabicText" class="font-arabic text-3xl leading-relaxed text-white mb-6 transition-opacity duration-300" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+                    <div id="arabicText" class="font-arabic leading-relaxed text-white mb-6 transition-all duration-300 arabic-text-short" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
                     <div id="translationText" class="text-sm text-white/70 font-light leading-relaxed max-w-[280px] transition-opacity duration-300 italic">In the name of Allah, the Entirely Merciful, the Especially Merciful.</div>
                     <div class="mt-8 flex items-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-widest">
                         <i data-lucide="volume-2" class="w-3 h-3"></i>
@@ -163,6 +162,7 @@
         </aside>
     </div>
 
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
             <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
@@ -186,6 +186,7 @@
         </div>
     </div>
 
+    <!-- Story Modal -->
     <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
         <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div class="p-8">
@@ -233,7 +234,8 @@
     </div>
 
     <canvas id="recordCanvas" width="1080" height="1920"></canvas>
-    <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+    <!-- NO crossorigin attribute - lets audio play normally -->
+    <audio id="audioPlayer" preload="auto"></audio>
 
     <script>
         lucide.createIcons();
@@ -244,12 +246,14 @@
         let audioPlayer = document.getElementById('audioPlayer');
         let videoPool = [], videoPoolIndex = 0;
         let mediaRecorder, recordedChunks = [];
+        let isRecording = false; // Flag to prevent conflicts
 
         const surahSelect = document.getElementById('surahSelect');
         const ayahList = document.getElementById('ayahList');
         const reciterSelect = document.getElementById('reciterSelect');
         const generateBtn = document.getElementById('generateBtn');
         const downloadBtn = document.getElementById('downloadBtn');
+        const downloadLabel = document.getElementById('downloadLabel');
         const bgVideo = document.getElementById('bgVideo');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const countdownTimer = document.getElementById('countdownTimer');
@@ -266,19 +270,28 @@
         // ============================================
         // ROBUST BISMILLAH REMOVAL
         // ============================================
-        function removeBismillah(text) {
+        function isOnlyBismillah(text) {
+            if (!text) return false;
+            return text.length < 80 && text.includes('بِسْمِ') && (text.includes('الرَّحِيمِ') || text.includes('الرَّحِيم'));
+        }
+
+        function removeBismillahFromText(text) {
             if (!text) return text;
+            
+            // Only remove if it STARTS with Bismillah
+            if (!text.startsWith('بِسْمِ') && !text.startsWith('بسم')) return text;
             
             // Multiple patterns to catch all variations
             const patterns = [
-                /^بِسْمِ[\s\S]*?الرَّحِيمِ[\s]*/i,
-                /^بِسْمِ[\s\S]*?الرَّحِيم[\s]*/i,
-                /^بسم[\s\S]*?الرحيم[\s]*/i
+                /^بِسْمِ[\s\S]*?الرَّحِيمِ[\s]*/,
+                /^بِسْمِ[\s\S]*?الرَّحِيم[\s]*/,
+                /^بسم[\s\S]*?الرحيم[\s]*/
             ];
             
             for (const pattern of patterns) {
-                if (pattern.test(text)) {
-                    return text.replace(pattern, '').trim();
+                const match = text.match(pattern);
+                if (match && match[0].length < 100) {
+                    return text.substring(match[0].length).trim();
                 }
             }
             
@@ -289,26 +302,25 @@
             let a = [...ar], e = [...en];
             
             if (surahNum !== 1 && surahNum !== 9 && a.length > 0) {
-                const firstText = a[0].text || '';
-                
-                // Check if first ayah is ONLY Bismillah (separate ayah)
-                if (firstText.includes('بِسْمِ') && firstText.includes('الرَّحِيمِ') && firstText.length < 80) {
+                // Case 1: First ayah is ONLY the Bismillah (separate object)
+                if (isOnlyBismillah(a[0].text)) {
                     a.shift();
                     if (e.length > 0) e.shift();
                 }
-                // Check if Bismillah is prepended to first ayah
-                else if (firstText.includes('بِسْمِ') && firstText.includes('الرَّحِيمِ')) {
-                    a[0].text = removeBismillah(firstText);
+                
+                // Case 2: Bismillah is prepended to first ayah - remove it
+                if (a.length > 0) {
+                    a[0].text = removeBismillahFromText(a[0].text);
                     if (e.length > 0 && e[0].text) {
                         e[0].text = e[0].text.replace(/^(In the name of Allah,?[\s\S]*?Merciful\.?[\s]*)/i, '').trim();
                     }
                 }
             }
             
-            // Also clean Bismillah from ALL ayahs (in case it appears elsewhere)
+            // Safety: Remove Bismillah from ALL ayahs (catches edge cases)
             a.forEach(ayah => {
-                if (ayah.text && ayah.text.includes('بِسْمِ') && ayah.text.includes('الرَّحِيمِ')) {
-                    ayah.text = removeBismillah(ayah.text);
+                if (ayah.text && (ayah.text.startsWith('بِسْمِ') || ayah.text.startsWith('بسم'))) {
+                    ayah.text = removeBismillahFromText(ayah.text);
                 }
             });
             
@@ -318,38 +330,40 @@
         }
 
         // ============================================
-        // PREFETCH AUDIO AS BLOBS (Bypasses CORS)
+        // AUDIO PROXY - Bypasses CORS
         // ============================================
-        async function prefetchAudioAsBlobs(ayahs) {
-            const blobUrls = [];
-            for (const ayah of ayahs) {
-                try {
-                    const response = await fetch(ayah.audio);
-                    const blob = await response.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    blobUrls.push(blobUrl);
-                } catch (err) {
-                    console.warn('Failed to prefetch audio, using original URL');
-                    blobUrls.push(ayah.audio);
-                }
+        async function fetchAudioViaProxy(originalUrl) {
+            try {
+                const proxyUrl = `/api/audio-proxy?url=${encodeURIComponent(originalUrl)}`;
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Proxy failed');
+                const blob = await response.blob();
+                return URL.createObjectURL(blob);
+            } catch (err) {
+                console.warn('Proxy failed for:', originalUrl, err);
+                return originalUrl; // Fallback to direct URL
             }
-            return blobUrls;
         }
 
         // ============================================
-        // RESPONSIVE TEXT SIZING FOR CANVAS
+        // RESPONSIVE TEXT SIZING
         // ============================================
-        function getOptimalFontSize(text, maxWidth, baseFontSize, ctx) {
-            let fontSize = baseFontSize;
-            ctx.font = `${fontSize}px Amiri`;
-            
-            // Reduce font size until text fits
-            while (ctx.measureText(text).width > maxWidth && fontSize > 20) {
-                fontSize -= 2;
-                ctx.font = `${fontSize}px Amiri`;
+        function getArabicTextClass(text) {
+            const len = text ? text.length : 0;
+            if (len < 50) return 'arabic-text-short';
+            if (len < 100) return 'arabic-text-medium';
+            if (len < 200) return 'arabic-text-long';
+            return 'arabic-text-very-long';
+        }
+
+        function getOptimalFontSize(ctx, text, maxWidth, baseFontSize, minFontSize = 30) {
+            let size = baseFontSize;
+            while (size > minFontSize) {
+                ctx.font = `${size}px Amiri`;
+                if (ctx.measureText(text).width <= maxWidth) return size;
+                size -= 4;
             }
-            
-            return fontSize;
+            return minFontSize;
         }
 
         function wrapText(ctx, text, maxWidth) {
@@ -367,16 +381,19 @@
                 }
             }
             if (currentLine) lines.push(currentLine);
-            
             return lines;
         }
 
+        // ============================================
+        // INIT
+        // ============================================
         async function init() {
             const res = await fetch(`${QURAN_API_BASE}/surah`);
             const data = await res.json();
             if (data.code === 200) {
                 surahsData = data.data;
-                surahSelect.innerHTML = '<option value="">Select Surah</option>' + surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName}</option>`).join('');
+                surahSelect.innerHTML = '<option value="">Select Surah</option>' + 
+                    surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName}</option>`).join('');
                 fetchVideoBatch();
             }
         }
@@ -452,6 +469,9 @@
             }
         }
 
+        // ============================================
+        // GENERATE
+        // ============================================
         function startLoadingSequence(finalCallback) {
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.classList.add('flex');
@@ -494,12 +514,6 @@
                     currentAyahIndex = 0;
                     displaySurahName.textContent = currentAyahs[0].surah.englishName.toUpperCase();
                     
-                    // PREFETCH AUDIO AS BLOBS to bypass CORS
-                    const blobUrls = await prefetchAudioAsBlobs(currentAyahs);
-                    currentAyahs.forEach((ayah, i) => {
-                        ayah.blobAudioUrl = blobUrls[i];
-                    });
-                    
                     getNextVideo();
                     downloadBtn.classList.remove('hidden');
                     downloadBtn.style.display = 'flex';
@@ -510,8 +524,11 @@
             });
         });
 
+        // ============================================
+        // NORMAL PLAYBACK (uses direct URLs - no CORS needed)
+        // ============================================
         function startPlayback() {
-            if (!currentAyahs.length) return;
+            if (!currentAyahs.length || isRecording) return;
             isPlaying = true;
             updatePlayIcon();
             bgVideo.play();
@@ -519,10 +536,23 @@
         }
 
         function playCurrentAyah() {
-            if (!isPlaying) return;
+            if (!isPlaying || isRecording) return;
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
             
-            const ayah = currentAyahs[currentAyahIndex];
+            updateAyahUI(currentAyahs[currentAyahIndex]);
+
+            // Use direct URL for normal playback (no CORS issues)
+            audioPlayer.src = currentAyahs[currentAyahIndex].audio;
+            progressBar.style.width = `${((currentAyahIndex + 1) / currentAyahs.length) * 100}%`;
+            audioPlayer.play().catch(e => console.warn('Audio play failed:', e));
+
+            audioPlayer.onended = () => {
+                currentAyahIndex++;
+                if (isPlaying && !isRecording) playCurrentAyah();
+            };
+        }
+
+        function updateAyahUI(ayah) {
             arabicText.style.opacity = '0';
             translationText.style.opacity = '0';
             
@@ -530,23 +560,17 @@
                 arabicText.textContent = ayah.text;
                 translationText.textContent = ayah.translation;
                 ayahIndicator.textContent = String(ayah.numberInSurah).padStart(2, '0');
+                
+                // Responsive sizing
+                arabicText.className = `font-arabic leading-relaxed text-white mb-6 transition-all duration-300 ${getArabicTextClass(ayah.text)}`;
+                
                 arabicText.style.opacity = '1';
                 translationText.style.opacity = '1';
             }, 200);
-
-            // Use blob URL if available (bypasses CORS)
-            audioPlayer.src = ayah.blobAudioUrl || ayah.audio;
-            progressBar.style.width = `${((currentAyahIndex + 1) / currentAyahs.length) * 100}%`;
-            audioPlayer.play();
-
-            audioPlayer.onended = () => {
-                currentAyahIndex++;
-                if (isPlaying) playCurrentAyah();
-            };
         }
 
         playPauseOverlay.addEventListener('click', () => {
-            if (!currentAyahs.length) return;
+            if (!currentAyahs.length || isRecording) return;
             isPlaying = !isPlaying;
             updatePlayIcon();
             if (isPlaying) {
@@ -563,6 +587,9 @@
             lucide.createIcons();
         }
 
+        // ============================================
+        // STORY MODAL
+        // ============================================
         document.getElementById('storyBtn').addEventListener('click', () => {
             storyModal.classList.remove('hidden');
             storyModal.classList.add('flex');
@@ -582,20 +609,25 @@
         });
 
         // ============================================
-        // IMPROVED DOWNLOAD WITH PROPER RECORDING
+        // DOWNLOAD - Sequential recording (NO infinite loop)
         // ============================================
         downloadBtn.addEventListener('click', async () => {
-            if (!currentAyahs.length) return;
+            if (!currentAyahs.length || isRecording) return;
+            
+            isRecording = true;
+            isPlaying = false;
+            bgVideo.pause();
+            audioPlayer.pause();
             
             downloadBtn.disabled = true;
-            downloadBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Recording...';
+            downloadLabel.textContent = 'Recording... 0%';
             lucide.createIcons();
             
             const canvas = document.getElementById('recordCanvas');
             const ctx = canvas.getContext('2d');
             const stream = canvas.captureStream(30);
             
-            // Setup audio capture using blob URLs (no CORS issues)
+            // Setup audio capture
             const audioContext = new AudioContext();
             const source = audioContext.createMediaElementSource(audioPlayer);
             const destination = audioContext.createMediaStreamDestination();
@@ -616,116 +648,130 @@
                 a.download = `reeldeen-${surahSelect.value}.webm`;
                 a.click();
                 
+                isRecording = false;
                 downloadBtn.disabled = false;
-                downloadBtn.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i> Download MP4';
+                downloadLabel.textContent = 'Download MP4';
                 lucide.createIcons();
                 
-                // Cleanup blob URLs
-                currentAyahs.forEach(ayah => {
-                    if (ayah.blobAudioUrl) URL.revokeObjectURL(ayah.blobAudioUrl);
-                });
+                audioContext.close();
             };
 
-            currentAyahIndex = 0;
-            isPlaying = true;
             mediaRecorder.start();
-
-            // Draw frames with proper text sizing
-            let lastAyahIndex = -1;
             
+            // Start draw loop
+            let animationId;
             function drawFrame() {
-                if (mediaRecorder.state === 'inactive') return;
+                if (!isRecording) return;
                 
-                // Dark gradient background
-                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                gradient.addColorStop(0, '#0a0a0a');
-                gradient.addColorStop(0.5, '#1a1a1a');
-                gradient.addColorStop(1, '#0a0a0a');
-                ctx.fillStyle = gradient;
+                // Dark background
+                ctx.fillStyle = '#0a0a0a';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Subtle overlay
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                // Subtle gradient overlay
+                const gradient = ctx.createRadialGradient(540, 960, 0, 540, 960, 1000);
+                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.15)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 const ayah = currentAyahs[currentAyahIndex];
                 if (ayah) {
-                    // Draw Surah name badge
+                    // Surah name badge
                     ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    const badgeWidth = 300;
-                    const badgeHeight = 50;
-                    const badgeX = (canvas.width - badgeWidth) / 2;
-                    const badgeY = 400;
-                    ctx.fillRect(badgeX, badgeY, badgeWidth, badgeHeight);
+                    const badgeW = 400, badgeH = 60;
+                    ctx.fillRect((canvas.width - badgeW) / 2, 350, badgeW, badgeH);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.strokeRect((canvas.width - badgeW) / 2, 350, badgeW, badgeH);
                     
                     ctx.fillStyle = '#ffffff';
-                    ctx.font = '24px Inter';
+                    ctx.font = '500 26px Inter';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, badgeY + badgeHeight/2);
+                    ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, 380);
                     
-                    // Draw Arabic text with responsive sizing
+                    // Arabic text - responsive sizing
                     const arabicMaxWidth = 900;
-                    const arabicFontSize = getOptimalFontSize(ayah.text, arabicMaxWidth, 80, ctx);
+                    const arabicFontSize = getOptimalFontSize(ctx, ayah.text, arabicMaxWidth, 90, 40);
                     ctx.font = `${arabicFontSize}px Amiri`;
                     ctx.fillStyle = '#ffffff';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     
-                    // Wrap Arabic text if needed
                     const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-                    const arabicStartY = 700;
-                    const arabicLineHeight = arabicFontSize * 1.5;
+                    const arabicLineHeight = arabicFontSize * 1.6;
+                    const arabicTotalHeight = arabicLines.length * arabicLineHeight;
+                    const arabicStartY = 700 + (400 - arabicTotalHeight) / 2; // Center in available space
                     
                     arabicLines.forEach((line, i) => {
                         ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
                     });
                     
-                    // Draw English translation with responsive sizing
+                    // English translation
                     const englishMaxWidth = 800;
-                    const englishFontSize = getOptimalFontSize(ayah.translation, englishMaxWidth, 40, ctx);
+                    const englishFontSize = getOptimalFontSize(ctx, ayah.translation, englishMaxWidth, 45, 24);
                     ctx.font = `italic ${englishFontSize}px Inter`;
                     ctx.fillStyle = 'rgba(255,255,255,0.7)';
                     ctx.textAlign = 'center';
                     
                     const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
-                    const englishStartY = arabicStartY + (arabicLines.length * arabicLineHeight) + 100;
-                    const englishLineHeight = englishFontSize * 1.4;
+                    const englishStartY = arabicStartY + arabicTotalHeight + 80;
+                    const englishLineHeight = englishFontSize * 1.5;
                     
                     englishLines.forEach((line, i) => {
                         ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
                     });
                     
-                    // Draw Ayah number
+                    // Ayah indicator
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                    ctx.font = '20px JetBrains Mono';
+                    ctx.font = '500 24px JetBrains Mono';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1600);
+                    ctx.fillText(`AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1650);
                 }
                 
-                requestAnimationFrame(drawFrame);
+                animationId = requestAnimationFrame(drawFrame);
             }
             drawFrame();
 
-            // Play audio from blob URL and stop after completion
-            audioPlayer.currentTime = 0;
-            audioPlayer.src = currentAyahs[0].blobAudioUrl || currentAyahs[0].audio;
-            audioPlayer.play();
-            
-            // Track ayah progression during recording
-            audioPlayer.onended = () => {
-                currentAyahIndex++;
-                if (currentAyahIndex < currentAyahs.length) {
-                    audioPlayer.src = currentAyahs[currentAyahIndex].blobAudioUrl || currentAyahs[currentAyahIndex].audio;
-                    audioPlayer.play();
-                } else {
-                    setTimeout(() => {
-                        mediaRecorder.stop();
-                        isPlaying = false;
-                        audioContext.close();
-                    }, 1000);
+            // Sequential playback through each ayah
+            try {
+                for (let i = 0; i < currentAyahs.length; i++) {
+                    if (!isRecording) break;
+                    
+                    currentAyahIndex = i;
+                    const progress = Math.round(((i + 1) / currentAyahs.length) * 100);
+                    downloadLabel.textContent = `Recording... ${progress}%`;
+                    
+                    // Fetch audio via proxy (creates local blob URL - bypasses CORS)
+                    const blobUrl = await fetchAudioViaProxy(currentAyahs[i].audio);
+                    
+                    // Play this ayah and wait for it to finish
+                    await new Promise((resolve, reject) => {
+                        audioPlayer.src = blobUrl;
+                        audioPlayer.onended = () => {
+                            URL.revokeObjectURL(blobUrl);
+                            resolve();
+                        };
+                        audioPlayer.onerror = () => {
+                            URL.revokeObjectURL(blobUrl);
+                            reject(new Error('Audio play error'));
+                        };
+                        audioPlayer.play().catch(reject);
+                    });
+                    
+                    // Small pause between ayahs
+                    await new Promise(r => setTimeout(r, 300));
                 }
-            };
+            } catch (err) {
+                console.error('Recording error:', err);
+            }
+            
+            // Stop recording
+            cancelAnimationFrame(animationId);
+            setTimeout(() => {
+                if (mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+            }, 500);
         });
 
         init();
