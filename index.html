@@ -106,17 +106,6 @@
         .video-thumbnail.selected .checkmark-overlay {
             opacity: 1;
         }
-        
-        .disabled-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            border-radius: 8px;
-        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -141,7 +130,7 @@
 
     <div class="flex-1 flex overflow-hidden">
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
-            <div class="p-4 border-b border-white/5 bg-dark-800 relative">
+            <div class="p-4 border-b border-white/5 bg-dark-800">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
                 <div class="flex gap-2 mb-3">
                     <input type="text" id="videoSearchInput" placeholder="e.g., nature, forest, ocean..." 
@@ -156,15 +145,17 @@
                     <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
                     <button id="changeVideoBtn" class="text-xs text-white/60 hover:text-white underline">Change</button>
                 </div>
-                <!-- Disabled overlay after generation -->
-                <div id="videoSearchDisabled" class="hidden disabled-overlay">
-                    <div class="text-center p-4">
-                        <i data-lucide="lock" class="w-8 h-8 text-white/60 mx-auto mb-2"></i>
-                        <p class="text-white/80 text-sm font-medium mb-1">Reel Already Generated</p>
-                        <p class="text-white/50 text-xs mb-3">Change background requires regenerating</p>
-                        <button id="regenerateBtn" class="bg-accent-500 hover:bg-accent-600 text-white text-xs px-4 py-2 rounded-md transition">
-                            Regenerate Reel
-                        </button>
+                <!-- Notice after generation -->
+                <div id="regenerateNotice" class="hidden mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                    <div class="flex items-start gap-2">
+                        <i data-lucide="info" class="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0"></i>
+                        <div class="flex-1">
+                            <p class="text-yellow-500 text-xs font-medium mb-1">Reel Generated</p>
+                            <p class="text-white/60 text-xs mb-2">Changes require regeneration</p>
+                            <button id="regenerateBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-white text-xs px-3 py-1.5 rounded-md transition">
+                                Regenerate with New Settings
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -223,7 +214,7 @@
 
             <div class="p-4 border-b border-white/5">
                 <button id="generateBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 rounded-md flex items-center justify-center gap-2 transition text-sm mb-3">
-                    <i data-lucide="wand-2" class="w-4 h-4"></i> Generate Reel
+                    <i data-lucide="wand-2" class="w-4 h-4"></i> <span id="generateBtnText">Generate Reel</span>
                 </button>
                 <a href="https://www.effectivecpmnetwork.com/fwgxcbteae?key=8d2e01bfaeec387ff27d0bab9d9cb08a" target="_blank" 
                    class="block w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium py-2.5 rounded-md flex items-center justify-center gap-2 transition text-sm shadow-lg">
@@ -322,7 +313,7 @@
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
         let selectedVideoUrl = null;
-        let isReelGenerated = false; // Track if reel has been generated
+        let isReelGenerated = false;
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -330,6 +321,7 @@
         const ayahList = document.getElementById('ayahList');
         const reciterSelect = document.getElementById('reciterSelect');
         const generateBtn = document.getElementById('generateBtn');
+        const generateBtnText = document.getElementById('generateBtnText');
         const downloadBtn = document.getElementById('downloadBtn');
         const downloadLabel = document.getElementById('downloadLabel');
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -339,7 +331,7 @@
         const videoSearchInput = document.getElementById('videoSearchInput');
         const searchVideoBtn = document.getElementById('searchVideoBtn');
         const videoSearchResults = document.getElementById('videoSearchResults');
-        const videoSearchDisabled = document.getElementById('videoSearchDisabled');
+        const regenerateNotice = document.getElementById('regenerateNotice');
 
         const viralTags = {
             general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
@@ -476,7 +468,6 @@
             const W = previewCanvas.width;
             const H = previewCanvas.height;
             
-            // Draw background when no video
             if (!bgVideo || bgVideo.readyState < 2 || bgVideo.videoWidth === 0) {
                 const grad = ctx.createLinearGradient(0, 0, 0, H);
                 grad.addColorStop(0, '#1a3a3a');
@@ -484,7 +475,6 @@
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, W, H);
                 
-                // Draw placeholder text
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.font = '20px Inter, sans-serif';
                 ctx.textAlign = 'center';
@@ -493,7 +483,6 @@
                 return;
             }
             
-            // Draw video
             const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
             const canvasAspect = W / H;
             let drawWidth, drawHeight, drawX, drawY;
@@ -511,7 +500,6 @@
             }
             ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
             
-            // Draw gradient overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
             overlay.addColorStop(0, 'rgba(0,0,0,0.55)');
             overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)');
@@ -519,11 +507,9 @@
             ctx.fillStyle = overlay;
             ctx.fillRect(0, 0, W, H);
             
-            // Only render text if we have ayahs loaded
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length && currentAyahs[currentAyahIndex]) {
                 const ayah = currentAyahs[currentAyahIndex];
                 
-                // Surah badge - FIXED: Use surah name from currentAyahs
                 const badgeW = 240, badgeH = 48;
                 const badgeX = (W - badgeW) / 2;
                 const badgeY = 680;
@@ -539,11 +525,9 @@
                 ctx.font = '600 18px Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                // FIXED: Access surah name correctly
                 const surahName = ayah.surah?.name || currentSurahData?.surahName || 'Quran';
                 ctx.fillText(surahName.toUpperCase(), W/2, badgeY + badgeH/2);
                 
-                // Arabic text
                 const arabicMaxWidth = W * 0.85;
                 let arabicFontSize = 105;
                 ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
@@ -572,7 +556,6 @@
                 ctx.shadowBlur = 0;
                 ctx.shadowOffsetY = 0;
                 
-                // English translation
                 const englishMaxWidth = W * 0.72;
                 let englishFontSize = 34;
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
@@ -590,7 +573,6 @@
                     ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight));
                 });
                 
-                // Ayah indicator
                 const indicatorY = englishStartY + (englishLines.length * englishLineHeight) + 50;
                 ctx.fillStyle = 'rgba(255,255,255,0.55)';
                 ctx.font = '500 22px "JetBrains Mono", monospace';
@@ -708,46 +690,54 @@
             document.getElementById('selectedCount').textContent = 0;
         };
 
-        // IMPROVED: Search using both Pexels and Pixabay for better results
         async function searchVideos(query) {
             if (!query) return;
-            videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching Pexels & Pixabay...</div>';
+            
+            videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching videos...</div>';
             videoSearchResults.classList.remove('hidden');
             
+            let allVideos = [];
+            
             try {
-                // Search both APIs in parallel
-                const [pexelsRes, pixabayRes] = await Promise.all([
-                    fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=8&orientation=portrait`),
-                    fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=8&image_type=video`)
-                ]);
-                
-                const pexelsData = await pexelsRes.json();
-                const pixabayData = await pixabayRes.json();
-                
-                let allVideos = [];
-                
-                // Process Pexels videos
-                if (pexelsData.videos && pexelsData.videos.length > 0) {
-                    allVideos = allVideos.concat(pexelsData.videos.map(v => ({
-                        source: 'pexels',
-                        video_files: v.video_files,
-                        image: v.image
-                    })));
+                try {
+                    const pixabayRes = await fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=8`);
+                    if (pixabayRes.ok) {
+                        const pixabayData = await pixabayRes.json();
+                        if (pixabayData.hits && pixabayData.hits.length > 0) {
+                            allVideos = allVideos.concat(pixabayData.hits.map(v => ({
+                                source: 'pixabay',
+                                video_files: [{ 
+                                    link: v.videos?.large?.url || v.videos?.medium?.url || v.videos?.small?.url, 
+                                    height: 1920 
+                                }],
+                                image: v.picture_id ? `https://cdn.pixabay.com/photo/${v.picture_id}_640.jpg` : v.preview_url
+                            })).filter(v => v.video_files[0].link));
+                        }
+                    }
+                } catch (pixabayError) {
+                    console.warn('Pixabay failed, using Pexels only:', pixabayError);
                 }
                 
-                // Process Pixabay videos
-                if (pixabayData.hits && pixabayData.hits.length > 0) {
-                    allVideos = allVideos.concat(pixabayData.hits.map(v => ({
-                        source: 'pixabay',
-                        video_files: [{ link: v.videos && (v.videos.large || v.videos.medium || v.videos.small)?.url, height: 1920 }],
-                        image: v.preview_url
-                    })));
+                try {
+                    const pexelsRes = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=8&orientation=portrait`);
+                    if (pexelsRes.ok) {
+                        const pexelsData = await pexelsRes.json();
+                        if (pexelsData.videos && pexelsData.videos.length > 0) {
+                            allVideos = allVideos.concat(pexelsData.videos.map(v => ({
+                                source: 'pexels',
+                                video_files: v.video_files,
+                                image: v.image
+                            })));
+                        }
+                    }
+                } catch (pexelsError) {
+                    console.warn('Pexels failed:', pexelsError);
                 }
                 
                 if (allVideos.length > 0) {
                     displayVideoSearchResults(allVideos);
                 } else {
-                    videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found. Try: nature, forest, ocean, sky</div>';
+                    videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found. Try: nature, forest, ocean, sky, mountains</div>';
                 }
             } catch (e) {
                 console.error('Video search failed:', e);
@@ -835,18 +825,18 @@
             videoSearchInput.focus();
         });
 
-        // NEW: Regenerate button handler
+        // Regenerate button - resets everything for a fresh generation
         document.getElementById('regenerateBtn').addEventListener('click', () => {
+            // Hide the notice
+            regenerateNotice.classList.add('hidden');
+            regenerateNotice.classList.remove('flex');
+            
             // Reset generation state
             isReelGenerated = false;
             currentAyahs = [];
             currentAyahIndex = 0;
             isPlaying = false;
             audioPlayer.pause();
-            
-            // Hide disabled overlay
-            videoSearchDisabled.classList.add('hidden');
-            videoSearchDisabled.classList.remove('flex');
             
             // Reset canvas to placeholder
             renderFrame();
@@ -855,6 +845,7 @@
             downloadBtn.classList.add('hidden');
             downloadBtn.style.display = 'none';
             tagsSection.classList.add('hidden');
+            generateBtnText.textContent = 'Generate Reel';
             
             // Clear selection
             selectedVideoUrl = null;
@@ -957,10 +948,11 @@
                     tagsSection.classList.remove('hidden');
                     updateTagsDisplay();
                     
-                    // Mark as generated and disable video search
+                    // Mark as generated and show notice
                     isReelGenerated = true;
-                    videoSearchDisabled.classList.remove('hidden');
-                    videoSearchDisabled.classList.add('flex');
+                    regenerateNotice.classList.remove('hidden');
+                    regenerateNotice.classList.add('flex');
+                    generateBtnText.textContent = 'Regenerate';
                     
                     startPlayback();
                 } catch (e) { 
