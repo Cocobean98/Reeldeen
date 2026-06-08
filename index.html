@@ -6,7 +6,6 @@
     <title>ReelDeen Studio | Professional Quran Reel Generator</title>
     <meta name="description" content="Create stunning 9:16 Islamic videos with synchronized recitation.">
     
-    <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
     <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
@@ -131,7 +130,6 @@
 
     <div class="flex-1 flex overflow-hidden">
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
-            <!-- Video Search -->
             <div class="p-4 border-b border-white/5 bg-dark-800">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
                 <div class="flex gap-2 mb-3">
@@ -454,31 +452,42 @@
             const W = previewCanvas.width;
             const H = previewCanvas.height;
             
-            if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
-                const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
-                const canvasAspect = W / H;
-                let drawWidth, drawHeight, drawX, drawY;
-                
-                if (videoAspect > canvasAspect) {
-                    drawHeight = H;
-                    drawWidth = H * videoAspect;
-                    drawX = (W - drawWidth) / 2;
-                    drawY = 0;
-                } else {
-                    drawWidth = W;
-                    drawHeight = W / videoAspect;
-                    drawX = 0;
-                    drawY = (H - drawHeight) / 2;
-                }
-                ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
-            } else {
+            // Draw background when no video
+            if (!bgVideo || bgVideo.readyState < 2 || bgVideo.videoWidth === 0) {
                 const grad = ctx.createLinearGradient(0, 0, 0, H);
                 grad.addColorStop(0, '#1a3a3a');
                 grad.addColorStop(1, '#0a1a1a');
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, W, H);
+                
+                // Draw placeholder text
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.font = '20px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Select a Surah and generate to preview', W/2, H/2);
+                return;
             }
             
+            // Draw video
+            const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
+            const canvasAspect = W / H;
+            let drawWidth, drawHeight, drawX, drawY;
+            
+            if (videoAspect > canvasAspect) {
+                drawHeight = H;
+                drawWidth = H * videoAspect;
+                drawX = (W - drawWidth) / 2;
+                drawY = 0;
+            } else {
+                drawWidth = W;
+                drawHeight = W / videoAspect;
+                drawX = 0;
+                drawY = (H - drawHeight) / 2;
+            }
+            ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
+            
+            // Draw gradient overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
             overlay.addColorStop(0, 'rgba(0,0,0,0.55)');
             overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)');
@@ -486,9 +495,11 @@
             ctx.fillStyle = overlay;
             ctx.fillRect(0, 0, W, H);
             
-            if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length) {
+            // Only render text if we have ayahs loaded
+            if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length && currentAyahs[currentAyahIndex]) {
                 const ayah = currentAyahs[currentAyahIndex];
                 
+                // Surah badge
                 const badgeW = 240, badgeH = 48;
                 const badgeX = (W - badgeW) / 2;
                 const badgeY = 680;
@@ -504,8 +515,11 @@
                 ctx.font = '600 18px Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(ayah.surah.name.toUpperCase(), W/2, badgeY + badgeH/2);
+                if (ayah.surah && ayah.surah.name) {
+                    ctx.fillText(ayah.surah.name.toUpperCase(), W/2, badgeY + badgeH/2);
+                }
                 
+                // Arabic text
                 const arabicMaxWidth = W * 0.85;
                 let arabicFontSize = 105;
                 ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
@@ -534,6 +548,7 @@
                 ctx.shadowBlur = 0;
                 ctx.shadowOffsetY = 0;
                 
+                // English translation
                 const englishMaxWidth = W * 0.72;
                 let englishFontSize = 34;
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
@@ -551,6 +566,7 @@
                     ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight));
                 });
                 
+                // Ayah indicator
                 const indicatorY = englishStartY + (englishLines.length * englishLineHeight) + 50;
                 ctx.fillStyle = 'rgba(255,255,255,0.55)';
                 ctx.font = '500 22px "JetBrains Mono", monospace';
