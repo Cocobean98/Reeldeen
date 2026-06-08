@@ -6,6 +6,7 @@
     <title>ReelDeen Studio | Professional Quran Reel Generator</title>
     <meta name="description" content="Create stunning 9:16 Islamic videos with synchronized recitation.">
     
+    <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
     <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
@@ -141,7 +142,7 @@
                     </button>
                 </div>
                 <div id="videoSearchResults" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto hidden"></div>
-                <div id="selectedVideoIndicator" class="hidden mt-3 p-2 bg-accent-500/10 border border-accent-500/30 rounded-lg flex items-center gap-2">
+                <div id="selectedVideoIndicator" class="hidden mt-3 p-2 bg-accent-500/10 border border-accent-500/30 rounded-lg items-center gap-2">
                     <i data-lucide="check-circle" class="w-4 h-4 text-accent-500"></i>
                     <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
                     <button id="changeVideoBtn" class="text-xs text-white/60 hover:text-white underline">Change</button>
@@ -366,46 +367,33 @@
             return text;
         }
 
-        // ============================================
-        // FIXED: Quran.com API response parsing
-        // Uses verse_key (e.g., "1:1") to match translations with Arabic verses
-        // ============================================
         async function loadSurahVerses(surahNum) {
-            // Fetch Arabic verses
-            const arabicRes = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?words=false&translations=false&fields=text_uthmani,verse_key`);
-            const arabicData = await arabicRes.json();
-            
-            // Fetch English translation (Sahih International - resource_id 20)
-            const englishRes = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?words=false&translations=20&fields=text_uthmani,verse_key`);
-            const englishData = await englishRes.json();
-            
-            if (!arabicData.chapter || !arabicData.verses) {
-                throw new Error('Failed to load Arabic verses');
-            }
-            
-            // Build a map of verse_key -> translation text
-            const translationMap = {};
-            if (englishData.verses) {
-                englishData.verses.forEach(v => {
-                    // Each verse has a translations array
-                    if (v.translations && v.translations.length > 0) {
-                        translationMap[v.verse_key] = v.translations[0].text;
-                    }
+            try {
+                const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations`);
+                const data = await res.json();
+                
+                if (!data.verses || data.verses.length === 0) {
+                    throw new Error('No verses found');
+                }
+                
+                const ayahs = data.verses.map(v => {
+                    const verseNum = parseInt(v.verse_key.split(':')[1]);
+                    const translation = v.translations && v.translations.length > 0 
+                        ? v.translations[0].text 
+                        : '';
+                    
+                    return {
+                        numberInSurah: verseNum,
+                        text: v.text_uthmani,
+                        translation: translation
+                    };
                 });
+                
+                return ayahs;
+            } catch (error) {
+                console.error('Error loading verses:', error);
+                throw new Error('Failed to load verses from Quran.com API');
             }
-            
-            // Combine Arabic verses with their translations
-            const arabicAyahs = arabicData.verses.map(v => {
-                // Extract verse number from verse_key (e.g., "1:5" -> 5)
-                const verseNum = parseInt(v.verse_key.split(':')[1]);
-                return {
-                    numberInSurah: verseNum,
-                    text: v.text_uthmani,
-                    translation: translationMap[v.verse_key] || ''
-                };
-            });
-            
-            return arabicAyahs;
         }
 
         function normalizeAyahData(ayahs, surahNum) {
@@ -599,9 +587,6 @@
             document.getElementById('captionContainer').textContent = tagsData.caption;
         }
 
-        // ============================================
-        // INIT - Load chapters
-        // ============================================
         async function init() {
             try {
                 const res = await fetch(`${QURAN_COM_API}/chapters?language=en`);
@@ -618,9 +603,6 @@
             startRenderLoop();
         }
 
-        // ============================================
-        // SURAH SELECTION - FIXED
-        // ============================================
         surahSelect.addEventListener('change', async (e) => {
             if (!e.target.value) return;
             const surahNum = parseInt(e.target.value);
@@ -635,7 +617,7 @@
                 renderAyahList();
             } catch (e) {
                 console.error('Failed to load ayahs:', e);
-                ayahList.innerHTML = '<div class="text-center text-red-400 text-sm py-8">Error loading verses. Please try again.</div>';
+                ayahList.innerHTML = `<div class="text-center text-red-400 text-sm py-8">Error: ${e.message}. Please try again.</div>`;
             }
         });
 
@@ -681,9 +663,6 @@
             document.getElementById('selectedCount').textContent = 0;
         };
 
-        // ============================================
-        // VIDEO SEARCH
-        // ============================================
         async function searchVideos(query) {
             if (!query) return;
             videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching...</div>';
@@ -764,7 +743,6 @@
                 bgVideo.src = videoUrl;
                 bgVideo.load();
                 
-                // Show selection indicator
                 const indicator = document.getElementById('selectedVideoIndicator');
                 indicator.classList.remove('hidden');
                 indicator.classList.add('flex');
@@ -845,9 +823,6 @@
             countdownTimer.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
-        // ============================================
-        // GENERATE REEL
-        // ============================================
         generateBtn.addEventListener('click', async () => {
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             const surahNum = parseInt(surahSelect.value);
@@ -857,7 +832,6 @@
                     const reciter = reciterSelect.value;
                     const surah = surahsData.find(s => s.id === surahNum);
                     
-                    // Load verses using the fixed function
                     const ayahs = await loadSurahVerses(surahNum);
                     const normalized = normalizeAyahData(ayahs, surahNum);
                     
@@ -958,9 +932,6 @@
             }
         });
 
-        // ============================================
-        // DOWNLOAD
-        // ============================================
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
