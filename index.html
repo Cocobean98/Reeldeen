@@ -234,7 +234,8 @@
     <script>
         lucide.createIcons();
 
-        const QURAN_COM_API = 'https://api.quran.com/api/v4';
+        // RESTORED: Using the original working API from your knowledge base
+        const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
         
         let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
         let selectedAyahs = new Set(), currentSurahData = null;
@@ -270,22 +271,6 @@
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
-        // ============================================
-        // AUDIO: Using verses.quran.com with the 4 ORIGINAL working reciters
-        // ============================================
-        function getAudioUrl(surah, ayah, reciter) {
-            const reciterMap = {
-                'ar.alafasy': 'Alafasy',
-                'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal',
-                'ar.husary': 'Husary',
-                'ar.sudais': 'Sudais'
-            };
-            const reciterName = reciterMap[reciter] || 'Alafasy';
-            const surahPadded = String(surah).padStart(3, '0');
-            const ayahPadded = String(ayah).padStart(3, '0');
-            return `https://verses.quran.com/${reciterName}/mp3/${surahPadded}${ayahPadded}.mp3`;
-        }
-
         function removeBismillah(text) {
             if (!text) return text;
             const hasBismStart = text.includes('بِسْمِ') || text.includes('بسم');
@@ -310,32 +295,37 @@
             return text;
         }
 
-        // ============================================
-        // FIX: Load ALL verses by fetching per_page count
-        // ============================================
+        // RESTORED: Load ayahs for selector (uses Quran.com for display, but audio comes from alquran.cloud)
         async function loadSurahVerses(surahNum) {
             try {
-                // First get the surah info to know total verses
-                const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
-                const surahInfo = await surahInfoRes.json();
-                const totalVerses = surahInfo.chapter.verses_count;
-                
-                // Now fetch ALL verses at once
-                const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations&per_page=${totalVerses}`);
+                // Use alquran.cloud for ayah list (includes audio URLs)
+                const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/ar.alafasy`);
                 const data = await res.json();
                 
-                if (!data.verses || data.verses.length === 0) {
+                if (data.code !== 200 || !data.data || !data.data.ayahs) {
                     throw new Error('No verses found');
                 }
                 
-                return data.verses.map(v => {
-                    const verseNum = parseInt(v.verse_key.split(':')[1]);
-                    const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
-                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
+                // Also get English translation
+                const enRes = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/en.sahih`);
+                const enData = await enRes.json();
+                
+                const ayahs = data.data.ayahs.map((v, i) => {
+                    const enText = enData.data && enData.data.ayahs && enData.data.ayahs[i] 
+                        ? enData.data.ayahs[i].text 
+                        : '';
+                    return { 
+                        numberInSurah: v.numberInSurah, 
+                        text: v.text, 
+                        translation: enText,
+                        audio: v.audio // This is the working audio URL!
+                    };
                 });
+                
+                return ayahs;
             } catch (error) {
                 console.error('Error loading verses:', error);
-                throw new Error('Failed to load verses from Quran.com API');
+                throw new Error('Failed to load verses');
             }
         }
 
@@ -446,7 +436,7 @@
                 ctx.font = '600 18px Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                const surahName = ayah.surah?.name_simple || currentSurahData?.surahName || 'Quran';
+                const surahName = ayah.surah?.englishName || currentSurahData?.surahName || 'Quran';
                 ctx.fillText(surahName.toUpperCase(), W/2, badgeY + badgeH/2);
                 
                 const arabicMaxWidth = W * 0.85;
@@ -515,7 +505,7 @@
         }
 
         function updateTagsDisplay() {
-            const surahName = currentAyahs[0]?.surah?.name_simple || 'Quran';
+            const surahName = currentAyahs[0]?.surah?.englishName || 'Quran';
             const tagsData = generateTagsAndCaption(surahName);
             document.getElementById('tagsContainer').textContent = currentTagFormat === 'hashtags' ? tagsData.hashtags : tagsData.comma;
             document.getElementById('captionContainer').textContent = tagsData.caption;
@@ -523,12 +513,12 @@
 
         async function init() {
             try {
-                const res = await fetch(`${QURAN_COM_API}/chapters?language=en`);
+                const res = await fetch(`${QURAN_API_BASE}/surah`);
                 const data = await res.json();
-                if (data.chapters) {
-                    surahsData = data.chapters;
+                if (data.code === 200) {
+                    surahsData = data.data;
                     surahSelect.innerHTML = '<option value="">Select Surah</option>' + 
-                        surahsData.map(s => `<option value="${s.id}">${s.id}. ${s.name_simple} (${s.verses_count} verses)</option>`).join('');
+                        surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName} (${s.numberOfAyahs} verses)</option>`).join('');
                     fetchVideoBatch();
                 }
             } catch (e) { console.error('Failed to load surahs:', e); }
@@ -544,8 +534,8 @@
             try {
                 const ayahs = await loadSurahVerses(surahNum);
                 const normalized = normalizeAyahData(ayahs, surahNum);
-                const surah = surahsData.find(s => s.id === surahNum);
-                currentSurahData = { ayahs: normalized, surahNum: surahNum, surahName: surah?.name_simple || 'Quran' };
+                const surah = surahsData.find(s => s.number === surahNum);
+                currentSurahData = { ayahs: normalized, surahNum: surahNum, surahName: surah?.englishName || 'Quran' };
                 renderAyahList();
             } catch (e) {
                 console.error('Failed to load ayahs:', e);
@@ -747,22 +737,45 @@
             countdownTimer.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
+        // RESTORED: Using the original working API call from your knowledge base
         generateBtn.addEventListener('click', async () => {
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             const surahNum = parseInt(surahSelect.value);
+            const reciter = reciterSelect.value;
+            
             if (pendingVideoUrl) { selectedVideoUrl = pendingVideoUrl; pendingVideoUrl = null; }
+            
             startLoadingSequence(async () => {
                 try {
-                    const reciter = reciterSelect.value;
-                    const surah = surahsData.find(s => s.id === surahNum);
-                    const ayahs = await loadSurahVerses(surahNum);
-                    const normalized = normalizeAyahData(ayahs, surahNum);
-                    const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
-                    currentAyahs = filtered.map(a => ({
-                        ...a,
-                        audio: getAudioUrl(surahNum, a.numberInSurah, reciter),
+                    // THIS IS THE WORKING API CALL - returns audio URLs directly
+                    const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/${reciter},en.sahih`);
+                    const data = await res.json();
+                    
+                    if (data.code !== 200 || !Array.isArray(data.data) || data.data.length !== 2) {
+                        throw new Error('API returned unexpected data');
+                    }
+                    
+                    const surah = surahsData.find(s => s.number === surahNum);
+                    
+                    // data.data[0] = Arabic with audio URLs
+                    // data.data[1] = English translation
+                    const arabicAyahs = data.data[0].ayahs;
+                    const englishAyahs = data.data[1].ayahs;
+                    
+                    // Combine them
+                    const combinedAyahs = arabicAyahs.map((a, i) => ({
+                        numberInSurah: a.numberInSurah,
+                        text: a.text,
+                        translation: englishAyahs[i] ? englishAyahs[i].text : '',
+                        audio: a.audio, // THE WORKING AUDIO URL!
                         surah: surah
                     }));
+                    
+                    const normalized = normalizeAyahData(combinedAyahs, surahNum);
+                    const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah))
+                        .sort((a,b) => a.numberInSurah - b.numberInSurah);
+                    
+                    currentAyahs = filtered;
                     currentAyahIndex = 0;
                     getNextVideo();
                     downloadBtn.classList.remove('hidden');
@@ -772,7 +785,10 @@
                     isReelGenerated = true;
                     generateBtnText.textContent = 'Regenerate Reel';
                     startPlayback();
-                } catch (e) { console.error('Generation failed:', e); }
+                } catch (e) { 
+                    console.error('Generation failed:', e);
+                    alert('Failed to generate reel. Please try again.');
+                }
             });
         });
 
@@ -786,8 +802,10 @@
         function playCurrentAyah() {
             if (!isPlaying || isRecording) return;
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
-            audioPlayer.src = currentAyahs[currentAyahIndex].audio;
-            audioPlayer.play().catch(e => console.warn('Audio play failed:', e));
+            const ayah = currentAyahs[currentAyahIndex];
+            console.log('Playing audio:', ayah.audio);
+            audioPlayer.src = ayah.audio;
+            audioPlayer.play().catch(e => console.error('Audio play failed:', e));
             audioPlayer.onended = () => {
                 currentAyahIndex++;
                 if (isPlaying && !isRecording) playCurrentAyah();
