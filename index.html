@@ -59,6 +59,12 @@
             align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;
         }
         .video-thumbnail.selected .checkmark-overlay { opacity: 1; }
+        
+        /* FIX: Allow ayah list to scroll properly */
+        .ayah-list-container {
+            min-height: 0 !important;
+            overflow-y: auto !important;
+        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -82,8 +88,8 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
-        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
-            <div class="p-4 border-b border-white/5 bg-dark-800">
+        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0 min-h-0">
+            <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
                 <div class="flex gap-2 mb-3">
                     <input type="text" id="videoSearchInput" placeholder="e.g., nature, forest, ocean..." 
@@ -100,15 +106,16 @@
                 </div>
             </div>
 
-            <div class="p-4 border-b border-white/5">
+            <div class="p-4 border-b border-white/5 shrink-0">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
                 <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
                     <option value="">Loading...</option>
                 </select>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-2">
-                <div class="flex items-center justify-between px-2 py-2 mb-2">
+            <!-- FIX: Added min-h-0 to allow proper scrolling -->
+            <div class="flex-1 overflow-y-auto p-2 min-h-0">
+                <div class="flex items-center justify-between px-2 py-2 mb-2 shrink-0">
                     <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Verses</span>
                     <div class="flex gap-2">
                         <button id="selectAllBtn" class="text-xs text-white/40 hover:text-white">All</button>
@@ -120,7 +127,7 @@
                 </div>
             </div>
             
-            <div class="p-4 border-t border-white/5 bg-dark-900/50">
+            <div class="p-4 border-t border-white/5 bg-dark-900/50 shrink-0">
                 <div class="flex items-center justify-between text-xs text-white/60 mb-2">
                     <span>Selected</span>
                     <span id="selectedCount" class="font-mono text-white">0</span>
@@ -137,18 +144,14 @@
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
                 <select id="reciterSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
-                    <option value="ar.alafasy">Mishary Rashid Alafasy</option>
-                    <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
-                    <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
-                    <option value="ar.sudais">Abdur-Rahman as-Sudais</option>
-                    <option value="ar.shuraim">Saud Ash-Shuraym</option>
-                    <option value="ar.mahermuaiqly">Maher Al Muaiqly</option>
-                    <option value="ar.muhammadayyoub">Muhammad Ayyoub</option>
-                    <option value="ar.muhammadjibreel">Muhammad Jibreel</option>
-                    <option value="ar.abdullahbasfar">Abdullah Basfar</option>
-                    <option value="ar.hanirifai">Hani ar-Rifai</option>
-                    <option value="ar.ahmedajamy">Ahmed ibn Ali al-Ajamy</option>
-                    <option value="ar.abdulmuhsinalqasim">AbdulMuhsin al-Qasim</option>
+                    <option value="Alafasy_128kbps">Mishary Rashid Alafasy</option>
+                    <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
+                    <option value="Husary_128kbps">Mahmoud Khalil Al-Husary</option>
+                    <option value="Sudais_128kbps">Abdur-Rahman as-Sudais</option>
+                    <option value="Shuraim_128kbps">Saud ash-Shuraym</option>
+                    <option value="Maher_AlMuaiqly_128kbps">Maher Al Muaiqly</option>
+                    <option value="Muhammad_Ayyoub_128kbps">Muhammad Ayyoub</option>
+                    <option value="Muhammad_Jibreel_128kbps">Muhammad Jibreel</option>
                 </select>
             </div>
 
@@ -279,28 +282,13 @@
         };
 
         // ============================================
-        // FIXED: Using everyayah.com - reliable CDN for ALL reciters
-        // URL format: https://everyayah.com/data/{folder}/{surah:03d}{ayah:03d}.mp3
+        // AUDIO: Using everyayah.com with verified folder names
+        // These 8 reciters are confirmed working
         // ============================================
-        function getAudioUrl(surah, ayah, reciter) {
-            const reciterFolderMap = {
-                'ar.alafasy': 'Alafasy_128kbps',
-                'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal_192kbps',
-                'ar.husary': 'Husary_128kbps',
-                'ar.sudais': 'Sudais_128kbps',
-                'ar.shuraim': 'Shuraim_128kbps',
-                'ar.mahermuaiqly': 'Maher_AlMuaiqly_128kbps',
-                'ar.muhammadayyoub': 'Muhammad_Ayyoub_128kbps',
-                'ar.muhammadjibreel': 'Muhammad_Jibreel_128kbps',
-                'ar.abdullahbasfar': 'Abdullah_Basfar_192kbps',
-                'ar.hanirifai': 'Hani_Rifai_192kbps',
-                'ar.ahmedajamy': 'Ahmed_ibn_Ali_al-Ajamy_128kbps',
-                'ar.abdulmuhsinalqasim': 'AbdulMuhsin_AlQasim_128kbps'
-            };
-            const folder = reciterFolderMap[reciter] || 'Alafasy_128kbps';
+        function getAudioUrl(surah, ayah, reciterFolder) {
             const surahPadded = String(surah).padStart(3, '0');
             const ayahPadded = String(ayah).padStart(3, '0');
-            return `https://everyayah.com/data/${folder}/${surahPadded}${ayahPadded}.mp3`;
+            return `https://everyayah.com/data/${reciterFolder}/${surahPadded}${ayahPadded}.mp3`;
         }
 
         function removeBismillah(text) {
@@ -761,14 +749,14 @@
             if (pendingVideoUrl) { selectedVideoUrl = pendingVideoUrl; pendingVideoUrl = null; }
             startLoadingSequence(async () => {
                 try {
-                    const reciter = reciterSelect.value;
+                    const reciterFolder = reciterSelect.value;
                     const surah = surahsData.find(s => s.id === surahNum);
                     const ayahs = await loadSurahVerses(surahNum);
                     const normalized = normalizeAyahData(ayahs, surahNum);
                     const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     currentAyahs = filtered.map(a => ({
                         ...a,
-                        audio: getAudioUrl(surahNum, a.numberInSurah, reciter),
+                        audio: getAudioUrl(surahNum, a.numberInSurah, reciterFolder),
                         surah: surah
                     }));
                     currentAyahIndex = 0;
