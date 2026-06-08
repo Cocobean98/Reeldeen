@@ -137,14 +137,10 @@
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
                 <select id="reciterSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
-                    <option value="Alafasy_128kbps">Mishary Rashid Alafasy</option>
-                    <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
-                    <option value="Husary_128kbps">Mahmoud Khalil Al-Husary</option>
-                    <option value="Sudais_128kbps">Abdur-Rahman as-Sudais</option>
-                    <option value="Shuraim_128kbps">Saud ash-Shuraym</option>
-                    <option value="Maher_AlMuaiqly_128kbps">Maher Al Muaiqly</option>
-                    <option value="Muhammad_Ayyoub_128kbps">Muhammad Ayyoub</option>
-                    <option value="Muhammad_Jibreel_128kbps">Muhammad Jibreel</option>
+                    <option value="ar.alafasy">Mishary Rashid Alafasy</option>
+                    <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
+                    <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
+                    <option value="ar.sudais">Abdur-Rahman as-Sudais</option>
                 </select>
             </div>
 
@@ -233,7 +229,7 @@
         </div>
     </div>
 
-    <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+    <audio id="audioPlayer" preload="auto"></audio>
 
     <script>
         lucide.createIcons();
@@ -275,12 +271,19 @@
         };
 
         // ============================================
-        // AUDIO: Using everyayah.com with verified folder names
+        // AUDIO: Using verses.quran.com with the 4 ORIGINAL working reciters
         // ============================================
-        function getAudioUrl(surah, ayah, reciterFolder) {
+        function getAudioUrl(surah, ayah, reciter) {
+            const reciterMap = {
+                'ar.alafasy': 'Alafasy',
+                'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal',
+                'ar.husary': 'Husary',
+                'ar.sudais': 'Sudais'
+            };
+            const reciterName = reciterMap[reciter] || 'Alafasy';
             const surahPadded = String(surah).padStart(3, '0');
             const ayahPadded = String(ayah).padStart(3, '0');
-            return `https://everyayah.com/data/${reciterFolder}/${surahPadded}${ayahPadded}.mp3`;
+            return `https://verses.quran.com/${reciterName}/mp3/${surahPadded}${ayahPadded}.mp3`;
         }
 
         function removeBismillah(text) {
@@ -307,31 +310,34 @@
             return text;
         }
 
+        // ============================================
+        // FIX: Load ALL verses by fetching per_page count
+        // ============================================
         async function loadSurahVerses(surahNum) {
-    try {
-        // Get surah info first to know how many verses
-        const surahInfo = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
-        const surahData = await surahInfo.json();
-        const totalVerses = surahData.chapter.verses_count;
-        
-        // Fetch all verses with per_page parameter
-        const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations&per_page=${totalVerses}`);
-        const data = await res.json();
-        
-        if (!data.verses || data.verses.length === 0) {
-            throw new Error('No verses found');
+            try {
+                // First get the surah info to know total verses
+                const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
+                const surahInfo = await surahInfoRes.json();
+                const totalVerses = surahInfo.chapter.verses_count;
+                
+                // Now fetch ALL verses at once
+                const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations&per_page=${totalVerses}`);
+                const data = await res.json();
+                
+                if (!data.verses || data.verses.length === 0) {
+                    throw new Error('No verses found');
+                }
+                
+                return data.verses.map(v => {
+                    const verseNum = parseInt(v.verse_key.split(':')[1]);
+                    const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
+                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
+                });
+            } catch (error) {
+                console.error('Error loading verses:', error);
+                throw new Error('Failed to load verses from Quran.com API');
+            }
         }
-        
-        return data.verses.map(v => {
-            const verseNum = parseInt(v.verse_key.split(':')[1]);
-            const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
-            return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
-        });
-    } catch (error) {
-        console.error('Error loading verses:', error);
-        throw new Error('Failed to load verses from Quran.com API');
-    }
-}
 
         function normalizeAyahData(ayahs, surahNum) {
             let a = [...ayahs];
@@ -747,14 +753,14 @@
             if (pendingVideoUrl) { selectedVideoUrl = pendingVideoUrl; pendingVideoUrl = null; }
             startLoadingSequence(async () => {
                 try {
-                    const reciterFolder = reciterSelect.value;
+                    const reciter = reciterSelect.value;
                     const surah = surahsData.find(s => s.id === surahNum);
                     const ayahs = await loadSurahVerses(surahNum);
                     const normalized = normalizeAyahData(ayahs, surahNum);
                     const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     currentAyahs = filtered.map(a => ({
                         ...a,
-                        audio: getAudioUrl(surahNum, a.numberInSurah, reciterFolder),
+                        audio: getAudioUrl(surahNum, a.numberInSurah, reciter),
                         surah: surah
                     }));
                     currentAyahIndex = 0;
@@ -780,13 +786,8 @@
         function playCurrentAyah() {
             if (!isPlaying || isRecording) return;
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
-            const audioUrl = currentAyahs[currentAyahIndex].audio;
-            console.log('Playing audio:', audioUrl); // Debug log
-            audioPlayer.src = audioUrl;
-            audioPlayer.play().catch(e => {
-                console.error('Audio play failed:', e);
-                console.log('Audio URL:', audioUrl);
-            });
+            audioPlayer.src = currentAyahs[currentAyahIndex].audio;
+            audioPlayer.play().catch(e => console.warn('Audio play failed:', e));
             audioPlayer.onended = () => {
                 currentAyahIndex++;
                 if (isPlaying && !isRecording) playCurrentAyah();
