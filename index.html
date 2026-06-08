@@ -140,23 +140,12 @@
                     </button>
                 </div>
                 <div id="videoSearchResults" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto hidden"></div>
+                
+                <!-- Indicator that a new background is queued for the next generation -->
                 <div id="selectedVideoIndicator" class="hidden mt-3 p-2 bg-accent-500/10 border border-accent-500/30 rounded-lg items-center gap-2">
                     <i data-lucide="check-circle" class="w-4 h-4 text-accent-500"></i>
                     <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
                     <button id="changeVideoBtn" class="text-xs text-white/60 hover:text-white underline">Change</button>
-                </div>
-                <!-- Notice after generation -->
-                <div id="regenerateNotice" class="hidden mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                    <div class="flex items-start gap-2">
-                        <i data-lucide="info" class="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0"></i>
-                        <div class="flex-1">
-                            <p class="text-yellow-500 text-xs font-medium mb-1">Reel Generated</p>
-                            <p class="text-white/60 text-xs mb-2">Changes require regeneration</p>
-                            <button id="regenerateBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-white text-xs px-3 py-1.5 rounded-md transition">
-                                Regenerate with New Settings
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -312,8 +301,11 @@
         let isRecording = false;
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
-        let selectedVideoUrl = null;
-        let isReelGenerated = false;
+        
+        // State for video selection
+        let selectedVideoUrl = null; // The video currently playing in preview
+        let pendingVideoUrl = null;  // The video selected by user, waiting for generation
+        let isReelGenerated = false; // Tracks if a reel has been generated
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -331,7 +323,6 @@
         const videoSearchInput = document.getElementById('videoSearchInput');
         const searchVideoBtn = document.getElementById('searchVideoBtn');
         const videoSearchResults = document.getElementById('videoSearchResults');
-        const regenerateNotice = document.getElementById('regenerateNotice');
 
         const viralTags = {
             general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
@@ -757,7 +748,7 @@
                 if (!videoUrl) return;
                 
                 const div = document.createElement('div');
-                div.className = `video-thumbnail rounded-lg overflow-hidden border-2 ${selectedVideoUrl === videoUrl ? 'selected' : ''}`;
+                div.className = `video-thumbnail rounded-lg overflow-hidden border-2 ${selectedVideoUrl === videoUrl || pendingVideoUrl === videoUrl ? 'selected' : ''}`;
                 
                 const videoEl = document.createElement('video');
                 videoEl.muted = true;
@@ -801,14 +792,21 @@
 
         function selectVideo(video, videoUrl) {
             if (videoUrl) {
-                selectedVideoUrl = videoUrl;
-                bgVideo.src = videoUrl;
-                bgVideo.load();
+                // Store as pending. It will only apply when user clicks Generate.
+                pendingVideoUrl = videoUrl;
                 
+                // Show indicator
                 const indicator = document.getElementById('selectedVideoIndicator');
                 indicator.classList.remove('hidden');
                 indicator.classList.add('flex');
                 lucide.createIcons();
+                
+                // ONLY update preview immediately if NO reel has been generated yet
+                if (!isReelGenerated) {
+                    selectedVideoUrl = videoUrl;
+                    bgVideo.src = videoUrl;
+                    bgVideo.load();
+                }
                 
                 setTimeout(() => {
                     videoSearchResults.classList.add('hidden');
@@ -818,46 +816,12 @@
         }
 
         document.getElementById('changeVideoBtn').addEventListener('click', () => {
+            pendingVideoUrl = null;
             selectedVideoUrl = null;
             const indicator = document.getElementById('selectedVideoIndicator');
             indicator.classList.add('hidden');
             indicator.classList.remove('flex');
             videoSearchInput.focus();
-        });
-
-        // Regenerate button - resets everything for a fresh generation
-        document.getElementById('regenerateBtn').addEventListener('click', () => {
-            // Hide the notice
-            regenerateNotice.classList.add('hidden');
-            regenerateNotice.classList.remove('flex');
-            
-            // Reset generation state
-            isReelGenerated = false;
-            currentAyahs = [];
-            currentAyahIndex = 0;
-            isPlaying = false;
-            audioPlayer.pause();
-            
-            // Reset canvas to placeholder
-            renderFrame();
-            
-            // Reset UI
-            downloadBtn.classList.add('hidden');
-            downloadBtn.style.display = 'none';
-            tagsSection.classList.add('hidden');
-            generateBtnText.textContent = 'Generate Reel';
-            
-            // Clear selection
-            selectedVideoUrl = null;
-            const indicator = document.getElementById('selectedVideoIndicator');
-            indicator.classList.add('hidden');
-            indicator.classList.remove('flex');
-            
-            // Reset surah selection
-            surahSelect.value = '';
-            selectedAyahs.clear();
-            document.getElementById('selectedCount').textContent = '0';
-            ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Select a Surah to view verses</div>';
         });
 
         searchVideoBtn.addEventListener('click', () => {
@@ -924,6 +888,12 @@
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             const surahNum = parseInt(surahSelect.value);
             
+            // Apply pending video selection before generation
+            if (pendingVideoUrl) {
+                selectedVideoUrl = pendingVideoUrl;
+                pendingVideoUrl = null; // Reset pending
+            }
+            
             startLoadingSequence(async () => {
                 try {
                     const reciter = reciterSelect.value;
@@ -942,17 +912,15 @@
                     }));
                     
                     currentAyahIndex = 0;
-                    getNextVideo();
+                    getNextVideo(); // This now uses the newly selected video
                     downloadBtn.classList.remove('hidden');
                     downloadBtn.style.display = 'flex';
                     tagsSection.classList.remove('hidden');
                     updateTagsDisplay();
                     
-                    // Mark as generated and show notice
+                    // Mark as generated
                     isReelGenerated = true;
-                    regenerateNotice.classList.remove('hidden');
-                    regenerateNotice.classList.add('flex');
-                    generateBtnText.textContent = 'Regenerate';
+                    generateBtnText.textContent = 'Regenerate Reel';
                     
                     startPlayback();
                 } catch (e) { 
