@@ -11,7 +11,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -185,7 +184,6 @@
         </aside>
     </div>
 
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
             <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
@@ -208,7 +206,6 @@
         </div>
     </div>
 
-    <!-- Story Modal -->
     <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
         <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div class="p-8">
@@ -263,7 +260,6 @@
         let mediaRecorder, recordedChunks = [];
         let isRecording = false;
         let currentTagFormat = 'hashtags';
-        let cachedOverlay = null;
 
         const surahSelect = document.getElementById('surahSelect');
         const ayahList = document.getElementById('ayahList');
@@ -659,6 +655,7 @@
             }
         });
 
+        // FIXED: Pure canvas rendering - NO html2canvas, smooth video
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -709,33 +706,17 @@
                 lucide.createIcons();
                 
                 if (audioContext) audioContext.close();
-                previewElement.classList.remove('recording');
-                cachedOverlay = null;
             };
 
             mediaRecorder.start();
             bgVideo.play();
-            previewElement.classList.add('recording');
-            
-            try {
-                const overlayCanvas = await html2canvas(previewElement, {
-                    scale: 3,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: null,
-                    logging: false,
-                    ignoreElements: (el) => el.classList.contains('playPauseOverlay') || el.classList.contains('progressBar')
-                });
-                cachedOverlay = overlayCanvas;
-            } catch (err) {
-                console.error('html2canvas error:', err);
-            }
             
             let animationId;
             
             function drawFrame() {
                 if (!isRecording) return;
                 
+                // Draw video directly (smooth, native performance)
                 if (bgVideo.readyState >= 2) {
                     const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                     const canvasAspect = canvas.width / canvas.height;
@@ -760,8 +741,72 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 
-                if (cachedOverlay) {
-                    ctx.drawImage(cachedOverlay, 0, 0, canvas.width, canvas.height);
+                // Draw gradient overlay
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, 'rgba(0,0,0,0.6)');
+                gradient.addColorStop(0.5, 'rgba(0,0,0,0.4)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const ayah = currentAyahs[currentAyahIndex];
+                if (ayah) {
+                    // Draw badge
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    const badgeW = 180, badgeH = 36;
+                    const badgeX = (canvas.width - badgeW) / 2;
+                    const badgeY = 576;
+                    
+                    ctx.beginPath();
+                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 18);
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.font = '600 14px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, badgeY + badgeH/2);
+                    
+                    // Draw Arabic text
+                    const arabicMaxWidth = 900;
+                    const arabicFontSize = 90;
+                    ctx.font = `${arabicFontSize}px Amiri`;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
+                    const arabicLineHeight = arabicFontSize * 1.5;
+                    const arabicTotalHeight = arabicLines.length * arabicLineHeight;
+                    const arabicStartY = 768;
+                    
+                    arabicLines.forEach((line, i) => {
+                        ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
+                    });
+                    
+                    // Draw English translation
+                    const englishMaxWidth = 800;
+                    const englishFontSize = 36;
+                    ctx.font = `italic ${englishFontSize}px Inter`;
+                    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+                    ctx.textAlign = 'center';
+                    
+                    const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
+                    const englishStartY = 1056;
+                    const englishLineHeight = englishFontSize * 1.4;
+                    
+                    englishLines.forEach((line, i) => {
+                        ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
+                    });
+                    
+                    // Draw ayah indicator
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.font = '400 18px JetBrains Mono';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`♪ AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1248);
                 }
                 
                 animationId = requestAnimationFrame(drawFrame);
@@ -774,23 +819,6 @@
                     
                     currentAyahIndex = i;
                     downloadLabel.textContent = `Recording... ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-                    
-                    updateAyahUI(currentAyahs[i]);
-                    
-                    await new Promise(resolve => setTimeout(resolve, 250));
-                    try {
-                        const newOverlay = await html2canvas(previewElement, {
-                            scale: 3,
-                            useCORS: true,
-                            allowTaint: true,
-                            backgroundColor: null,
-                            logging: false,
-                            ignoreElements: (el) => el.classList.contains('playPauseOverlay') || el.classList.contains('progressBar')
-                        });
-                        cachedOverlay = newOverlay;
-                    } catch (err) {
-                        console.error('Overlay capture error:', err);
-                    }
                     
                     await new Promise((resolve) => {
                         audioPlayer.src = currentAyahs[i].audio;
@@ -813,6 +841,24 @@
                 }
             }, 500);
         });
+
+        function wrapText(ctx, text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            for (const word of words) {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            return lines;
+        }
 
         init();
     </script>
