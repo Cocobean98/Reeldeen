@@ -61,6 +61,7 @@
             aspect-ratio: 9/16;
             overflow: hidden;
             position: relative;
+            background: #1a1a1a;
         }
         .video-thumbnail:hover {
             transform: scale(1.05);
@@ -74,12 +75,21 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            pointer-events: none;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         .video-thumbnail .thumbnail-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: opacity 0.3s;
+        }
+        .video-thumbnail:hover .thumbnail-img {
+            opacity: 0;
         }
     </style>
 </head>
@@ -294,7 +304,6 @@
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
         let selectedVideoUrl = null;
-        let hoveredVideoElement = null;
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -590,12 +599,13 @@
             ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Loading...</div>';
             
             try {
-                // Fetch verses with Arabic text
-                const arabicRes = await fetch(`${QURAN_COM_API}/quran/verses/uthmani?chapter_number=${surahNum}`);
-                const arabicData = await arabicRes.json();
+                // Fetch verses with Arabic text and English translation in parallel
+                const [arabicRes, englishRes] = await Promise.all([
+                    fetch(`${QURAN_COM_API}/quran/verses/uthmani?chapter_number=${surahNum}`),
+                    fetch(`${QURAN_COM_API}/quran/verses/translations?chapter_number=${surahNum}&language=en`)
+                ]);
                 
-                // Fetch English translation
-                const englishRes = await fetch(`${QURAN_COM_API}/quran/verses/translations?chapter_number=${surahNum}&language=en`);
+                const arabicData = await arabicRes.json();
                 const englishData = await englishRes.json();
                 
                 if (arabicData.verses && englishData.translations) {
@@ -612,15 +622,22 @@
                     const norm = normalizeAyahData(arabicAyahs, englishAyahs, surahNum);
                     currentSurahData = { arabic: { ayahs: norm.arabic }, english: { ayahs: norm.english } };
                     renderAyahList();
+                } else {
+                    throw new Error('Invalid response format');
                 }
             } catch (e) {
                 console.error('Failed to load ayahs:', e);
-                ayahList.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Error loading verses</div>';
+                ayahList.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Error loading verses. Please try again.</div>';
             }
         });
 
         function renderAyahList() {
             ayahList.innerHTML = '';
+            if (!currentSurahData || !currentSurahData.arabic.ayahs) {
+                ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">No verses available</div>';
+                return;
+            }
+            
             currentSurahData.arabic.ayahs.forEach((ayah, i) => {
                 const en = currentSurahData.english.ayahs[i];
                 const div = document.createElement('div');
@@ -660,6 +677,9 @@
         async function searchVideos(query) {
             if (!query) return;
             
+            videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching...</div>';
+            videoSearchResults.classList.remove('hidden');
+            
             try {
                 const res = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12&orientation=portrait`);
                 const data = await res.json();
@@ -667,11 +687,11 @@
                 if (data.videos && data.videos.length > 0) {
                     displayVideoSearchResults(data.videos);
                 } else {
-                    videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found</div>';
-                    videoSearchResults.classList.remove('hidden');
+                    videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found. Try different keywords.</div>';
                 }
             } catch (e) {
                 console.error('Video search failed:', e);
+                videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Error loading videos</div>';
             }
         }
 
@@ -688,36 +708,49 @@
                 
                 const div = document.createElement('div');
                 div.className = `video-thumbnail rounded-lg overflow-hidden border-2 ${selectedVideoUrl === videoUrl ? 'selected border-accent-500' : 'border-transparent'}`;
-                div.innerHTML = `
-                    <img src="${thumbnail}" alt="${video.id}" class="thumbnail-img">
-                    <video muted loop playsinline>
-                        <source src="${videoUrl}" type="video/mp4">
-                    </video>
-                    <div class="absolute inset-0 bg-black/0 hover:bg-black/20 transition-all pointer-events-none"></div>
-                `;
                 
-                const videoEl = div.querySelector('video');
-                const imgEl = div.querySelector('.thumbnail-img');
+                // Create video element
+                const videoEl = document.createElement('video');
+                videoEl.muted = true;
+                videoEl.loop = true;
+                videoEl.playsInline = true;
+                videoEl.preload = 'metadata';
+                videoEl.innerHTML = `<source src="${videoUrl}" type="video/mp4">`;
+                
+                // Create thumbnail image
+                const imgEl = document.createElement('img');
+                imgEl.src = thumbnail;
+                imgEl.alt = video.id;
+                imgEl.className = 'thumbnail-img';
+                imgEl.style.opacity = '1';
+                
+                div.appendChild(imgEl);
+                div.appendChild(videoEl);
                 
                 // Hover to play
-                div.addEventListener('mouseenter', () => {
-                    if (videoEl && imgEl) {
+                div.addEventListener('mouseenter', async () => {
+                    try {
+                        await videoEl.play();
                         imgEl.style.opacity = '0';
-                        videoEl.play().catch(() => {});
-                        hoveredVideoElement = videoEl;
+                    } catch (err) {
+                        console.warn('Video play failed:', err);
                     }
                 });
                 
                 div.addEventListener('mouseleave', () => {
-                    if (videoEl && imgEl) {
-                        videoEl.pause();
-                        videoEl.currentTime = 0;
-                        imgEl.style.opacity = '1';
-                    }
+                    videoEl.pause();
+                    videoEl.currentTime = 0;
+                    imgEl.style.opacity = '1';
                 });
                 
                 // Click to select
-                div.onclick = () => selectVideo(video, videoUrl);
+                div.onclick = () => {
+                    selectVideo(video, videoUrl);
+                    // Remove selected class from all
+                    document.querySelectorAll('.video-thumbnail').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                };
+                
                 videoSearchResults.appendChild(div);
             });
             videoSearchResults.classList.remove('hidden');
@@ -729,12 +762,6 @@
                 selectedVideoUrl = videoUrl;
                 bgVideo.src = videoUrl;
                 bgVideo.load();
-                
-                // Update UI to show selection
-                document.querySelectorAll('.video-thumbnail').forEach(el => {
-                    el.classList.remove('selected');
-                });
-                event.currentTarget.classList.add('selected');
                 
                 // Hide search results after selection
                 setTimeout(() => {
@@ -821,12 +848,13 @@
                     const reciter = reciterSelect.value;
                     const surah = surahsData.find(s => s.id === surahNum);
                     
-                    // Fetch verses with Arabic text
-                    const arabicRes = await fetch(`${QURAN_COM_API}/quran/verses/uthmani?chapter_number=${surahNum}`);
-                    const arabicData = await arabicRes.json();
+                    // Fetch verses with Arabic text and English translation in parallel
+                    const [arabicRes, englishRes] = await Promise.all([
+                        fetch(`${QURAN_COM_API}/quran/verses/uthmani?chapter_number=${surahNum}`),
+                        fetch(`${QURAN_COM_API}/quran/verses/translations?chapter_number=${surahNum}&language=en`)
+                    ]);
                     
-                    // Fetch English translation
-                    const englishRes = await fetch(`${QURAN_COM_API}/quran/verses/translations?chapter_number=${surahNum}&language=en`);
+                    const arabicData = await arabicRes.json();
                     const englishData = await englishRes.json();
                     
                     if (arabicData.verses && englishData.translations) {
@@ -858,8 +886,13 @@
                         tagsSection.classList.remove('hidden');
                         updateTagsDisplay();
                         startPlayback();
+                    } else {
+                        throw new Error('Invalid response format');
                     }
-                } catch (e) { console.error('Generation failed:', e); }
+                } catch (e) { 
+                    console.error('Generation failed:', e);
+                    alert('Failed to generate reel. Please try again.');
+                }
             });
         });
 
