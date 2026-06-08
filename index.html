@@ -34,78 +34,31 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #121212; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        
         .glass { background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
-        
         .ayah-row { transition: all 0.15s; border-left: 2px solid transparent; }
         .ayah-row:hover { background: #1a1a1a; }
         .ayah-row.selected { background: #1a1a1a; border-left-color: #10b981; }
-        
         .modal-overlay { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
-
         #previewCanvas {
-            width: 100%;
-            max-width: 360px;
-            aspect-ratio: 9/16;
-            border-radius: 12px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-            cursor: pointer;
+            width: 100%; max-width: 360px; aspect-ratio: 9/16;
+            border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
         }
-
         .video-thumbnail {
-            cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
-            aspect-ratio: 9/16;
-            overflow: hidden;
-            position: relative;
-            background: #1a1a1a;
+            cursor: pointer; transition: transform 0.2s, border-color 0.2s;
+            aspect-ratio: 9/16; overflow: hidden; position: relative; background: #1a1a1a;
         }
-        .video-thumbnail:hover {
-            transform: scale(1.05);
-            border-color: #10b981;
-        }
-        .video-thumbnail.selected {
-            border-color: #10b981 !important;
-            border-width: 3px;
-        }
-        .video-thumbnail video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        .video-thumbnail .thumbnail-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-            transition: opacity 0.3s;
-        }
-        .video-thumbnail:hover .thumbnail-img {
-            opacity: 0;
-        }
+        .video-thumbnail:hover { transform: scale(1.05); border-color: #10b981; }
+        .video-thumbnail.selected { border-color: #10b981 !important; border-width: 3px; }
+        .video-thumbnail video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+        .video-thumbnail .thumbnail-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; transition: opacity 0.3s; }
+        .video-thumbnail:hover .thumbnail-img { opacity: 0; }
         .checkmark-overlay {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 20px;
-            height: 20px;
-            background: #10b981;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.2s;
+            position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+            background: #10b981; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;
         }
-        .video-thumbnail.selected .checkmark-overlay {
-            opacity: 1;
-        }
+        .video-thumbnail.selected .checkmark-overlay { opacity: 1; }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -140,7 +93,6 @@
                     </button>
                 </div>
                 <div id="videoSearchResults" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto hidden"></div>
-                
                 <div id="selectedVideoIndicator" class="hidden mt-3 p-2 bg-accent-500/10 border border-accent-500/30 rounded-lg items-center gap-2">
                     <i data-lucide="check-circle" class="w-4 h-4 text-accent-500"></i>
                     <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
@@ -193,6 +145,10 @@
                     <option value="ar.mahermuaiqly">Maher Al Muaiqly</option>
                     <option value="ar.muhammadayyoub">Muhammad Ayyoub</option>
                     <option value="ar.muhammadjibreel">Muhammad Jibreel</option>
+                    <option value="ar.abdullahbasfar">Abdullah Basfar</option>
+                    <option value="ar.hanirifai">Hani ar-Rifai</option>
+                    <option value="ar.ahmedajamy">Ahmed ibn Ali al-Ajamy</option>
+                    <option value="ar.abdulmuhsinalqasim">AbdulMuhsin al-Qasim</option>
                 </select>
             </div>
 
@@ -281,7 +237,7 @@
         </div>
     </div>
 
-    <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+    <audio id="audioPlayer" preload="auto"></audio>
 
     <script>
         lucide.createIcons();
@@ -296,7 +252,6 @@
         let isRecording = false;
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
-        
         let selectedVideoUrl = null;
         let pendingVideoUrl = null;
         let isReelGenerated = false;
@@ -323,20 +278,29 @@
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
-        // FIXED: Only verified working reciters on verses.quran.com
+        // ============================================
+        // FIXED: Using everyayah.com - reliable CDN for ALL reciters
+        // URL format: https://everyayah.com/data/{folder}/{surah:03d}{ayah:03d}.mp3
+        // ============================================
         function getAudioUrl(surah, ayah, reciter) {
-            const reciterMap = {
-                'ar.alafasy': 'Alafasy',
-                'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal',
-                'ar.husary': 'Husary',
-                'ar.sudais': 'Sudais',
-                'ar.shuraim': 'Shuraim',
-                'ar.mahermuaiqly': 'Maher_AlMuaiqly',
-                'ar.muhammadayyoub': 'Muhammad_Ayyoub',
-                'ar.muhammadjibreel': 'Muhammad_Jibreel'
+            const reciterFolderMap = {
+                'ar.alafasy': 'Alafasy_128kbps',
+                'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal_192kbps',
+                'ar.husary': 'Husary_128kbps',
+                'ar.sudais': 'Sudais_128kbps',
+                'ar.shuraim': 'Shuraim_128kbps',
+                'ar.mahermuaiqly': 'Maher_AlMuaiqly_128kbps',
+                'ar.muhammadayyoub': 'Muhammad_Ayyoub_128kbps',
+                'ar.muhammadjibreel': 'Muhammad_Jibreel_128kbps',
+                'ar.abdullahbasfar': 'Abdullah_Basfar_192kbps',
+                'ar.hanirifai': 'Hani_Rifai_192kbps',
+                'ar.ahmedajamy': 'Ahmed_ibn_Ali_al-Ajamy_128kbps',
+                'ar.abdulmuhsinalqasim': 'AbdulMuhsin_AlQasim_128kbps'
             };
-            const reciterName = reciterMap[reciter] || 'Alafasy';
-            return `https://verses.quran.com/${reciterName}/mp3/${String(surah).padStart(3, '0')}${String(ayah).padStart(3, '0')}.mp3`;
+            const folder = reciterFolderMap[reciter] || 'Alafasy_128kbps';
+            const surahPadded = String(surah).padStart(3, '0');
+            const ayahPadded = String(ayah).padStart(3, '0');
+            return `https://everyayah.com/data/${folder}/${surahPadded}${ayahPadded}.mp3`;
         }
 
         function removeBismillah(text) {
@@ -372,20 +336,11 @@
                     throw new Error('No verses found');
                 }
                 
-                const ayahs = data.verses.map(v => {
+                return data.verses.map(v => {
                     const verseNum = parseInt(v.verse_key.split(':')[1]);
-                    const translation = v.translations && v.translations.length > 0 
-                        ? v.translations[0].text 
-                        : '';
-                    
-                    return {
-                        numberInSurah: verseNum,
-                        text: v.text_uthmani,
-                        translation: translation
-                    };
+                    const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
+                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
                 });
-                
-                return ayahs;
             } catch (error) {
                 console.error('Error loading verses:', error);
                 throw new Error('Failed to load verses from Quran.com API');
@@ -456,7 +411,6 @@
                 grad.addColorStop(1, '#0a1a1a');
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, W, H);
-                
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.font = '20px Inter, sans-serif';
                 ctx.textAlign = 'center';
@@ -468,17 +422,12 @@
             const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
             const canvasAspect = W / H;
             let drawWidth, drawHeight, drawX, drawY;
-            
             if (videoAspect > canvasAspect) {
-                drawHeight = H;
-                drawWidth = H * videoAspect;
-                drawX = (W - drawWidth) / 2;
-                drawY = 0;
+                drawHeight = H; drawWidth = H * videoAspect;
+                drawX = (W - drawWidth) / 2; drawY = 0;
             } else {
-                drawWidth = W;
-                drawHeight = W / videoAspect;
-                drawX = 0;
-                drawY = (H - drawHeight) / 2;
+                drawWidth = W; drawHeight = W / videoAspect;
+                drawX = 0; drawY = (H - drawHeight) / 2;
             }
             ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
             
@@ -495,19 +444,17 @@
                 const badgeW = 240, badgeH = 48;
                 const badgeX = (W - badgeW) / 2;
                 const badgeY = 680;
-                
                 ctx.fillStyle = 'rgba(255,255,255,0.1)';
                 drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 24);
                 ctx.fill();
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)';
                 ctx.lineWidth = 1;
                 ctx.stroke();
-                
                 ctx.fillStyle = 'rgba(255,255,255,0.85)';
                 ctx.font = '600 18px Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                const surahName = ayah.surah?.name || currentSurahData?.surahName || 'Quran';
+                const surahName = ayah.surah?.name_simple || currentSurahData?.surahName || 'Quran';
                 ctx.fillText(surahName.toUpperCase(), W/2, badgeY + badgeH/2);
                 
                 const arabicMaxWidth = W * 0.85;
@@ -517,23 +464,19 @@
                     arabicFontSize -= 5;
                     ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
                 }
-                
                 ctx.shadowColor = 'rgba(0,0,0,0.4)';
                 ctx.shadowBlur = 15;
                 ctx.shadowOffsetY = 3;
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                
                 const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
                 const arabicLineHeight = arabicFontSize * 1.5;
                 const arabicTotalHeight = arabicLines.length * arabicLineHeight;
                 const arabicStartY = (H / 2) - (arabicTotalHeight / 2);
-                
                 arabicLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, arabicStartY + (i * arabicLineHeight));
                 });
-                
                 ctx.shadowColor = 'transparent';
                 ctx.shadowBlur = 0;
                 ctx.shadowOffsetY = 0;
@@ -545,12 +488,10 @@
                     englishFontSize -= 2;
                     ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
                 }
-                
                 ctx.fillStyle = 'rgba(255,255,255,0.75)';
                 const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
                 const englishLineHeight = englishFontSize * 1.45;
                 const englishStartY = arabicStartY + arabicTotalHeight + 40;
-                
                 englishLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight));
                 });
@@ -566,10 +507,7 @@
 
         function startRenderLoop() {
             if (renderLoopId) return;
-            function loop() {
-                renderFrame();
-                renderLoopId = requestAnimationFrame(loop);
-            }
+            function loop() { renderFrame(); renderLoopId = requestAnimationFrame(loop); }
             loop();
         }
 
@@ -585,7 +523,7 @@
         }
 
         function updateTagsDisplay() {
-            const surahName = currentAyahs[0]?.surah?.name || 'Quran';
+            const surahName = currentAyahs[0]?.surah?.name_simple || 'Quran';
             const tagsData = generateTagsAndCaption(surahName);
             document.getElementById('tagsContainer').textContent = currentTagFormat === 'hashtags' ? tagsData.hashtags : tagsData.comma;
             document.getElementById('captionContainer').textContent = tagsData.caption;
@@ -601,9 +539,7 @@
                         surahsData.map(s => `<option value="${s.id}">${s.id}. ${s.name_simple} (${s.verses_count} verses)</option>`).join('');
                     fetchVideoBatch();
                 }
-            } catch (e) {
-                console.error('Failed to load surahs:', e);
-            }
+            } catch (e) { console.error('Failed to load surahs:', e); }
             startRenderLoop();
         }
 
@@ -613,16 +549,11 @@
             ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Loading verses...</div>';
             selectedAyahs.clear();
             document.getElementById('selectedCount').textContent = '0';
-            
             try {
                 const ayahs = await loadSurahVerses(surahNum);
                 const normalized = normalizeAyahData(ayahs, surahNum);
                 const surah = surahsData.find(s => s.id === surahNum);
-                currentSurahData = { 
-                    ayahs: normalized, 
-                    surahNum: surahNum,
-                    surahName: surah?.name_simple || 'Quran'
-                };
+                currentSurahData = { ayahs: normalized, surahNum: surahNum, surahName: surah?.name_simple || 'Quran' };
                 renderAyahList();
             } catch (e) {
                 console.error('Failed to load ayahs:', e);
@@ -636,7 +567,6 @@
                 ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">No verses available</div>';
                 return;
             }
-            
             currentSurahData.ayahs.forEach((ayah) => {
                 const div = document.createElement('div');
                 div.className = `ayah-row p-3 rounded-md cursor-pointer ${selectedAyahs.has(ayah.numberInSurah) ? 'selected' : ''}`;
@@ -647,8 +577,7 @@
                             <p class="font-arabic text-right text-white text-sm mb-1 truncate" dir="rtl">${ayah.text}</p>
                             <p class="text-[10px] text-white/40 truncate">${ayah.translation || ''}</p>
                         </div>
-                    </div>
-                `;
+                    </div>`;
                 div.onclick = () => {
                     if (selectedAyahs.has(ayah.numberInSurah)) selectedAyahs.delete(ayah.numberInSurah);
                     else selectedAyahs.add(ayah.numberInSurah);
@@ -674,12 +603,9 @@
 
         async function searchVideos(query) {
             if (!query) return;
-            
             videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching videos...</div>';
             videoSearchResults.classList.remove('hidden');
-            
             let allVideos = [];
-            
             try {
                 try {
                     const pixabayRes = await fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=8`);
@@ -688,94 +614,56 @@
                         if (pixabayData.hits && pixabayData.hits.length > 0) {
                             allVideos = allVideos.concat(pixabayData.hits.map(v => ({
                                 source: 'pixabay',
-                                video_files: [{ 
-                                    link: v.videos?.large?.url || v.videos?.medium?.url || v.videos?.small?.url, 
-                                    height: 1920 
-                                }],
+                                video_files: [{ link: v.videos?.large?.url || v.videos?.medium?.url || v.videos?.small?.url, height: 1920 }],
                                 image: v.picture_id ? `https://cdn.pixabay.com/photo/${v.picture_id}_640.jpg` : v.preview_url
                             })).filter(v => v.video_files[0].link));
                         }
                     }
-                } catch (pixabayError) {
-                    console.warn('Pixabay failed, using Pexels only:', pixabayError);
-                }
-                
+                } catch (e) { console.warn('Pixabay failed:', e); }
                 try {
                     const pexelsRes = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=8&orientation=portrait`);
                     if (pexelsRes.ok) {
                         const pexelsData = await pexelsRes.json();
                         if (pexelsData.videos && pexelsData.videos.length > 0) {
                             allVideos = allVideos.concat(pexelsData.videos.map(v => ({
-                                source: 'pexels',
-                                video_files: v.video_files,
-                                image: v.image
+                                source: 'pexels', video_files: v.video_files, image: v.image
                             })));
                         }
                     }
-                } catch (pexelsError) {
-                    console.warn('Pexels failed:', pexelsError);
-                }
-                
-                if (allVideos.length > 0) {
-                    displayVideoSearchResults(allVideos);
-                } else {
-                    videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found. Try: nature, forest, ocean, sky, mountains</div>';
-                }
+                } catch (e) { console.warn('Pexels failed:', e); }
+                if (allVideos.length > 0) displayVideoSearchResults(allVideos);
+                else videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found. Try: nature, forest, ocean, sky</div>';
             } catch (e) {
                 console.error('Video search failed:', e);
-                videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Error loading videos. Please try again.</div>';
+                videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Error loading videos</div>';
             }
         }
 
         function displayVideoSearchResults(videos) {
             videoSearchResults.innerHTML = '';
             videos.forEach((video, idx) => {
-                const videoFile = video.video_files?.find(f => f.height === 1920) || 
-                                 video.video_files?.find(f => f.height >= 720) ||
-                                 video.video_files?.[0];
+                const videoFile = video.video_files?.find(f => f.height === 1920) || video.video_files?.find(f => f.height >= 720) || video.video_files?.[0];
                 const videoUrl = videoFile?.link;
                 const thumbnail = video.image;
-                
                 if (!videoUrl) return;
-                
                 const div = document.createElement('div');
                 div.className = `video-thumbnail rounded-lg overflow-hidden border-2 ${selectedVideoUrl === videoUrl || pendingVideoUrl === videoUrl ? 'selected' : ''}`;
-                
                 const videoEl = document.createElement('video');
-                videoEl.muted = true;
-                videoEl.loop = true;
-                videoEl.playsInline = true;
-                videoEl.preload = 'metadata';
-                videoEl.src = videoUrl;
-                
+                videoEl.muted = true; videoEl.loop = true; videoEl.playsInline = true;
+                videoEl.preload = 'metadata'; videoEl.src = videoUrl;
                 const imgEl = document.createElement('img');
-                imgEl.src = thumbnail;
-                imgEl.alt = `Video ${idx + 1}`;
-                imgEl.className = 'thumbnail-img';
-                
+                imgEl.src = thumbnail; imgEl.alt = `Video ${idx + 1}`; imgEl.className = 'thumbnail-img';
                 const checkEl = document.createElement('div');
                 checkEl.className = 'checkmark-overlay';
                 checkEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-                
-                div.appendChild(imgEl);
-                div.appendChild(videoEl);
-                div.appendChild(checkEl);
-                
-                div.addEventListener('mouseenter', () => {
-                    videoEl.play().catch(() => {});
-                });
-                
-                div.addEventListener('mouseleave', () => {
-                    videoEl.pause();
-                    videoEl.currentTime = 0;
-                });
-                
+                div.appendChild(imgEl); div.appendChild(videoEl); div.appendChild(checkEl);
+                div.addEventListener('mouseenter', () => { videoEl.play().catch(() => {}); });
+                div.addEventListener('mouseleave', () => { videoEl.pause(); videoEl.currentTime = 0; });
                 div.onclick = () => {
                     document.querySelectorAll('.video-thumbnail').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
                     selectVideo(video, videoUrl);
                 };
-                
                 videoSearchResults.appendChild(div);
             });
             videoSearchResults.classList.remove('hidden');
@@ -784,18 +672,15 @@
         function selectVideo(video, videoUrl) {
             if (videoUrl) {
                 pendingVideoUrl = videoUrl;
-                
                 const indicator = document.getElementById('selectedVideoIndicator');
                 indicator.classList.remove('hidden');
                 indicator.classList.add('flex');
                 lucide.createIcons();
-                
                 if (!isReelGenerated) {
                     selectedVideoUrl = videoUrl;
                     bgVideo.src = videoUrl;
                     bgVideo.load();
                 }
-                
                 setTimeout(() => {
                     videoSearchResults.classList.add('hidden');
                     videoSearchInput.value = '';
@@ -804,11 +689,9 @@
         }
 
         document.getElementById('changeVideoBtn').addEventListener('click', () => {
-            pendingVideoUrl = null;
-            selectedVideoUrl = null;
+            pendingVideoUrl = null; selectedVideoUrl = null;
             const indicator = document.getElementById('selectedVideoIndicator');
-            indicator.classList.add('hidden');
-            indicator.classList.remove('flex');
+            indicator.classList.add('hidden'); indicator.classList.remove('flex');
             videoSearchInput.focus();
         });
 
@@ -875,43 +758,29 @@
         generateBtn.addEventListener('click', async () => {
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             const surahNum = parseInt(surahSelect.value);
-            
-            if (pendingVideoUrl) {
-                selectedVideoUrl = pendingVideoUrl;
-                pendingVideoUrl = null;
-            }
-            
+            if (pendingVideoUrl) { selectedVideoUrl = pendingVideoUrl; pendingVideoUrl = null; }
             startLoadingSequence(async () => {
                 try {
                     const reciter = reciterSelect.value;
                     const surah = surahsData.find(s => s.id === surahNum);
-                    
                     const ayahs = await loadSurahVerses(surahNum);
                     const normalized = normalizeAyahData(ayahs, surahNum);
-                    
-                    const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah))
-                        .sort((a,b) => a.numberInSurah - b.numberInSurah);
-                    
+                    const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     currentAyahs = filtered.map(a => ({
                         ...a,
                         audio: getAudioUrl(surahNum, a.numberInSurah, reciter),
                         surah: surah
                     }));
-                    
                     currentAyahIndex = 0;
                     getNextVideo();
                     downloadBtn.classList.remove('hidden');
                     downloadBtn.style.display = 'flex';
                     tagsSection.classList.remove('hidden');
                     updateTagsDisplay();
-                    
                     isReelGenerated = true;
                     generateBtnText.textContent = 'Regenerate Reel';
-                    
                     startPlayback();
-                } catch (e) { 
-                    console.error('Generation failed:', e);
-                }
+                } catch (e) { console.error('Generation failed:', e); }
             });
         });
 
@@ -925,10 +794,8 @@
         function playCurrentAyah() {
             if (!isPlaying || isRecording) return;
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
-            
             audioPlayer.src = currentAyahs[currentAyahIndex].audio;
             audioPlayer.play().catch(e => console.warn('Audio play failed:', e));
-
             audioPlayer.onended = () => {
                 currentAyahIndex++;
                 if (isPlaying && !isRecording) playCurrentAyah();
@@ -938,13 +805,8 @@
         previewCanvas.addEventListener('click', () => {
             if (!currentAyahs.length || isRecording) return;
             isPlaying = !isPlaying;
-            if (isPlaying) {
-                bgVideo.play();
-                audioPlayer.play();
-            } else {
-                bgVideo.pause();
-                audioPlayer.pause();
-            }
+            if (isPlaying) { bgVideo.play(); audioPlayer.play(); }
+            else { bgVideo.pause(); audioPlayer.pause(); }
         });
 
         document.getElementById('copyTagsBtn').addEventListener('click', () => {
@@ -973,110 +835,62 @@
         });
 
         document.getElementById('storyBtn').addEventListener('click', () => {
-            storyModal.classList.remove('hidden');
-            storyModal.classList.add('flex');
-            lucide.createIcons();
+            storyModal.classList.remove('hidden'); storyModal.classList.add('flex'); lucide.createIcons();
         });
-
         document.getElementById('closeStoryBtn').addEventListener('click', () => {
-            storyModal.classList.add('hidden');
-            storyModal.classList.remove('flex');
+            storyModal.classList.add('hidden'); storyModal.classList.remove('flex');
         });
-
         storyModal.addEventListener('click', (e) => {
-            if (e.target === storyModal) {
-                storyModal.classList.add('hidden');
-                storyModal.classList.remove('flex');
-            }
+            if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
-            
-            isRecording = true;
-            isPlaying = false;
-            audioPlayer.pause();
-            bgVideo.currentTime = 0;
-            
-            downloadBtn.disabled = true;
-            downloadLabel.textContent = 'Recording...';
-            lucide.createIcons();
-            
+            isRecording = true; isPlaying = false; audioPlayer.pause(); bgVideo.currentTime = 0;
+            downloadBtn.disabled = true; downloadLabel.textContent = 'Recording...'; lucide.createIcons();
             const stream = previewCanvas.captureStream(30);
-            
             let audioContext, source, destination;
             try {
                 audioContext = new AudioContext();
                 source = audioContext.createMediaElementSource(audioPlayer);
                 destination = audioContext.createMediaStreamDestination();
-                source.connect(destination);
-                source.connect(audioContext.destination);
+                source.connect(destination); source.connect(audioContext.destination);
                 destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
-            } catch (e) {
-                console.warn('Audio capture not available');
-            }
-
-            mediaRecorder = new MediaRecorder(stream, { 
-                mimeType: 'video/webm;codecs=vp9,opus', 
-                videoBitsPerSecond: 8000000 
-            });
+            } catch (e) { console.warn('Audio capture not available'); }
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 8000000 });
             recordedChunks = [];
-            
             mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-            
             mediaRecorder.onstop = () => {
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = `reeldeen-${surahSelect.value}.webm`;
-                a.click();
-                
-                isRecording = false;
-                downloadBtn.disabled = false;
-                downloadLabel.textContent = 'Download Video';
-                lucide.createIcons();
-                
+                a.href = url; a.download = `reeldeen-${surahSelect.value}.webm`; a.click();
+                isRecording = false; downloadBtn.disabled = false; downloadLabel.textContent = 'Download Video'; lucide.createIcons();
                 if (audioContext) audioContext.close();
             };
-
             mediaRecorder.start();
             bgVideo.play();
-
             try {
                 for (let i = 0; i < currentAyahs.length; i++) {
                     if (!isRecording) break;
-                    
                     currentAyahIndex = i;
                     downloadLabel.textContent = `Recording... ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-                    
                     await new Promise((resolve) => {
                         audioPlayer.src = currentAyahs[i].audio;
                         audioPlayer.onended = resolve;
                         audioPlayer.onerror = resolve;
                         audioPlayer.play().catch(() => resolve());
                     });
-                    
                     await new Promise(r => setTimeout(r, 300));
                 }
-            } catch (err) {
-                console.error('Recording error:', err);
-            }
-            
+            } catch (err) { console.error('Recording error:', err); }
             bgVideo.pause();
-            setTimeout(() => {
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                    mediaRecorder.stop();
-                }
-            }, 500);
+            setTimeout(() => { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); }, 500);
         });
 
         const bgVideo = document.createElement('video');
-        bgVideo.loop = true;
-        bgVideo.muted = true;
-        bgVideo.playsInline = true;
-        bgVideo.crossOrigin = 'anonymous';
-        bgVideo.style.display = 'none';
+        bgVideo.loop = true; bgVideo.muted = true; bgVideo.playsInline = true;
+        bgVideo.crossOrigin = 'anonymous'; bgVideo.style.display = 'none';
         document.body.appendChild(bgVideo);
 
         init();
