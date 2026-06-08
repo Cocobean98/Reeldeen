@@ -81,7 +81,9 @@
         </div>
     </header>
 
-    <div class="flex-1 flex overflow-hidden">
+    <!-- FIX: Added min-w-0 to prevent flex items from overflowing -->
+    <div class="flex-1 flex overflow-hidden min-w-0">
+        <!-- Left Sidebar -->
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0" style="min-height: 0;">
             <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
@@ -128,12 +130,14 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative">
+        <!-- Main Canvas Area - FIX: Added min-w-0 and proper flex handling -->
+        <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative min-w-0">
             <canvas id="previewCanvas" width="1080" height="1920"></canvas>
             <p class="mt-6 text-xs text-white/30 font-mono">9:16 Canvas Preview • Click to Play/Pause</p>
         </main>
 
-        <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto">
+        <!-- Right Sidebar - FIX: Added min-w-0 -->
+        <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0 min-w-0" style="min-height: 0;">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
                 <select id="reciterSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
@@ -177,6 +181,9 @@
             </div>
         </aside>
     </div>
+
+    <!-- Rest of the HTML remains the same (loading overlay, story modal, etc.) -->
+    <!-- For brevity, I'm keeping the rest identical to the previous version -->
 
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
@@ -295,10 +302,8 @@
             return text;
         }
 
-        // RESTORED: Load ayahs for selector (uses Quran.com for display, but audio comes from alquran.cloud)
         async function loadSurahVerses(surahNum) {
             try {
-                // Use alquran.cloud for ayah list (includes audio URLs)
                 const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/ar.alafasy`);
                 const data = await res.json();
                 
@@ -306,7 +311,6 @@
                     throw new Error('No verses found');
                 }
                 
-                // Also get English translation
                 const enRes = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/en.sahih`);
                 const enData = await enRes.json();
                 
@@ -318,7 +322,7 @@
                         numberInSurah: v.numberInSurah, 
                         text: v.text, 
                         translation: enText,
-                        audio: v.audio // This is the working audio URL!
+                        audio: v.audio
                     };
                 });
                 
@@ -737,7 +741,6 @@
             countdownTimer.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
-        // RESTORED: Using the original working API call from your knowledge base
         generateBtn.addEventListener('click', async () => {
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             const surahNum = parseInt(surahSelect.value);
@@ -747,7 +750,6 @@
             
             startLoadingSequence(async () => {
                 try {
-                    // THIS IS THE WORKING API CALL - returns audio URLs directly
                     const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/${reciter},en.sahih`);
                     const data = await res.json();
                     
@@ -757,17 +759,14 @@
                     
                     const surah = surahsData.find(s => s.number === surahNum);
                     
-                    // data.data[0] = Arabic with audio URLs
-                    // data.data[1] = English translation
                     const arabicAyahs = data.data[0].ayahs;
                     const englishAyahs = data.data[1].ayahs;
                     
-                    // Combine them
                     const combinedAyahs = arabicAyahs.map((a, i) => ({
                         numberInSurah: a.numberInSurah,
                         text: a.text,
                         translation: englishAyahs[i] ? englishAyahs[i].text : '',
-                        audio: a.audio, // THE WORKING AUDIO URL!
+                        audio: a.audio,
                         surah: surah
                     }));
                     
