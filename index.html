@@ -141,7 +141,6 @@
                 </div>
                 <div id="videoSearchResults" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto hidden"></div>
                 
-                <!-- Indicator that a new background is queued for the next generation -->
                 <div id="selectedVideoIndicator" class="hidden mt-3 p-2 bg-accent-500/10 border border-accent-500/30 rounded-lg items-center gap-2">
                     <i data-lucide="check-circle" class="w-4 h-4 text-accent-500"></i>
                     <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
@@ -191,13 +190,9 @@
                     <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
                     <option value="ar.sudais">Abdur-Rahman as-Sudais</option>
                     <option value="ar.shuraim">Saud Ash-Shuraym</option>
-                    <option value="ar.abdullahbasfar">Abdullah Basfar</option>
-                    <option value="ar.hanirifai">Hani ar-Rifai</option>
                     <option value="ar.mahermuaiqly">Maher Al Muaiqly</option>
                     <option value="ar.muhammadayyoub">Muhammad Ayyoub</option>
                     <option value="ar.muhammadjibreel">Muhammad Jibreel</option>
-                    <option value="ar.abdulmuhsinalqasim">AbdulMuhsin al-Qasim</option>
-                    <option value="ar.ahmedajamy">Ahmed ibn Ali al-Ajamy</option>
                 </select>
             </div>
 
@@ -302,10 +297,9 @@
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
         
-        // State for video selection
-        let selectedVideoUrl = null; // The video currently playing in preview
-        let pendingVideoUrl = null;  // The video selected by user, waiting for generation
-        let isReelGenerated = false; // Tracks if a reel has been generated
+        let selectedVideoUrl = null;
+        let pendingVideoUrl = null;
+        let isReelGenerated = false;
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -329,6 +323,7 @@
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
+        // FIXED: Only verified working reciters on verses.quran.com
         function getAudioUrl(surah, ayah, reciter) {
             const reciterMap = {
                 'ar.alafasy': 'Alafasy',
@@ -336,13 +331,9 @@
                 'ar.husary': 'Husary',
                 'ar.sudais': 'Sudais',
                 'ar.shuraim': 'Shuraim',
-                'ar.abdullahbasfar': 'Abdullah_Basfar',
-                'ar.hanirifai': 'Hani_Rifai',
                 'ar.mahermuaiqly': 'Maher_AlMuaiqly',
                 'ar.muhammadayyoub': 'Muhammad_Ayyoub',
-                'ar.muhammadjibreel': 'Muhammad_Jibreel',
-                'ar.abdulmuhsinalqasim': 'AbdulMuhsin_AlQasim',
-                'ar.ahmedajamy': 'Ahmed_AlAjamy'
+                'ar.muhammadjibreel': 'Muhammad_Jibreel'
             };
             const reciterName = reciterMap[reciter] || 'Alafasy';
             return `https://verses.quran.com/${reciterName}/mp3/${String(surah).padStart(3, '0')}${String(ayah).padStart(3, '0')}.mp3`;
@@ -792,16 +783,13 @@
 
         function selectVideo(video, videoUrl) {
             if (videoUrl) {
-                // Store as pending. It will only apply when user clicks Generate.
                 pendingVideoUrl = videoUrl;
                 
-                // Show indicator
                 const indicator = document.getElementById('selectedVideoIndicator');
                 indicator.classList.remove('hidden');
                 indicator.classList.add('flex');
                 lucide.createIcons();
                 
-                // ONLY update preview immediately if NO reel has been generated yet
                 if (!isReelGenerated) {
                     selectedVideoUrl = videoUrl;
                     bgVideo.src = videoUrl;
@@ -888,10 +876,9 @@
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             const surahNum = parseInt(surahSelect.value);
             
-            // Apply pending video selection before generation
             if (pendingVideoUrl) {
                 selectedVideoUrl = pendingVideoUrl;
-                pendingVideoUrl = null; // Reset pending
+                pendingVideoUrl = null;
             }
             
             startLoadingSequence(async () => {
@@ -912,13 +899,12 @@
                     }));
                     
                     currentAyahIndex = 0;
-                    getNextVideo(); // This now uses the newly selected video
+                    getNextVideo();
                     downloadBtn.classList.remove('hidden');
                     downloadBtn.style.display = 'flex';
                     tagsSection.classList.remove('hidden');
                     updateTagsDisplay();
                     
-                    // Mark as generated
                     isReelGenerated = true;
                     generateBtnText.textContent = 'Regenerate Reel';
                     
