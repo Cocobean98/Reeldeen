@@ -32,26 +32,26 @@
         ::-webkit-scrollbar-track { background: #121212; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
         
-        .reel-container { aspect-ratio: 9/16; height: 100%; max-height: 80vh; }
         .glass { background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
         
         .ayah-row { transition: all 0.15s; border-left: 2px solid transparent; }
         .ayah-row:hover { background: #1a1a1a; }
         .ayah-row.selected { background: #1a1a1a; border-left-color: #10b981; }
         
-        #recordCanvas { display: none; }
-        
         .modal-overlay { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
-        
-        .arabic-text-short { font-size: 2.2rem; }
-        .arabic-text-medium { font-size: 1.6rem; }
-        .arabic-text-long { font-size: 1.2rem; }
-        .arabic-text-very-long { font-size: 1rem; }
 
-        .preview-element.recording .playPauseOverlay,
-        .preview-element.recording .progressBar {
-            opacity: 0 !important;
-            pointer-events: none;
+        /* Preview canvas - rendered at 1080x1920 internally, displayed at 360x640 via CSS */
+        #previewCanvas {
+            width: 100%;
+            max-width: 360px;
+            aspect-ratio: 9/16;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+        }
+        #previewCanvas:hover .playPauseOverlay {
+            opacity: 1;
         }
     </style>
 </head>
@@ -76,6 +76,7 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
+        <!-- Left: Ayah Selector -->
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
@@ -105,39 +106,13 @@
             </div>
         </aside>
 
+        <!-- Center: Canvas Preview (THIS IS THE ACTUAL PREVIEW + RECORDING SOURCE) -->
         <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative">
-            <div id="previewElement" class="preview-element reel-container w-full max-w-[360px] bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10 relative group">
-                <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover" loop muted playsinline crossorigin="anonymous"></video>
-                <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
-                
-                <div class="absolute inset-0 flex flex-col justify-center items-center p-8 text-center z-10">
-                    <div class="mb-8">
-                        <span id="displaySurahName" class="inline-block px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-semibold text-white/80 tracking-widest uppercase leading-none">
-                            AL-FATIHAH
-                        </span>
-                    </div>
-                    <div id="arabicText" class="font-arabic leading-relaxed text-white mb-6 transition-all duration-300 arabic-text-short" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
-                    <div id="translationText" class="text-sm text-white/70 font-light leading-relaxed max-w-[280px] transition-opacity duration-300 italic">In the name of Allah, the Entirely Merciful, the Especially Merciful.</div>
-                    <div class="mt-8 flex items-center justify-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-widest">
-                        <span class="text-white/50">♪</span>
-                        <span id="ayahIndicator">01</span>
-                    </div>
-                </div>
-
-                <div class="progressBar absolute bottom-0 left-0 w-full h-0.5 bg-white/10">
-                    <div id="progressBar" class="h-full bg-accent-500 w-0 transition-all duration-100"></div>
-                </div>
-
-                <div class="playPauseOverlay absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-20" id="playPauseOverlay">
-                    <div class="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                        <i data-lucide="play" class="w-6 h-6 text-white fill-white ml-1" id="playPauseIcon"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <p class="mt-6 text-xs text-white/30 font-mono">9:16 Preview • Click to Play/Pause</p>
+            <canvas id="previewCanvas" width="1080" height="1920"></canvas>
+            <p class="mt-6 text-xs text-white/30 font-mono">9:16 Canvas Preview • Click to Play/Pause</p>
         </main>
 
+        <!-- Right: Settings + Tags -->
         <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
@@ -168,8 +143,7 @@
                     <button id="copyTagsBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
                         <i data-lucide="copy" class="w-3 h-3"></i> Copy Tags
                     </button>
-                    <div id="tagsContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-24 overflow-y-auto break-words">
-                    </div>
+                    <div id="tagsContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-24 overflow-y-auto break-words"></div>
                 </div>
 
                 <div>
@@ -177,13 +151,13 @@
                     <button id="copyCaptionBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
                         <i data-lucide="copy" class="w-3 h-3"></i> Copy Caption
                     </button>
-                    <div id="captionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
-                    </div>
+                    <div id="captionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap"></div>
                 </div>
             </div>
         </aside>
     </div>
 
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
             <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
@@ -206,6 +180,7 @@
         </div>
     </div>
 
+    <!-- Story Modal -->
     <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
         <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div class="p-8">
@@ -245,7 +220,6 @@
         </div>
     </div>
 
-    <canvas id="recordCanvas" width="1080" height="1920"></canvas>
     <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
 
     <script>
@@ -260,6 +234,11 @@
         let mediaRecorder, recordedChunks = [];
         let isRecording = false;
         let currentTagFormat = 'hashtags';
+        let renderLoopId = null;
+
+        // THE CANVAS - This is both the preview AND the recording source
+        const previewCanvas = document.getElementById('previewCanvas');
+        const ctx = previewCanvas.getContext('2d');
 
         const surahSelect = document.getElementById('surahSelect');
         const ayahList = document.getElementById('ayahList');
@@ -267,20 +246,10 @@
         const generateBtn = document.getElementById('generateBtn');
         const downloadBtn = document.getElementById('downloadBtn');
         const downloadLabel = document.getElementById('downloadLabel');
-        const bgVideo = document.getElementById('bgVideo');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const countdownTimer = document.getElementById('countdownTimer');
         const storyModal = document.getElementById('storyModal');
-        const displaySurahName = document.getElementById('displaySurahName');
         const tagsSection = document.getElementById('tagsSection');
-        const previewElement = document.getElementById('previewElement');
-        
-        const arabicText = document.getElementById('arabicText');
-        const translationText = document.getElementById('translationText');
-        const ayahIndicator = document.getElementById('ayahIndicator');
-        const progressBar = document.getElementById('progressBar');
-        const playPauseOverlay = document.getElementById('playPauseOverlay');
-        const playPauseIcon = document.getElementById('playPauseIcon');
 
         const viralTags = {
             general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
@@ -295,11 +264,10 @@
 
         function removeBismillah(text) {
             if (!text) return text;
-            
             const hasBismStart = text.includes('بِسْمِ') || text.includes('بسم');
-            const hasAllah = text.includes('اللَّهِ') || text.includes('الله') || text.includes('اللّهِ');
-            const hasRahman = text.includes('الرَّحْمَٰنِ') || text.includes('الرحمن') || text.includes('الرَّحْمَنِ');
-            const hasRahim = text.includes('الرَّحِيمِ') || text.includes('الرحيم') || text.includes('الرَّحِيم');
+            const hasAllah = text.includes('اللَّهِ') || text.includes('الله');
+            const hasRahman = text.includes('الرَّحْمَٰنِ') || text.includes('الرحمن');
+            const hasRahim = text.includes('الرَّحِيمِ') || text.includes('الرحيم');
             
             if (hasBismStart && hasAllah && hasRahman && hasRahim) {
                 const patterns = [
@@ -308,7 +276,6 @@
                     /^بِسْمِ[\s\S]*?الرَّحْمَنِ[\s]*/,
                     /^بسم[\s\S]*?الرحيم[\s]*/
                 ];
-                
                 for (const pattern of patterns) {
                     const match = text.match(pattern);
                     if (match && match[0].length < 120) {
@@ -316,26 +283,21 @@
                     }
                 }
             }
-            
             return text;
         }
 
         function normalizeAyahData(ar, en, surahNum) {
             let a = [...ar], e = [...en];
-            
             if (surahNum !== 1 && surahNum !== 9) {
                 if (a.length > 0) {
                     const firstText = a[0].text || '';
-                    
                     const isOnlyBismillah = firstText.length < 80 && 
                         (firstText.includes('بِسْمِ') || firstText.includes('بسم')) &&
-                        (firstText.includes('الرَّحِيمِ') || firstText.includes('الرَّحِيم') || firstText.includes('الرحيم'));
-                    
+                        (firstText.includes('الرَّحِيمِ') || firstText.includes('الرَّحِيم'));
                     if (isOnlyBismillah) {
                         a.shift();
                         if (e.length > 0) e.shift();
                     }
-                    
                     if (a.length > 0 && a[0].text) {
                         a[0].text = removeBismillah(a[0].text);
                         if (e.length > 0 && e[0].text) {
@@ -343,61 +305,197 @@
                         }
                     }
                 }
-                
-                a.forEach(ayah => {
-                    if (ayah.text) {
-                        ayah.text = removeBismillah(ayah.text);
-                    }
-                });
+                a.forEach(ayah => { if (ayah.text) ayah.text = removeBismillah(ayah.text); });
             }
-            
             a.forEach((x, i) => x.numberInSurah = i + 1);
             e.forEach((x, i) => x.numberInSurah = i + 1);
             return { arabic: a, english: e };
         }
 
-        function getArabicTextClass(text) {
-            const len = text ? text.length : 0;
-            if (len < 50) return 'arabic-text-short';
-            if (len < 100) return 'arabic-text-medium';
-            if (len < 200) return 'arabic-text-long';
-            return 'arabic-text-very-long';
+        // ============================================
+        // CANVAS RENDERING - The single source of truth
+        // ============================================
+        function wrapText(ctx, text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            return lines;
         }
 
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function renderFrame() {
+            const W = previewCanvas.width;  // 1080
+            const H = previewCanvas.height; // 1920
+            
+            // 1. Draw video background
+            if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
+                const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
+                const canvasAspect = W / H;
+                let drawWidth, drawHeight, drawX, drawY;
+                
+                if (videoAspect > canvasAspect) {
+                    drawHeight = H;
+                    drawWidth = H * videoAspect;
+                    drawX = (W - drawWidth) / 2;
+                    drawY = 0;
+                } else {
+                    drawWidth = W;
+                    drawHeight = W / videoAspect;
+                    drawX = 0;
+                    drawY = (H - drawHeight) / 2;
+                }
+                ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
+            } else {
+                // Fallback gradient
+                const grad = ctx.createLinearGradient(0, 0, 0, H);
+                grad.addColorStop(0, '#1a3a3a');
+                grad.addColorStop(1, '#0a1a1a');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+            }
+            
+            // 2. Draw gradient overlay (same as preview CSS)
+            const overlay = ctx.createLinearGradient(0, 0, 0, H);
+            overlay.addColorStop(0, 'rgba(0,0,0,0.6)');
+            overlay.addColorStop(0.5, 'rgba(0,0,0,0.4)');
+            overlay.addColorStop(1, 'rgba(0,0,0,0.7)');
+            ctx.fillStyle = overlay;
+            ctx.fillRect(0, 0, W, H);
+            
+            // 3. Draw text overlay (only if we have ayahs)
+            if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length) {
+                const ayah = currentAyahs[currentAyahIndex];
+                
+                // Surah badge - rounded pill
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                const badgeW = 220, badgeH = 44;
+                const badgeX = (W - badgeW) / 2;
+                const badgeY = 420;
+                drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 22);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.font = '600 16px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(ayah.surah.englishName.toUpperCase(), W/2, badgeY + badgeH/2);
+                
+                // Arabic text
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Dynamic font size based on text length
+                const arabicMaxWidth = W * 0.85;
+                let arabicFontSize = 110;
+                ctx.font = `${arabicFontSize}px Amiri, serif`;
+                while (ctx.measureText(ayah.text).width > arabicMaxWidth && arabicFontSize > 50) {
+                    arabicFontSize -= 5;
+                    ctx.font = `${arabicFontSize}px Amiri, serif`;
+                }
+                
+                const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
+                const arabicLineHeight = arabicFontSize * 1.6;
+                const arabicTotalHeight = arabicLines.length * arabicLineHeight;
+                const arabicStartY = (H / 2) - (arabicTotalHeight / 2) - 40;
+                
+                arabicLines.forEach((line, i) => {
+                    ctx.fillText(line, W/2, arabicStartY + (i * arabicLineHeight));
+                });
+                
+                // English translation
+                const englishMaxWidth = W * 0.75;
+                let englishFontSize = 42;
+                ctx.font = `italic ${englishFontSize}px Inter, sans-serif`;
+                while (ctx.measureText(ayah.translation).width > englishMaxWidth && englishFontSize > 24) {
+                    englishFontSize -= 3;
+                    ctx.font = `italic ${englishFontSize}px Inter, sans-serif`;
+                }
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.75)';
+                const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
+                const englishLineHeight = englishFontSize * 1.5;
+                const englishStartY = arabicStartY + arabicTotalHeight + 80;
+                
+                englishLines.forEach((line, i) => {
+                    ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight));
+                });
+                
+                // Ayah indicator
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.font = '400 22px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(`♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, W/2, H - 280);
+            }
+        }
+
+        // Main render loop - runs continuously for smooth preview
+        function startRenderLoop() {
+            if (renderLoopId) return;
+            function loop() {
+                renderFrame();
+                renderLoopId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function stopRenderLoop() {
+            if (renderLoopId) {
+                cancelAnimationFrame(renderLoopId);
+                renderLoopId = null;
+            }
+        }
+
+        // ============================================
+        // Tags & Caption
+        // ============================================
         function generateTagsAndCaption(surahName) {
             const surahSlug = surahName.toLowerCase().replace(/-/g, '');
             const surahTags = [surahSlug, `surah${surahSlug}`, 'quran'];
             const allTags = [...surahTags, ...viralTags.general, ...viralTags.recitation];
             const uniqueTags = [...new Set(allTags)].slice(0, 25);
-            
             const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
             const commaFormat = uniqueTags.join(', ');
-            
             const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.translation || ''}"\n\nBeautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${hashtagFormat}`;
-            
-            return {
-                hashtags: hashtagFormat,
-                comma: commaFormat,
-                caption: caption
-            };
+            return { hashtags: hashtagFormat, comma: commaFormat, caption: caption };
         }
 
         function updateTagsDisplay() {
             const surahName = currentAyahs[0]?.surah?.englishName || 'Quran';
             const tagsData = generateTagsAndCaption(surahName);
-            
-            const tagsContainer = document.getElementById('tagsContainer');
-            const captionContainer = document.getElementById('captionContainer');
-            
-            if (currentTagFormat === 'hashtags') {
-                tagsContainer.textContent = tagsData.hashtags;
-            } else {
-                tagsContainer.textContent = tagsData.comma;
-            }
-            
-            captionContainer.textContent = tagsData.caption;
+            document.getElementById('tagsContainer').textContent = currentTagFormat === 'hashtags' ? tagsData.hashtags : tagsData.comma;
+            document.getElementById('captionContainer').textContent = tagsData.caption;
         }
 
+        // ============================================
+        // Init & Surah Loading
+        // ============================================
         async function init() {
             const res = await fetch(`${QURAN_API_BASE}/surah`);
             const data = await res.json();
@@ -407,6 +505,8 @@
                     surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName}</option>`).join('');
                 fetchVideoBatch();
             }
+            // Start render loop immediately with fallback
+            startRenderLoop();
         }
 
         surahSelect.addEventListener('change', async (e) => {
@@ -480,14 +580,15 @@
             }
         }
 
+        // ============================================
+        // Generate Reel
+        // ============================================
         function startLoadingSequence(finalCallback) {
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.classList.add('flex');
             lucide.createIcons();
-            
             let timeLeft = 90;
             updateTimerDisplay(timeLeft);
-            
             const interval = setInterval(() => {
                 timeLeft--;
                 updateTimerDisplay(timeLeft);
@@ -508,7 +609,6 @@
 
         generateBtn.addEventListener('click', async () => {
             if (!surahSelect.value || selectedAyahs.size === 0) return;
-            
             const surahNum = parseInt(surahSelect.value);
             
             startLoadingSequence(async () => {
@@ -516,7 +616,6 @@
                     const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/ar.alafasy,en.sahih`);
                     const data = await res.json();
                     const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, surahNum);
-                    
                     const ar = norm.arabic.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     const en = norm.english.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     
@@ -528,61 +627,22 @@
                     }));
                     
                     currentAyahIndex = 0;
-                    displaySurahName.textContent = currentAyahs[0].surah.englishName.toUpperCase();
-                    
                     getNextVideo();
                     downloadBtn.classList.remove('hidden');
                     downloadBtn.style.display = 'flex';
-                    
                     tagsSection.classList.remove('hidden');
                     updateTagsDisplay();
-                    
                     startPlayback();
-                } catch (e) {
-                    console.error('Generation failed:', e);
-                }
+                } catch (e) { console.error('Generation failed:', e); }
             });
         });
 
-        document.getElementById('copyTagsBtn').addEventListener('click', () => {
-            const tagsContainer = document.getElementById('tagsContainer');
-            const text = tagsContainer.textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.getElementById('copyTagsBtn');
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
-                lucide.createIcons();
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    lucide.createIcons();
-                }, 2000);
-            });
-        });
-
-        document.getElementById('copyCaptionBtn').addEventListener('click', () => {
-            const captionContainer = document.getElementById('captionContainer');
-            const text = captionContainer.textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.getElementById('copyCaptionBtn');
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
-                lucide.createIcons();
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    lucide.createIcons();
-                }, 2000);
-            });
-        });
-
-        document.getElementById('toggleTagFormat').addEventListener('click', () => {
-            currentTagFormat = currentTagFormat === 'hashtags' ? 'comma' : 'hashtags';
-            updateTagsDisplay();
-        });
-
+        // ============================================
+        // Playback
+        // ============================================
         function startPlayback() {
             if (!currentAyahs.length || isRecording) return;
             isPlaying = true;
-            updatePlayIcon();
             bgVideo.play();
             playCurrentAyah();
         }
@@ -591,10 +651,7 @@
             if (!isPlaying || isRecording) return;
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
             
-            updateAyahUI(currentAyahs[currentAyahIndex]);
-
             audioPlayer.src = currentAyahs[currentAyahIndex].audio;
-            progressBar.style.width = `${((currentAyahIndex + 1) / currentAyahs.length) * 100}%`;
             audioPlayer.play().catch(e => console.warn('Audio play failed:', e));
 
             audioPlayer.onended = () => {
@@ -603,26 +660,10 @@
             };
         }
 
-        function updateAyahUI(ayah) {
-            arabicText.style.opacity = '0';
-            translationText.style.opacity = '0';
-            
-            setTimeout(() => {
-                arabicText.textContent = ayah.text;
-                translationText.textContent = ayah.translation;
-                ayahIndicator.textContent = String(ayah.numberInSurah).padStart(2, '0');
-                
-                arabicText.className = `font-arabic leading-relaxed text-white mb-6 transition-all duration-300 ${getArabicTextClass(ayah.text)}`;
-                
-                arabicText.style.opacity = '1';
-                translationText.style.opacity = '1';
-            }, 200);
-        }
-
-        playPauseOverlay.addEventListener('click', () => {
+        // Click canvas to play/pause
+        previewCanvas.addEventListener('click', () => {
             if (!currentAyahs.length || isRecording) return;
             isPlaying = !isPlaying;
-            updatePlayIcon();
             if (isPlaying) {
                 bgVideo.play();
                 audioPlayer.play();
@@ -632,10 +673,33 @@
             }
         });
 
-        function updatePlayIcon() {
-            playPauseIcon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
-            lucide.createIcons();
-        }
+        // ============================================
+        // Tags buttons
+        // ============================================
+        document.getElementById('copyTagsBtn').addEventListener('click', () => {
+            const text = document.getElementById('tagsContainer').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyTagsBtn');
+                btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
+                lucide.createIcons();
+                setTimeout(() => { btn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Copy Tags'; lucide.createIcons(); }, 2000);
+            });
+        });
+
+        document.getElementById('copyCaptionBtn').addEventListener('click', () => {
+            const text = document.getElementById('captionContainer').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyCaptionBtn');
+                btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
+                lucide.createIcons();
+                setTimeout(() => { btn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Copy Caption'; lucide.createIcons(); }, 2000);
+            });
+        });
+
+        document.getElementById('toggleTagFormat').addEventListener('click', () => {
+            currentTagFormat = currentTagFormat === 'hashtags' ? 'comma' : 'hashtags';
+            updateTagsDisplay();
+        });
 
         document.getElementById('storyBtn').addEventListener('click', () => {
             storyModal.classList.remove('hidden');
@@ -655,7 +719,10 @@
             }
         });
 
-        // FIXED: Pure canvas rendering - NO html2canvas, smooth video
+        // ============================================
+        // DOWNLOAD - Uses the SAME canvas as preview
+        // Since preview IS the canvas, captureStream() gives us EXACT pixels
+        // ============================================
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -668,10 +735,10 @@
             downloadLabel.textContent = 'Recording...';
             lucide.createIcons();
             
-            const canvas = document.getElementById('recordCanvas');
-            const ctx = canvas.getContext('2d');
-            const stream = canvas.captureStream(30);
+            // Get stream from the SAME canvas used for preview
+            const stream = previewCanvas.captureStream(30);
             
+            // Capture audio
             let audioContext, source, destination;
             try {
                 audioContext = new AudioContext();
@@ -711,107 +778,8 @@
             mediaRecorder.start();
             bgVideo.play();
             
-            let animationId;
-            
-            function drawFrame() {
-                if (!isRecording) return;
-                
-                // Draw video directly (smooth, native performance)
-                if (bgVideo.readyState >= 2) {
-                    const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
-                    const canvasAspect = canvas.width / canvas.height;
-                    
-                    let drawWidth, drawHeight, drawX, drawY;
-                    
-                    if (videoAspect > canvasAspect) {
-                        drawHeight = canvas.height;
-                        drawWidth = drawHeight * videoAspect;
-                        drawX = (canvas.width - drawWidth) / 2;
-                        drawY = 0;
-                    } else {
-                        drawWidth = canvas.width;
-                        drawHeight = drawWidth / videoAspect;
-                        drawX = 0;
-                        drawY = (canvas.height - drawHeight) / 2;
-                    }
-                    
-                    ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
-                } else {
-                    ctx.fillStyle = '#000000';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }
-                
-                // Draw gradient overlay
-                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                gradient.addColorStop(0, 'rgba(0,0,0,0.6)');
-                gradient.addColorStop(0.5, 'rgba(0,0,0,0.4)');
-                gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                const ayah = currentAyahs[currentAyahIndex];
-                if (ayah) {
-                    // Draw badge
-                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    const badgeW = 180, badgeH = 36;
-                    const badgeX = (canvas.width - badgeW) / 2;
-                    const badgeY = 576;
-                    
-                    ctx.beginPath();
-                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 18);
-                    ctx.fill();
-                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                    
-                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.font = '600 14px Inter';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(ayah.surah.englishName.toUpperCase(), canvas.width/2, badgeY + badgeH/2);
-                    
-                    // Draw Arabic text
-                    const arabicMaxWidth = 900;
-                    const arabicFontSize = 90;
-                    ctx.font = `${arabicFontSize}px Amiri`;
-                    ctx.fillStyle = '#ffffff';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-                    const arabicLineHeight = arabicFontSize * 1.5;
-                    const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                    const arabicStartY = 768;
-                    
-                    arabicLines.forEach((line, i) => {
-                        ctx.fillText(line, canvas.width/2, arabicStartY + (i * arabicLineHeight));
-                    });
-                    
-                    // Draw English translation
-                    const englishMaxWidth = 800;
-                    const englishFontSize = 36;
-                    ctx.font = `italic ${englishFontSize}px Inter`;
-                    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-                    ctx.textAlign = 'center';
-                    
-                    const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
-                    const englishStartY = 1056;
-                    const englishLineHeight = englishFontSize * 1.4;
-                    
-                    englishLines.forEach((line, i) => {
-                        ctx.fillText(line, canvas.width/2, englishStartY + (i * englishLineHeight));
-                    });
-                    
-                    // Draw ayah indicator
-                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                    ctx.font = '400 18px JetBrains Mono';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(`♪ AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, canvas.width/2, 1248);
-                }
-                
-                animationId = requestAnimationFrame(drawFrame);
-            }
-            animationId = requestAnimationFrame(drawFrame);
+            // Render loop continues running (same as preview)
+            // No need to start a new one - startRenderLoop is already running
 
             try {
                 for (let i = 0; i < currentAyahs.length; i++) {
@@ -833,7 +801,6 @@
                 console.error('Recording error:', err);
             }
             
-            cancelAnimationFrame(animationId);
             bgVideo.pause();
             setTimeout(() => {
                 if (mediaRecorder && mediaRecorder.state !== 'inactive') {
@@ -842,23 +809,14 @@
             }, 500);
         });
 
-        function wrapText(ctx, text, maxWidth) {
-            const words = text.split(' ');
-            const lines = [];
-            let currentLine = '';
-            
-            for (const word of words) {
-                const testLine = currentLine ? currentLine + ' ' + word : word;
-                if (ctx.measureText(testLine).width > maxWidth && currentLine) {
-                    lines.push(currentLine);
-                    currentLine = word;
-                } else {
-                    currentLine = testLine;
-                }
-            }
-            if (currentLine) lines.push(currentLine);
-            return lines;
-        }
+        // Create hidden video element for background
+        const bgVideo = document.createElement('video');
+        bgVideo.loop = true;
+        bgVideo.muted = true;
+        bgVideo.playsInline = true;
+        bgVideo.crossOrigin = 'anonymous';
+        bgVideo.style.display = 'none';
+        document.body.appendChild(bgVideo);
 
         init();
     </script>
