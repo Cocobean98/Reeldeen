@@ -6,7 +6,11 @@
     <title>ReelDeen Studio | Professional Quran Reel Generator</title>
     <meta name="description" content="Create stunning 9:16 Islamic videos with synchronized recitation.">
     
-    <link rel="icon" href="data:,">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="./favicon/apple-touch-icon.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -49,6 +53,19 @@
             border: 1px solid rgba(255,255,255,0.1);
             cursor: pointer;
         }
+
+        .video-thumbnail {
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .video-thumbnail:hover {
+            transform: scale(1.05);
+            border-color: #10b981;
+        }
+        .video-thumbnail.selected {
+            border-color: #10b981;
+            border-width: 3px;
+        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -72,7 +89,24 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
+        <!-- Left Sidebar: Ayah Selector & Video Search -->
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
+            <!-- Video Search Section -->
+            <div class="p-4 border-b border-white/5 bg-dark-800">
+                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="videoSearchInput" placeholder="e.g., nature, forest, ocean..." 
+                           class="flex-1 bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                    <button id="searchVideoBtn" class="bg-accent-500 hover:bg-accent-600 text-white px-3 py-2 rounded-md transition">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="videoSearchResults" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto hidden">
+                    <!-- Video thumbnails will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Surah Selection -->
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
                 <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
@@ -80,6 +114,7 @@
                 </select>
             </div>
             
+            <!-- Ayah Selection -->
             <div class="flex-1 overflow-y-auto p-2">
                 <div class="flex items-center justify-between px-2 py-2 mb-2">
                     <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Verses</span>
@@ -101,11 +136,13 @@
             </div>
         </aside>
 
+        <!-- Center: Canvas Preview -->
         <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative">
             <canvas id="previewCanvas" width="1080" height="1920"></canvas>
             <p class="mt-6 text-xs text-white/30 font-mono">9:16 Canvas Preview • Click to Play/Pause</p>
         </main>
 
+        <!-- Right Sidebar: Settings & Tags -->
         <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
@@ -148,6 +185,7 @@
         </aside>
     </div>
 
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
             <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
@@ -168,6 +206,7 @@
         </div>
     </div>
 
+    <!-- Story Modal -->
     <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
         <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div class="p-8">
@@ -203,7 +242,8 @@
     <script>
         lucide.createIcons();
 
-        const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
+        // Quran.com API v4
+        const QURAN_COM_API = 'https://api.quran.com/api/v4';
         
         let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
         let selectedAyahs = new Set(), currentSurahData = null;
@@ -213,6 +253,7 @@
         let isRecording = false;
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
+        let selectedVideoUrl = null;
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -227,16 +268,25 @@
         const countdownTimer = document.getElementById('countdownTimer');
         const storyModal = document.getElementById('storyModal');
         const tagsSection = document.getElementById('tagsSection');
+        const videoSearchInput = document.getElementById('videoSearchInput');
+        const searchVideoBtn = document.getElementById('searchVideoBtn');
+        const videoSearchResults = document.getElementById('videoSearchResults');
 
         const viralTags = {
             general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
-        function getQuranComAudioUrl(surah, ayah) {
-            const surahPadded = String(surah).padStart(3, '0');
-            const ayahPadded = String(ayah).padStart(3, '0');
-            return `https://verses.quran.com/Alafasy/mp3/${surahPadded}${ayahPadded}.mp3`;
+        // Get audio URL for reciter
+        function getAudioUrl(surah, ayah, reciter) {
+            const reciterMap = {
+                'ar.alafasy': 'Alafasy',
+                'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal',
+                'ar.husary': 'Husary',
+                'ar.sudais': 'Sudais'
+            };
+            const reciterName = reciterMap[reciter] || 'Alafasy';
+            return `https://verses.quran.com/${reciterName}/mp3/${String(surah).padStart(3, '0')}${String(ayah).padStart(3, '0')}.mp3`;
         }
 
         function removeBismillah(text) {
@@ -320,14 +370,10 @@
             ctx.closePath();
         }
 
-        // ============================================
-        // REFINED RENDER - Proportional sizing, clean composition
-        // ============================================
         function renderFrame() {
-            const W = previewCanvas.width;  // 1080
-            const H = previewCanvas.height; // 1920
+            const W = previewCanvas.width;
+            const H = previewCanvas.height;
             
-            // 1. Draw video background
             if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
                 const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                 const canvasAspect = W / H;
@@ -353,7 +399,6 @@
                 ctx.fillRect(0, 0, W, H);
             }
             
-            // 2. Draw gradient overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
             overlay.addColorStop(0, 'rgba(0,0,0,0.55)');
             overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)');
@@ -361,11 +406,9 @@
             ctx.fillStyle = overlay;
             ctx.fillRect(0, 0, W, H);
             
-            // 3. Draw text overlay
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length) {
                 const ayah = currentAyahs[currentAyahIndex];
                 
-                // === SURAH BADGE (elegant, proportional) ===
                 const badgeW = 240, badgeH = 48;
                 const badgeX = (W - badgeW) / 2;
                 const badgeY = 680;
@@ -382,19 +425,17 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.letterSpacing = '1.5px';
-                ctx.fillText(ayah.surah.englishName.toUpperCase(), W/2, badgeY + badgeH/2);
+                ctx.fillText(ayah.surah.name.toUpperCase(), W/2, badgeY + badgeH/2);
                 ctx.letterSpacing = '0px';
                 
-                // === ARABIC TEXT (refined size) ===
                 const arabicMaxWidth = W * 0.85;
-                let arabicFontSize = 105; // Reduced from 140 - more proportional
+                let arabicFontSize = 105;
                 ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
                 while (ctx.measureText(ayah.text).width > arabicMaxWidth && arabicFontSize > 55) {
                     arabicFontSize -= 5;
                     ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
                 }
                 
-                // Subtle text shadow
                 ctx.shadowColor = 'rgba(0,0,0,0.4)';
                 ctx.shadowBlur = 15;
                 ctx.shadowOffsetX = 0;
@@ -407,22 +448,19 @@
                 const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
                 const arabicLineHeight = arabicFontSize * 1.5;
                 const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                // Centered vertically in the content area
                 const arabicStartY = (H / 2) - (arabicTotalHeight / 2);
                 
                 arabicLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, arabicStartY + (i * arabicLineHeight));
                 });
                 
-                // Reset shadow
                 ctx.shadowColor = 'transparent';
                 ctx.shadowBlur = 0;
                 ctx.shadowOffsetX = 0;
                 ctx.shadowOffsetY = 0;
                 
-                // === ENGLISH TRANSLATION (proportional to Arabic) ===
                 const englishMaxWidth = W * 0.72;
-                let englishFontSize = 34; // Reduced from 46 - proportional ratio ~3:1 with Arabic
+                let englishFontSize = 34;
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
                 while (ctx.measureText(ayah.translation).width > englishMaxWidth && englishFontSize > 22) {
                     englishFontSize -= 2;
@@ -432,14 +470,12 @@
                 ctx.fillStyle = 'rgba(255,255,255,0.75)';
                 const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
                 const englishLineHeight = englishFontSize * 1.45;
-                // Tighter gap between Arabic and English
                 const englishStartY = arabicStartY + arabicTotalHeight + 40;
                 
                 englishLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight));
                 });
                 
-                // === AYAH INDICATOR (clean, subtle) ===
                 const indicatorY = englishStartY + (englishLines.length * englishLineHeight) + 50;
                 
                 ctx.fillStyle = 'rgba(255,255,255,0.55)';
@@ -459,13 +495,6 @@
             loop();
         }
 
-        function stopRenderLoop() {
-            if (renderLoopId) {
-                cancelAnimationFrame(renderLoopId);
-                renderLoopId = null;
-            }
-        }
-
         function generateTagsAndCaption(surahName) {
             const surahSlug = surahName.toLowerCase().replace(/-/g, '');
             const surahTags = [surahSlug, `surah${surahSlug}`, 'quran'];
@@ -478,33 +507,62 @@
         }
 
         function updateTagsDisplay() {
-            const surahName = currentAyahs[0]?.surah?.englishName || 'Quran';
+            const surahName = currentAyahs[0]?.surah?.name || 'Quran';
             const tagsData = generateTagsAndCaption(surahName);
             document.getElementById('tagsContainer').textContent = currentTagFormat === 'hashtags' ? tagsData.hashtags : tagsData.comma;
             document.getElementById('captionContainer').textContent = tagsData.caption;
         }
 
+        // Initialize with Quran.com API
         async function init() {
-            const res = await fetch(`${QURAN_API_BASE}/surah`);
-            const data = await res.json();
-            if (data.code === 200) {
-                surahsData = data.data;
-                surahSelect.innerHTML = '<option value="">Select Surah</option>' + 
-                    surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName}</option>`).join('');
-                fetchVideoBatch();
+            try {
+                // Fetch chapters (surahs) from Quran.com
+                const res = await fetch(`${QURAN_COM_API}/chapters?language=en`);
+                const data = await res.json();
+                if (data.chapters) {
+                    surahsData = data.chapters;
+                    surahSelect.innerHTML = '<option value="">Select Surah</option>' + 
+                        surahsData.map(s => `<option value="${s.id}">${s.id}. ${s.name_simple} (${s.verses_count} verses)</option>`).join('');
+                    fetchVideoBatch();
+                }
+            } catch (e) {
+                console.error('Failed to load surahs:', e);
             }
             startRenderLoop();
         }
 
         surahSelect.addEventListener('change', async (e) => {
             if (!e.target.value) return;
+            const surahNum = parseInt(e.target.value);
             ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Loading...</div>';
-            const res = await fetch(`${QURAN_API_BASE}/surah/${e.target.value}/editions/ar.alafasy,en.sahih`);
-            const data = await res.json();
-            if (data.code === 200) {
-                const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, parseInt(e.target.value));
-                currentSurahData = { arabic: { ayahs: norm.arabic }, english: { ayahs: norm.english } };
-                renderAyahList();
+            
+            try {
+                // Fetch verses with Arabic text
+                const arabicRes = await fetch(`${QURAN_COM_API}/quran/verses/uthmani?chapter_number=${surahNum}`);
+                const arabicData = await arabicRes.json();
+                
+                // Fetch English translation
+                const englishRes = await fetch(`${QURAN_COM_API}/quran/verses/translations?chapter_number=${surahNum}&language=en`);
+                const englishData = await englishRes.json();
+                
+                if (arabicData.verses && englishData.translations) {
+                    const arabicAyahs = arabicData.verses.map(v => ({
+                        numberInSurah: v.verse_number,
+                        text: v.text_uthmani
+                    }));
+                    
+                    const englishAyahs = englishData.translations.map(t => ({
+                        numberInSurah: t.verse_number,
+                        text: t.text
+                    }));
+                    
+                    const norm = normalizeAyahData(arabicAyahs, englishAyahs, surahNum);
+                    currentSurahData = { arabic: { ayahs: norm.arabic }, english: { ayahs: norm.english } };
+                    renderAyahList();
+                }
+            } catch (e) {
+                console.error('Failed to load ayahs:', e);
+                ayahList.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Error loading verses</div>';
             }
         });
 
@@ -545,26 +603,110 @@
             document.getElementById('selectedCount').textContent = 0;
         };
 
+        // Video Search Functionality
+        async function searchVideos(query) {
+            if (!query) return;
+            
+            try {
+                const res = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12`);
+                const data = await res.json();
+                
+                if (data.videos && data.videos.length > 0) {
+                    displayVideoSearchResults(data.videos);
+                } else {
+                    videoSearchResults.innerHTML = '<div class="col-span-3 text-center text-white/40 text-xs py-4">No videos found</div>';
+                    videoSearchResults.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Video search failed:', e);
+            }
+        }
+
+        function displayVideoSearchResults(videos) {
+            videoSearchResults.innerHTML = '';
+            videos.forEach(video => {
+                const thumbnail = video.image || (video.video_files && video.video_files[0] ? video.video_files[0].link : '');
+                const div = document.createElement('div');
+                div.className = `video-thumbnail relative aspect-video bg-dark-700 rounded overflow-hidden border-2 ${selectedVideoUrl === video.video_files?.[0]?.link ? 'selected' : ''}`;
+                div.innerHTML = `
+                    <img src="${thumbnail}" alt="${video.id}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <i data-lucide="check" class="w-6 h-6 text-accent-500"></i>
+                    </div>
+                `;
+                div.onclick = () => selectVideo(video);
+                videoSearchResults.appendChild(div);
+            });
+            videoSearchResults.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function selectVideo(video) {
+            const videoUrl = video.video_files?.find(f => f.height === 1920)?.link || 
+                            video.video_files?.find(f => f.height === 1280)?.link ||
+                            video.video_files?.[0]?.link;
+            
+            if (videoUrl) {
+                selectedVideoUrl = videoUrl;
+                bgVideo.src = videoUrl;
+                bgVideo.load();
+                
+                // Update UI to show selection
+                document.querySelectorAll('.video-thumbnail').forEach((el, idx) => {
+                    el.classList.remove('selected');
+                    if (video.video_files?.[0]?.link && el.querySelector('img')?.src.includes(video.id)) {
+                        el.classList.add('selected');
+                    }
+                });
+                
+                // Hide search results after selection
+                setTimeout(() => {
+                    videoSearchResults.classList.add('hidden');
+                    videoSearchInput.value = '';
+                }, 300);
+            }
+        }
+
+        searchVideoBtn.addEventListener('click', () => {
+            const query = videoSearchInput.value.trim();
+            if (query) {
+                searchVideos(query);
+            }
+        });
+
+        videoSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = videoSearchInput.value.trim();
+                if (query) {
+                    searchVideos(query);
+                }
+            }
+        });
+
         async function fetchVideoBatch() {
             try {
-                const res = await fetch('/api/pexels');
+                const res = await fetch('/api/pexels?per_page=20');
                 const data = await res.json();
                 if (data.videos) {
-                    const vids = data.videos.sort(() => 0.5 - Math.random()).map(v => {
+                    const vids = data.videos.map(v => {
                         const f = v.video_files.find(f => f.height === 1920) || v.video_files[0];
-                        return f.link;
+                        return { url: f.link, video: v };
                     });
-                    videoPool = [...videoPool, ...vids];
+                    videoPool = vids.map(v => v.url);
                 }
             } catch (e) { console.warn('Video fetch failed'); }
         }
 
         function getNextVideo() {
-            if (videoPoolIndex >= videoPool.length - 5) fetchVideoBatch();
-            if (videoPool.length > 0) {
-                bgVideo.src = videoPool[videoPoolIndex++ % videoPool.length];
-                bgVideo.load();
+            if (selectedVideoUrl) {
+                bgVideo.src = selectedVideoUrl;
+                selectedVideoUrl = null; // Reset after using
+            } else if (videoPool.length > 0) {
+                if (videoPoolIndex >= videoPool.length - 5) fetchVideoBatch();
+                if (videoPoolIndex >= videoPool.length) videoPoolIndex = 0;
+                bgVideo.src = videoPool[videoPoolIndex++];
             }
+            bgVideo.load();
         }
 
         function startLoadingSequence(finalCallback) {
@@ -597,26 +739,47 @@
             
             startLoadingSequence(async () => {
                 try {
-                    const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/ar.alafasy,en.sahih`);
-                    const data = await res.json();
-                    const norm = normalizeAyahData(data.data[0].ayahs, data.data[1].ayahs, surahNum);
-                    const ar = norm.arabic.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
-                    const en = norm.english.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                    const reciter = reciterSelect.value;
+                    const surah = surahsData.find(s => s.id === surahNum);
                     
-                    currentAyahs = ar.map((a, i) => ({
-                        ...a,
-                        audio: getQuranComAudioUrl(surahNum, a.numberInSurah),
-                        translation: en[i]?.text || '',
-                        surah: data.data[0]
-                    }));
+                    // Fetch verses with Arabic text
+                    const arabicRes = await fetch(`${QURAN_COM_API}/quran/verses/uthmani?chapter_number=${surahNum}`);
+                    const arabicData = await arabicRes.json();
                     
-                    currentAyahIndex = 0;
-                    getNextVideo();
-                    downloadBtn.classList.remove('hidden');
-                    downloadBtn.style.display = 'flex';
-                    tagsSection.classList.remove('hidden');
-                    updateTagsDisplay();
-                    startPlayback();
+                    // Fetch English translation
+                    const englishRes = await fetch(`${QURAN_COM_API}/quran/verses/translations?chapter_number=${surahNum}&language=en`);
+                    const englishData = await englishRes.json();
+                    
+                    if (arabicData.verses && englishData.translations) {
+                        const arabicAyahs = arabicData.verses.map(v => ({
+                            numberInSurah: v.verse_number,
+                            text: v.text_uthmani
+                        }));
+                        
+                        const englishAyahs = englishData.translations.map(t => ({
+                            numberInSurah: t.verse_number,
+                            text: t.text
+                        }));
+                        
+                        const norm = normalizeAyahData(arabicAyahs, englishAyahs, surahNum);
+                        const ar = norm.arabic.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                        const en = norm.english.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                        
+                        currentAyahs = ar.map((a, i) => ({
+                            ...a,
+                            audio: getAudioUrl(surahNum, a.numberInSurah, reciter),
+                            translation: en[i]?.text || '',
+                            surah: surah
+                        }));
+                        
+                        currentAyahIndex = 0;
+                        getNextVideo();
+                        downloadBtn.classList.remove('hidden');
+                        downloadBtn.style.display = 'flex';
+                        tagsSection.classList.remove('hidden');
+                        updateTagsDisplay();
+                        startPlayback();
+                    }
                 } catch (e) { console.error('Generation failed:', e); }
             });
         });
