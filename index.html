@@ -321,7 +321,7 @@
         }
 
         // ============================================
-        // REDESIGNED RENDER - Tighter, larger, higher quality
+        // REFINED RENDER - Proportional sizing, clean composition
         // ============================================
         function renderFrame() {
             const W = previewCanvas.width;  // 1080
@@ -365,49 +365,50 @@
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length) {
                 const ayah = currentAyahs[currentAyahIndex];
                 
-                // === SURAH BADGE (larger, closer to text) ===
-                const badgeW = 280, badgeH = 56;
+                // === SURAH BADGE (elegant, proportional) ===
+                const badgeW = 240, badgeH = 48;
                 const badgeX = (W - badgeW) / 2;
-                const badgeY = 620;  // Moved down from 420
+                const badgeY = 680;
                 
-                ctx.fillStyle = 'rgba(255,255,255,0.12)';
-                drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 28);
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 24);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 1;
                 ctx.stroke();
                 
-                ctx.fillStyle = 'rgba(255,255,255,0.9)';
-                ctx.font = '600 20px Inter, sans-serif';
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.font = '600 18px Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.letterSpacing = '2px';
+                ctx.letterSpacing = '1.5px';
                 ctx.fillText(ayah.surah.englishName.toUpperCase(), W/2, badgeY + badgeH/2);
                 ctx.letterSpacing = '0px';
                 
-                // === ARABIC TEXT (larger, centered) ===
-                const arabicMaxWidth = W * 0.88;
-                let arabicFontSize = 140;  // Increased from 110
-                ctx.font = `700 ${arabicFontSize}px Amiri, serif`;
-                while (ctx.measureText(ayah.text).width > arabicMaxWidth && arabicFontSize > 60) {
+                // === ARABIC TEXT (refined size) ===
+                const arabicMaxWidth = W * 0.85;
+                let arabicFontSize = 105; // Reduced from 140 - more proportional
+                ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
+                while (ctx.measureText(ayah.text).width > arabicMaxWidth && arabicFontSize > 55) {
                     arabicFontSize -= 5;
-                    ctx.font = `700 ${arabicFontSize}px Amiri, serif`;
+                    ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
                 }
                 
-                // Text shadow for better readability
-                ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                ctx.shadowBlur = 20;
+                // Subtle text shadow
+                ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                ctx.shadowBlur = 15;
                 ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 4;
+                ctx.shadowOffsetY = 3;
                 
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
                 const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-                const arabicLineHeight = arabicFontSize * 1.55;
+                const arabicLineHeight = arabicFontSize * 1.5;
                 const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                const arabicStartY = (H / 2) - (arabicTotalHeight / 2) + 20;  // Centered vertically
+                // Centered vertically in the content area
+                const arabicStartY = (H / 2) - (arabicTotalHeight / 2);
                 
                 arabicLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, arabicStartY + (i * arabicLineHeight));
@@ -419,29 +420,30 @@
                 ctx.shadowOffsetX = 0;
                 ctx.shadowOffsetY = 0;
                 
-                // === ENGLISH TRANSLATION (closer to Arabic) ===
-                const englishMaxWidth = W * 0.78;
-                let englishFontSize = 46;  // Increased from 42
-                ctx.font = `italic 500 ${englishFontSize}px Inter, sans-serif`;
-                while (ctx.measureText(ayah.translation).width > englishMaxWidth && englishFontSize > 26) {
-                    englishFontSize -= 3;
-                    ctx.font = `italic 500 ${englishFontSize}px Inter, sans-serif`;
+                // === ENGLISH TRANSLATION (proportional to Arabic) ===
+                const englishMaxWidth = W * 0.72;
+                let englishFontSize = 34; // Reduced from 46 - proportional ratio ~3:1 with Arabic
+                ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
+                while (ctx.measureText(ayah.translation).width > englishMaxWidth && englishFontSize > 22) {
+                    englishFontSize -= 2;
+                    ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
                 }
                 
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fillStyle = 'rgba(255,255,255,0.75)';
                 const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
-                const englishLineHeight = englishFontSize * 1.5;
-                const englishStartY = arabicStartY + arabicTotalHeight + 50;  // Closer gap (was 80)
+                const englishLineHeight = englishFontSize * 1.45;
+                // Tighter gap between Arabic and English
+                const englishStartY = arabicStartY + arabicTotalHeight + 40;
                 
                 englishLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight));
                 });
                 
-                // === AYAH INDICATOR (larger, closer to text) ===
-                const indicatorY = englishStartY + (englishLines.length * englishLineHeight) + 60;  // Much closer (was H-280)
+                // === AYAH INDICATOR (clean, subtle) ===
+                const indicatorY = englishStartY + (englishLines.length * englishLineHeight) + 50;
                 
-                ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                ctx.font = '500 26px "JetBrains Mono", monospace';  // Increased from 22
+                ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                ctx.font = '500 22px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(`♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, W/2, indicatorY);
