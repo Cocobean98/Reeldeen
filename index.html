@@ -40,7 +40,6 @@
         
         .modal-overlay { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
 
-        /* Preview canvas - rendered at 1080x1920 internally, displayed at 360x640 via CSS */
         #previewCanvas {
             width: 100%;
             max-width: 360px;
@@ -49,9 +48,6 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255,255,255,0.1);
             cursor: pointer;
-        }
-        #previewCanvas:hover .playPauseOverlay {
-            opacity: 1;
         }
     </style>
 </head>
@@ -76,7 +72,6 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
-        <!-- Left: Ayah Selector -->
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
@@ -106,13 +101,11 @@
             </div>
         </aside>
 
-        <!-- Center: Canvas Preview (THIS IS THE ACTUAL PREVIEW + RECORDING SOURCE) -->
         <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative">
             <canvas id="previewCanvas" width="1080" height="1920"></canvas>
             <p class="mt-6 text-xs text-white/30 font-mono">9:16 Canvas Preview • Click to Play/Pause</p>
         </main>
 
-        <!-- Right: Settings + Tags -->
         <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
@@ -134,9 +127,7 @@
             <div id="tagsSection" class="hidden p-4 border-b border-white/5">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Auto-Generated Tags</span>
-                    <button id="toggleTagFormat" class="text-xs text-accent-500 hover:text-accent-400 font-medium">
-                        Switch Format
-                    </button>
+                    <button id="toggleTagFormat" class="text-xs text-accent-500 hover:text-accent-400 font-medium">Switch Format</button>
                 </div>
                 
                 <div class="mb-3">
@@ -157,18 +148,15 @@
         </aside>
     </div>
 
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
             <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
             <h3 class="text-xl font-semibold text-white mb-2">Preparing Your Reel</h3>
             <p class="text-white/60 text-sm mb-8">Syncing recitation and rendering backgrounds...</p>
-            
             <div class="flex items-center justify-center gap-2 text-white/80 mb-8">
                 <span class="text-sm">Reel starts in</span>
                 <span id="countdownTimer" class="font-mono font-bold text-accent-500 text-lg">1:30</span>
             </div>
-
             <div class="glass rounded-lg p-6 text-left">
                 <h4 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                     <i data-lucide="heart" class="w-4 h-4 text-accent-500"></i> The Heart Behind ReelDeen
@@ -180,36 +168,26 @@
         </div>
     </div>
 
-    <!-- Story Modal -->
     <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
         <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div class="p-8">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold text-white">The Story Behind ReelDeen</h2>
-                    <button id="closeStoryBtn" class="text-white/40 hover:text-white transition">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
+                    <button id="closeStoryBtn" class="text-white/40 hover:text-white transition"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
-                
                 <p class="text-accent-500 mb-6 text-sm">One project for my Dunya, one for my Akhira.</p>
-                
                 <div class="space-y-4 text-white/80 leading-relaxed text-sm">
                     <p>Assalamu Alaikum. I'm a 28-year-old engineer, and I'm the sole provider for my family of six. Like many, I've been navigating the heavy realities of low wages and financial strain, constantly searching for a way to build a stable future. I've built two AI tools: one is a premium subscription service for my <em>dunya</em> (worldly life), and the other is ReelDeen—a completely free project for my <em>Akhira</em> (hereafter).</p>
                     <p>My dream is simple but heavy on my heart: to one day buy a home, get married, and achieve the financial independence that has always felt just out of reach. I've knocked on many doors, but I am waiting to walk through the one where Allah has placed my <em>rizq</em>.</p>
                     <p>I made a vow to Allah: if He grants me financial stability through this project, I will take <em>Kafalah</em> (sponsor the education of an orphan), give generously to the poor, support my friends, and most importantly, continue to provide for my family with dignity.</p>
                     <p>If you're reading this, thank you from the bottom of my heart. May Allah increase you in <em>rizq</em> and <em>barakah</em>.</p>
                 </div>
-
                 <div class="mt-8 p-6 glass rounded-lg text-center">
                     <h3 class="text-lg font-bold mb-3 flex items-center justify-center gap-2 text-white">
                         <i data-lucide="heart" class="w-5 h-5 text-accent-500"></i> Support the Mission
                     </h3>
                     <p class="text-white/60 text-sm mb-4">ReelDeen will always be 100% free. But if this tool brings light to your day and you wish to help a brother realize his dreams, you can support me here.</p>
-                    
-                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 px-6 rounded-lg transition text-sm mb-3">
-                        Support ReelDeen
-                    </a>
-                    
+                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 px-6 rounded-lg transition text-sm mb-3">Support ReelDeen</a>
                     <div class="mt-6 pt-6 border-t border-white/10">
                         <p class="text-xs text-white/60 mb-2">As a promise to Allah, 5% of every donation goes directly to charity.</p>
                         <div class="text-3xl font-bold text-accent-500 mb-1">$<span id="charityCounter">0</span></div>
@@ -236,7 +214,6 @@
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
 
-        // THE CANVAS - This is both the preview AND the recording source
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
 
@@ -312,9 +289,6 @@
             return { arabic: a, english: e };
         }
 
-        // ============================================
-        // CANVAS RENDERING - The single source of truth
-        // ============================================
         function wrapText(ctx, text, maxWidth) {
             const words = text.split(' ');
             const lines = [];
@@ -346,6 +320,9 @@
             ctx.closePath();
         }
 
+        // ============================================
+        // REDESIGNED RENDER - Tighter, larger, higher quality
+        // ============================================
         function renderFrame() {
             const W = previewCanvas.width;  // 1080
             const H = previewCanvas.height; // 1920
@@ -369,7 +346,6 @@
                 }
                 ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
             } else {
-                // Fallback gradient
                 const grad = ctx.createLinearGradient(0, 0, 0, H);
                 grad.addColorStop(0, '#1a3a3a');
                 grad.addColorStop(1, '#0a1a1a');
@@ -377,85 +353,101 @@
                 ctx.fillRect(0, 0, W, H);
             }
             
-            // 2. Draw gradient overlay (same as preview CSS)
+            // 2. Draw gradient overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
-            overlay.addColorStop(0, 'rgba(0,0,0,0.6)');
-            overlay.addColorStop(0.5, 'rgba(0,0,0,0.4)');
-            overlay.addColorStop(1, 'rgba(0,0,0,0.7)');
+            overlay.addColorStop(0, 'rgba(0,0,0,0.55)');
+            overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)');
+            overlay.addColorStop(1, 'rgba(0,0,0,0.65)');
             ctx.fillStyle = overlay;
             ctx.fillRect(0, 0, W, H);
             
-            // 3. Draw text overlay (only if we have ayahs)
+            // 3. Draw text overlay
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length) {
                 const ayah = currentAyahs[currentAyahIndex];
                 
-                // Surah badge - rounded pill
-                ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                const badgeW = 220, badgeH = 44;
+                // === SURAH BADGE (larger, closer to text) ===
+                const badgeW = 280, badgeH = 56;
                 const badgeX = (W - badgeW) / 2;
-                const badgeY = 420;
-                drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 22);
+                const badgeY = 620;  // Moved down from 420
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 28);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+                ctx.lineWidth = 1.5;
                 ctx.stroke();
                 
-                ctx.fillStyle = 'rgba(255,255,255,0.85)';
-                ctx.font = '600 16px Inter, sans-serif';
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.font = '600 20px Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                ctx.letterSpacing = '2px';
                 ctx.fillText(ayah.surah.englishName.toUpperCase(), W/2, badgeY + badgeH/2);
+                ctx.letterSpacing = '0px';
                 
-                // Arabic text
+                // === ARABIC TEXT (larger, centered) ===
+                const arabicMaxWidth = W * 0.88;
+                let arabicFontSize = 140;  // Increased from 110
+                ctx.font = `700 ${arabicFontSize}px Amiri, serif`;
+                while (ctx.measureText(ayah.text).width > arabicMaxWidth && arabicFontSize > 60) {
+                    arabicFontSize -= 5;
+                    ctx.font = `700 ${arabicFontSize}px Amiri, serif`;
+                }
+                
+                // Text shadow for better readability
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 4;
+                
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                // Dynamic font size based on text length
-                const arabicMaxWidth = W * 0.85;
-                let arabicFontSize = 110;
-                ctx.font = `${arabicFontSize}px Amiri, serif`;
-                while (ctx.measureText(ayah.text).width > arabicMaxWidth && arabicFontSize > 50) {
-                    arabicFontSize -= 5;
-                    ctx.font = `${arabicFontSize}px Amiri, serif`;
-                }
-                
                 const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-                const arabicLineHeight = arabicFontSize * 1.6;
+                const arabicLineHeight = arabicFontSize * 1.55;
                 const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                const arabicStartY = (H / 2) - (arabicTotalHeight / 2) - 40;
+                const arabicStartY = (H / 2) - (arabicTotalHeight / 2) + 20;  // Centered vertically
                 
                 arabicLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, arabicStartY + (i * arabicLineHeight));
                 });
                 
-                // English translation
-                const englishMaxWidth = W * 0.75;
-                let englishFontSize = 42;
-                ctx.font = `italic ${englishFontSize}px Inter, sans-serif`;
-                while (ctx.measureText(ayah.translation).width > englishMaxWidth && englishFontSize > 24) {
+                // Reset shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                // === ENGLISH TRANSLATION (closer to Arabic) ===
+                const englishMaxWidth = W * 0.78;
+                let englishFontSize = 46;  // Increased from 42
+                ctx.font = `italic 500 ${englishFontSize}px Inter, sans-serif`;
+                while (ctx.measureText(ayah.translation).width > englishMaxWidth && englishFontSize > 26) {
                     englishFontSize -= 3;
-                    ctx.font = `italic ${englishFontSize}px Inter, sans-serif`;
+                    ctx.font = `italic 500 ${englishFontSize}px Inter, sans-serif`;
                 }
                 
-                ctx.fillStyle = 'rgba(255,255,255,0.75)';
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
                 const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
                 const englishLineHeight = englishFontSize * 1.5;
-                const englishStartY = arabicStartY + arabicTotalHeight + 80;
+                const englishStartY = arabicStartY + arabicTotalHeight + 50;  // Closer gap (was 80)
                 
                 englishLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight));
                 });
                 
-                // Ayah indicator
-                ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                ctx.font = '400 22px "JetBrains Mono", monospace';
+                // === AYAH INDICATOR (larger, closer to text) ===
+                const indicatorY = englishStartY + (englishLines.length * englishLineHeight) + 60;  // Much closer (was H-280)
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.font = '500 26px "JetBrains Mono", monospace';  // Increased from 22
                 ctx.textAlign = 'center';
-                ctx.fillText(`♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, W/2, H - 280);
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, W/2, indicatorY);
             }
         }
 
-        // Main render loop - runs continuously for smooth preview
         function startRenderLoop() {
             if (renderLoopId) return;
             function loop() {
@@ -472,9 +464,6 @@
             }
         }
 
-        // ============================================
-        // Tags & Caption
-        // ============================================
         function generateTagsAndCaption(surahName) {
             const surahSlug = surahName.toLowerCase().replace(/-/g, '');
             const surahTags = [surahSlug, `surah${surahSlug}`, 'quran'];
@@ -493,9 +482,6 @@
             document.getElementById('captionContainer').textContent = tagsData.caption;
         }
 
-        // ============================================
-        // Init & Surah Loading
-        // ============================================
         async function init() {
             const res = await fetch(`${QURAN_API_BASE}/surah`);
             const data = await res.json();
@@ -505,7 +491,6 @@
                     surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName}</option>`).join('');
                 fetchVideoBatch();
             }
-            // Start render loop immediately with fallback
             startRenderLoop();
         }
 
@@ -580,9 +565,6 @@
             }
         }
 
-        // ============================================
-        // Generate Reel
-        // ============================================
         function startLoadingSequence(finalCallback) {
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.classList.add('flex');
@@ -637,9 +619,6 @@
             });
         });
 
-        // ============================================
-        // Playback
-        // ============================================
         function startPlayback() {
             if (!currentAyahs.length || isRecording) return;
             isPlaying = true;
@@ -660,7 +639,6 @@
             };
         }
 
-        // Click canvas to play/pause
         previewCanvas.addEventListener('click', () => {
             if (!currentAyahs.length || isRecording) return;
             isPlaying = !isPlaying;
@@ -673,9 +651,6 @@
             }
         });
 
-        // ============================================
-        // Tags buttons
-        // ============================================
         document.getElementById('copyTagsBtn').addEventListener('click', () => {
             const text = document.getElementById('tagsContainer').textContent;
             navigator.clipboard.writeText(text).then(() => {
@@ -719,10 +694,6 @@
             }
         });
 
-        // ============================================
-        // DOWNLOAD - Uses the SAME canvas as preview
-        // Since preview IS the canvas, captureStream() gives us EXACT pixels
-        // ============================================
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -735,10 +706,8 @@
             downloadLabel.textContent = 'Recording...';
             lucide.createIcons();
             
-            // Get stream from the SAME canvas used for preview
             const stream = previewCanvas.captureStream(30);
             
-            // Capture audio
             let audioContext, source, destination;
             try {
                 audioContext = new AudioContext();
@@ -777,9 +746,6 @@
 
             mediaRecorder.start();
             bgVideo.play();
-            
-            // Render loop continues running (same as preview)
-            // No need to start a new one - startRenderLoop is already running
 
             try {
                 for (let i = 0; i < currentAyahs.length; i++) {
@@ -809,7 +775,6 @@
             }, 500);
         });
 
-        // Create hidden video element for background
         const bgVideo = document.createElement('video');
         bgVideo.loop = true;
         bgVideo.muted = true;
