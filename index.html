@@ -106,6 +106,17 @@
         .video-thumbnail.selected .checkmark-overlay {
             opacity: 1;
         }
+        
+        .disabled-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -130,7 +141,7 @@
 
     <div class="flex-1 flex overflow-hidden">
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0">
-            <div class="p-4 border-b border-white/5 bg-dark-800">
+            <div class="p-4 border-b border-white/5 bg-dark-800 relative">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
                 <div class="flex gap-2 mb-3">
                     <input type="text" id="videoSearchInput" placeholder="e.g., nature, forest, ocean..." 
@@ -144,6 +155,17 @@
                     <i data-lucide="check-circle" class="w-4 h-4 text-accent-500"></i>
                     <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
                     <button id="changeVideoBtn" class="text-xs text-white/60 hover:text-white underline">Change</button>
+                </div>
+                <!-- Disabled overlay after generation -->
+                <div id="videoSearchDisabled" class="hidden disabled-overlay">
+                    <div class="text-center p-4">
+                        <i data-lucide="lock" class="w-8 h-8 text-white/60 mx-auto mb-2"></i>
+                        <p class="text-white/80 text-sm font-medium mb-1">Reel Already Generated</p>
+                        <p class="text-white/50 text-xs mb-3">Change background requires regenerating</p>
+                        <button id="regenerateBtn" class="bg-accent-500 hover:bg-accent-600 text-white text-xs px-4 py-2 rounded-md transition">
+                            Regenerate Reel
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -300,6 +322,7 @@
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
         let selectedVideoUrl = null;
+        let isReelGenerated = false; // Track if reel has been generated
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -316,6 +339,7 @@
         const videoSearchInput = document.getElementById('videoSearchInput');
         const searchVideoBtn = document.getElementById('searchVideoBtn');
         const videoSearchResults = document.getElementById('videoSearchResults');
+        const videoSearchDisabled = document.getElementById('videoSearchDisabled');
 
         const viralTags = {
             general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
@@ -499,7 +523,7 @@
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length && currentAyahs[currentAyahIndex]) {
                 const ayah = currentAyahs[currentAyahIndex];
                 
-                // Surah badge
+                // Surah badge - FIXED: Use surah name from currentAyahs
                 const badgeW = 240, badgeH = 48;
                 const badgeX = (W - badgeW) / 2;
                 const badgeY = 680;
@@ -515,9 +539,9 @@
                 ctx.font = '600 18px Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                if (ayah.surah && ayah.surah.name) {
-                    ctx.fillText(ayah.surah.name.toUpperCase(), W/2, badgeY + badgeH/2);
-                }
+                // FIXED: Access surah name correctly
+                const surahName = ayah.surah?.name || currentSurahData?.surahName || 'Quran';
+                ctx.fillText(surahName.toUpperCase(), W/2, badgeY + badgeH/2);
                 
                 // Arabic text
                 const arabicMaxWidth = W * 0.85;
@@ -629,7 +653,12 @@
             try {
                 const ayahs = await loadSurahVerses(surahNum);
                 const normalized = normalizeAyahData(ayahs, surahNum);
-                currentSurahData = { ayahs: normalized, surahNum: surahNum };
+                const surah = surahsData.find(s => s.id === surahNum);
+                currentSurahData = { 
+                    ayahs: normalized, 
+                    surahNum: surahNum,
+                    surahName: surah?.name_simple || 'Quran'
+                };
                 renderAyahList();
             } catch (e) {
                 console.error('Failed to load ayahs:', e);
@@ -679,23 +708,50 @@
             document.getElementById('selectedCount').textContent = 0;
         };
 
+        // IMPROVED: Search using both Pexels and Pixabay for better results
         async function searchVideos(query) {
             if (!query) return;
-            videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching...</div>';
+            videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching Pexels & Pixabay...</div>';
             videoSearchResults.classList.remove('hidden');
             
             try {
-                const res = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12&orientation=portrait`);
-                const data = await res.json();
+                // Search both APIs in parallel
+                const [pexelsRes, pixabayRes] = await Promise.all([
+                    fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=8&orientation=portrait`),
+                    fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=8&image_type=video`)
+                ]);
                 
-                if (data.videos && data.videos.length > 0) {
-                    displayVideoSearchResults(data.videos);
+                const pexelsData = await pexelsRes.json();
+                const pixabayData = await pixabayRes.json();
+                
+                let allVideos = [];
+                
+                // Process Pexels videos
+                if (pexelsData.videos && pexelsData.videos.length > 0) {
+                    allVideos = allVideos.concat(pexelsData.videos.map(v => ({
+                        source: 'pexels',
+                        video_files: v.video_files,
+                        image: v.image
+                    })));
+                }
+                
+                // Process Pixabay videos
+                if (pixabayData.hits && pixabayData.hits.length > 0) {
+                    allVideos = allVideos.concat(pixabayData.hits.map(v => ({
+                        source: 'pixabay',
+                        video_files: [{ link: v.videos && (v.videos.large || v.videos.medium || v.videos.small)?.url, height: 1920 }],
+                        image: v.preview_url
+                    })));
+                }
+                
+                if (allVideos.length > 0) {
+                    displayVideoSearchResults(allVideos);
                 } else {
-                    videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found. Try: nature, forest, ocean</div>';
+                    videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found. Try: nature, forest, ocean, sky</div>';
                 }
             } catch (e) {
                 console.error('Video search failed:', e);
-                videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Error loading videos</div>';
+                videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Error loading videos. Please try again.</div>';
             }
         }
 
@@ -777,6 +833,40 @@
             indicator.classList.add('hidden');
             indicator.classList.remove('flex');
             videoSearchInput.focus();
+        });
+
+        // NEW: Regenerate button handler
+        document.getElementById('regenerateBtn').addEventListener('click', () => {
+            // Reset generation state
+            isReelGenerated = false;
+            currentAyahs = [];
+            currentAyahIndex = 0;
+            isPlaying = false;
+            audioPlayer.pause();
+            
+            // Hide disabled overlay
+            videoSearchDisabled.classList.add('hidden');
+            videoSearchDisabled.classList.remove('flex');
+            
+            // Reset canvas to placeholder
+            renderFrame();
+            
+            // Reset UI
+            downloadBtn.classList.add('hidden');
+            downloadBtn.style.display = 'none';
+            tagsSection.classList.add('hidden');
+            
+            // Clear selection
+            selectedVideoUrl = null;
+            const indicator = document.getElementById('selectedVideoIndicator');
+            indicator.classList.add('hidden');
+            indicator.classList.remove('flex');
+            
+            // Reset surah selection
+            surahSelect.value = '';
+            selectedAyahs.clear();
+            document.getElementById('selectedCount').textContent = '0';
+            ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Select a Surah to view verses</div>';
         });
 
         searchVideoBtn.addEventListener('click', () => {
@@ -866,6 +956,12 @@
                     downloadBtn.style.display = 'flex';
                     tagsSection.classList.remove('hidden');
                     updateTagsDisplay();
+                    
+                    // Mark as generated and disable video search
+                    isReelGenerated = true;
+                    videoSearchDisabled.classList.remove('hidden');
+                    videoSearchDisabled.classList.add('flex');
+                    
                     startPlayback();
                 } catch (e) { 
                     console.error('Generation failed:', e);
