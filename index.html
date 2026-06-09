@@ -14,6 +14,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- FFmpeg.wasm for MP4 conversion -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -76,14 +78,12 @@
             </button>
             <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support</a>
             <button id="downloadBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium items-center gap-2 transition">
-                <i data-lucide="download" class="w-4 h-4"></i> <span id="downloadLabel">Download Video</span>
+                <i data-lucide="download" class="w-4 h-4"></i> <span id="downloadLabel">Download MP4</span>
             </button>
         </div>
     </header>
 
-    <!-- FIX: Main container with proper flex handling -->
     <div class="flex-1 flex overflow-hidden" style="min-width: 0;">
-        <!-- Left Sidebar - Fixed width -->
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0" style="min-height: 0;">
             <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
@@ -130,7 +130,6 @@
             </div>
         </aside>
 
-        <!-- Main Canvas Area - Constrained width -->
         <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative min-w-0 overflow-hidden">
             <div class="flex flex-col items-center justify-center max-h-full">
                 <canvas id="previewCanvas" width="1080" height="1920"></canvas>
@@ -138,7 +137,6 @@
             </div>
         </main>
 
-        <!-- Right Sidebar - Fixed width -->
         <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto" style="min-height: 0;">
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
@@ -183,9 +181,6 @@
             </div>
         </aside>
     </div>
-
-    <!-- Rest of the HTML (loading overlay, story modal, script) remains the same as previous version -->
-    <!-- For brevity, including just the key script parts -->
 
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
         <div class="max-w-sm w-full text-center">
@@ -238,11 +233,14 @@
         </div>
     </div>
 
-    <audio id="audioPlayer" preload="auto"></audio>
+    <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
 
     <script>
         lucide.createIcons();
-        const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
+
+        // FIX 1: Use Quran.com API which has CORS-enabled audio
+        const QURAN_COM_API = 'https://api.quran.com/api/v4';
+        
         let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
         let selectedAyahs = new Set(), currentSurahData = null;
         let audioPlayer = document.getElementById('audioPlayer');
@@ -254,6 +252,10 @@
         let selectedVideoUrl = null;
         let pendingVideoUrl = null;
         let isReelGenerated = false;
+
+        // Initialize FFmpeg
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: false });
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -277,44 +279,46 @@
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
+        // FIX 1: Use Quran.com audio URLs (CORS-enabled)
+        function getAudioUrl(surah, ayah, reciter) {
+            const reciterMap = {
+                'ar.alafasy': 'Alafasy',
+                'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal',
+                'ar.husary': 'Husary',
+                'ar.sudais': 'Sudais'
+            };
+            const reciterName = reciterMap[reciter] || 'Alafasy';
+            const surahPadded = String(surah).padStart(3, '0');
+            const ayahPadded = String(ayah).padStart(3, '0');
+            return `https://verses.quran.com/${reciterName}/mp3/${surahPadded}${ayahPadded}.mp3`;
+        }
+
         function removeBismillah(text) {
             if (!text) return text;
-            const hasBismStart = text.includes('بِسْمِ') || text.includes('بسم');
-            const hasAllah = text.includes('اللَّهِ') || text.includes('الله');
-            const hasRahman = text.includes('الرَّحْمَٰنِ') || text.includes('الرحمن');
-            const hasRahim = text.includes('الرَّحِيمِ') || text.includes('الرحيم');
-            
-            if (hasBismStart && hasAllah && hasRahman && hasRahim) {
-                const patterns = [
-                    /^بِسْمِ[\s\S]*?الرَّحِيمِ[\s]*/,
-                    /^بِسْمِ[\s\S]*?الرَّحِيم[\s]*/,
-                    /^بِسْمِ[\s\S]*?الرَّحْمَنِ[\s]*/,
-                    /^بسم[\s\S]*?الرحيم[\s]*/
-                ];
-                for (const pattern of patterns) {
-                    const match = text.match(pattern);
-                    if (match && match[0].length < 120) {
-                        return text.substring(match[0].length).trim();
-                    }
-                }
+            const bismillahPatterns = [
+                /^بِسْمِ\s*اللَّهِ\s*الرَّحْمَٰنِ\s*الرَّحِيمِ\s*/,
+                /^بِسْمِ\s*اللَّهِ\s*الرَّحْمَنِ\s*الرَّحِيمِ\s*/,
+                /^بِسْمِ\s*اللّٰهِ\s*الرَّحْمٰنِ\s*الرَّحِيْمِ\s*/,
+                /^بسم\s*الله\s*الرحمن\s*الرحيم\s*/,
+                /^﷽\s*/
+            ];
+            let cleanedText = text;
+            for (const pattern of bismillahPatterns) {
+                cleanedText = cleanedText.replace(pattern, '');
             }
-            return text;
+            return cleanedText.trim();
         }
 
         async function loadSurahVerses(surahNum) {
             try {
-                const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/ar.alafasy`);
+                const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations`);
                 const data = await res.json();
-                if (data.code !== 200 || !data.data || !data.data.ayahs) throw new Error('No verses found');
-                const enRes = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/en.sahih`);
-                const enData = await enRes.json();
-                const ayahs = data.data.ayahs.map((v, i) => ({
-                    numberInSurah: v.numberInSurah, 
-                    text: v.text, 
-                    translation: enData.data && enData.data.ayahs && enData.data.ayahs[i] ? enData.data.ayahs[i].text : '',
-                    audio: v.audio
-                }));
-                return ayahs;
+                if (!data.verses || data.verses.length === 0) throw new Error('No verses found');
+                return data.verses.map(v => {
+                    const verseNum = parseInt(v.verse_key.split(':')[1]);
+                    const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
+                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
+                });
             } catch (error) {
                 console.error('Error loading verses:', error);
                 throw new Error('Failed to load verses');
@@ -324,16 +328,20 @@
         function normalizeAyahData(ayahs, surahNum) {
             let a = [...ayahs];
             if (surahNum !== 1 && surahNum !== 9) {
-                if (a.length > 0) {
-                    const firstText = a[0].text || '';
-                    const isOnlyBismillah = firstText.length < 80 && (firstText.includes('بِسْمِ') || firstText.includes('بسم')) && (firstText.includes('الرَّحِيمِ') || firstText.includes('الرَّحِيم'));
-                    if (isOnlyBismillah) a.shift();
-                    else if (a.length > 0 && a[0].text) {
+                if (a.length > 0 && a[0].text) {
+                    const firstText = a[0].text.trim();
+                    const isOnlyBismillah = firstText.length < 100 && 
+                        (firstText.includes('بِسْمِ') || firstText.includes('بسم') || firstText.includes('﷽'));
+                    if (isOnlyBismillah) {
+                        a.shift();
+                    } else {
                         a[0].text = removeBismillah(a[0].text);
-                        if (a[0].translation) a[0].translation = a[0].translation.replace(/^(In the name of Allah,?[\s\S]*?Merciful\.?[\s]*)/i, '').trim();
+                        if (a[0].translation) {
+                            a[0].translation = a[0].translation.replace(/^(In the name of Allah,?[\s\S]*?the Most Merciful,?[\s\S]*?the Especially Merciful\.?[\s]*)/i, '').trim();
+                            a[0].translation = a[0].translation.replace(/^(In the name of God,?[\s\S]*?the Entirely Merciful,?[\s\S]*?the Especially Merciful\.?[\s]*)/i, '').trim();
+                        }
                     }
                 }
-                a.forEach(ayah => { if (ayah.text) ayah.text = removeBismillah(ayah.text); });
             }
             a.forEach((x, i) => x.numberInSurah = i + 1);
             return a;
@@ -395,7 +403,7 @@
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
                 ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '600 18px Inter, sans-serif';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                const surahName = ayah.surah?.englishName || currentSurahData?.surahName || 'Quran';
+                const surahName = ayah.surah?.name_simple || currentSurahData?.surahName || 'Quran';
                 ctx.fillText(surahName.toUpperCase(), W/2, badgeY + badgeH/2);
                 const arabicMaxWidth = W * 0.85; let arabicFontSize = 105;
                 ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
@@ -441,7 +449,7 @@
         }
 
         function updateTagsDisplay() {
-            const surahName = currentAyahs[0]?.surah?.englishName || 'Quran';
+            const surahName = currentAyahs[0]?.surah?.name_simple || 'Quran';
             const tagsData = generateTagsAndCaption(surahName);
             document.getElementById('tagsContainer').textContent = currentTagFormat === 'hashtags' ? tagsData.hashtags : tagsData.comma;
             document.getElementById('captionContainer').textContent = tagsData.caption;
@@ -449,11 +457,11 @@
 
         async function init() {
             try {
-                const res = await fetch(`${QURAN_API_BASE}/surah`);
+                const res = await fetch(`${QURAN_COM_API}/chapters?language=en`);
                 const data = await res.json();
-                if (data.code === 200) {
-                    surahsData = data.data;
-                    surahSelect.innerHTML = '<option value="">Select Surah</option>' + surahsData.map(s => `<option value="${s.number}">${s.number}. ${s.englishName} (${s.numberOfAyahs} verses)</option>`).join('');
+                if (data.chapters) {
+                    surahsData = data.chapters;
+                    surahSelect.innerHTML = '<option value="">Select Surah</option>' + surahsData.map(s => `<option value="${s.id}">${s.id}. ${s.name_simple} (${s.verses_count} verses)</option>`).join('');
                     fetchVideoBatch();
                 }
             } catch (e) { console.error('Failed to load surahs:', e); }
@@ -469,8 +477,8 @@
             try {
                 const ayahs = await loadSurahVerses(surahNum);
                 const normalized = normalizeAyahData(ayahs, surahNum);
-                const surah = surahsData.find(s => s.number === surahNum);
-                currentSurahData = { ayahs: normalized, surahNum: surahNum, surahName: surah?.englishName || 'Quran' };
+                const surah = surahsData.find(s => s.id === surahNum);
+                currentSurahData = { ayahs: normalized, surahNum: surahNum, surahName: surah?.name_simple || 'Quran' };
                 renderAyahList();
             } catch (e) {
                 console.error('Failed to load ayahs:', e);
@@ -670,22 +678,15 @@
             if (pendingVideoUrl) { selectedVideoUrl = pendingVideoUrl; pendingVideoUrl = null; }
             startLoadingSequence(async () => {
                 try {
-                    const res = await fetch(`${QURAN_API_BASE}/surah/${surahNum}/editions/${reciter},en.sahih`);
-                    const data = await res.json();
-                    if (data.code !== 200 || !Array.isArray(data.data) || data.data.length !== 2) throw new Error('API returned unexpected data');
-                    const surah = surahsData.find(s => s.number === surahNum);
-                    const arabicAyahs = data.data[0].ayahs;
-                    const englishAyahs = data.data[1].ayahs;
-                    const combinedAyahs = arabicAyahs.map((a, i) => ({
-                        numberInSurah: a.numberInSurah,
-                        text: a.text,
-                        translation: englishAyahs[i] ? englishAyahs[i].text : '',
-                        audio: a.audio,
+                    const surah = surahsData.find(s => s.id === surahNum);
+                    const ayahs = await loadSurahVerses(surahNum);
+                    const normalized = normalizeAyahData(ayahs, surahNum);
+                    const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                    currentAyahs = filtered.map(a => ({
+                        ...a,
+                        audio: getAudioUrl(surahNum, a.numberInSurah, reciter),
                         surah: surah
                     }));
-                    const normalized = normalizeAyahData(combinedAyahs, surahNum);
-                    const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
-                    currentAyahs = filtered;
                     currentAyahIndex = 0;
                     getNextVideo();
                     downloadBtn.classList.remove('hidden');
@@ -713,7 +714,6 @@
             if (!isPlaying || isRecording) return;
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
             const ayah = currentAyahs[currentAyahIndex];
-            console.log('Playing audio:', ayah.audio);
             audioPlayer.src = ayah.audio;
             audioPlayer.play().catch(e => console.error('Audio play failed:', e));
             audioPlayer.onended = () => {
@@ -764,32 +764,88 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
+        // FIX 2: Download with sound + MP4 conversion
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
-            isRecording = true; isPlaying = false; audioPlayer.pause(); bgVideo.currentTime = 0;
-            downloadBtn.disabled = true; downloadLabel.textContent = 'Recording...'; lucide.createIcons();
-            const stream = previewCanvas.captureStream(30);
+            
+            isRecording = true;
+            isPlaying = false;
+            audioPlayer.pause();
+            bgVideo.currentTime = 0;
+            
+            downloadBtn.disabled = true;
+            downloadLabel.textContent = 'Recording...';
+            lucide.createIcons();
+            
+            const canvas = document.getElementById('previewCanvas');
+            const stream = canvas.captureStream(30);
+            
+            // Capture audio from Quran.com (CORS-enabled)
             let audioContext, source, destination;
             try {
                 audioContext = new AudioContext();
                 source = audioContext.createMediaElementSource(audioPlayer);
                 destination = audioContext.createMediaStreamDestination();
-                source.connect(destination); source.connect(audioContext.destination);
+                source.connect(destination);
+                source.connect(audioContext.destination);
                 destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
-            } catch (e) { console.warn('Audio capture not available'); }
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 8000000 });
+            } catch (e) {
+                console.warn('Audio capture not available:', e);
+            }
+
+            mediaRecorder = new MediaRecorder(stream, { 
+                mimeType: 'video/webm;codecs=vp9,opus', 
+                videoBitsPerSecond: 8000000 
+            });
             recordedChunks = [];
+            
             mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = `reeldeen-${surahSelect.value}.webm`; a.click();
-                isRecording = false; downloadBtn.disabled = false; downloadLabel.textContent = 'Download Video'; lucide.createIcons();
+            
+            mediaRecorder.onstop = async () => {
+                const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                
+                // Convert to MP4 using FFmpeg
+                downloadLabel.textContent = 'Converting to MP4...';
+                
+                try {
+                    if (!ffmpeg.isLoaded()) {
+                        await ffmpeg.load();
+                    }
+                    
+                    ffmpeg.FS('writeFile', 'input.webm', await fetchFile(webmBlob));
+                    await ffmpeg.run('-i', 'input.webm', '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', 'output.mp4');
+                    const data = ffmpeg.FS('readFile', 'output.mp4');
+                    
+                    const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
+                    const url = URL.createObjectURL(mp4Blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `reeldeen-${surahSelect.value}.mp4`;
+                    a.click();
+                    
+                    // Cleanup
+                    ffmpeg.FS('unlink', 'input.webm');
+                    ffmpeg.FS('unlink', 'output.mp4');
+                } catch (err) {
+                    console.error('MP4 conversion failed, downloading WebM:', err);
+                    const url = URL.createObjectURL(webmBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `reeldeen-${surahSelect.value}.webm`;
+                    a.click();
+                }
+                
+                isRecording = false;
+                downloadBtn.disabled = false;
+                downloadLabel.textContent = 'Download MP4';
+                lucide.createIcons();
+                
                 if (audioContext) audioContext.close();
             };
+
             mediaRecorder.start();
             bgVideo.play();
+
             try {
                 for (let i = 0; i < currentAyahs.length; i++) {
                     if (!isRecording) break;
@@ -804,6 +860,7 @@
                     await new Promise(r => setTimeout(r, 300));
                 }
             } catch (err) { console.error('Recording error:', err); }
+            
             bgVideo.pause();
             setTimeout(() => { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); }, 500);
         });
