@@ -379,65 +379,6 @@
         }
 
         function renderFrame() {
-    const W = previewCanvas.width, H = previewCanvas.height;
-    
-    // Always draw video background if available, otherwise use gradient
-    if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
-        const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
-        const canvasAspect = W / H;
-        let drawWidth, drawHeight, drawX, drawY;
-        if (videoAspect > canvasAspect) { 
-            drawHeight = H; drawWidth = H * videoAspect; drawX = (W - drawWidth) / 2; drawY = 0; 
-        } else { 
-            drawWidth = W; drawHeight = W / videoAspect; drawX = 0; drawY = (H - drawHeight) / 2; 
-        }
-        ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
-    } else {
-        const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, '#1a3a3a'); grad.addColorStop(1, '#0a1a1a');
-        ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-    }
-    
-    // Always draw overlay
-    const overlay = ctx.createLinearGradient(0, 0, 0, H);
-    overlay.addColorStop(0, 'rgba(0,0,0,0.55)'); overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)'); overlay.addColorStop(1, 'rgba(0,0,0,0.65)');
-    ctx.fillStyle = overlay; ctx.fillRect(0, 0, W, H);
-    
-    // Only draw text content if we have valid ayah data
-    if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length && currentAyahs[currentAyahIndex]) {
-        const ayah = currentAyahs[currentAyahIndex];
-        const badgeW = 240, badgeH = 48, badgeX = (W - badgeW) / 2, badgeY = 680;
-        ctx.fillStyle = 'rgba(255,255,255,0.1)'; drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 24); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '600 18px Inter, sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const surahName = ayah.surah?.name_simple || currentSurahData?.surahName || 'Quran';
-        ctx.fillText(surahName.toUpperCase(), W/2, badgeY + badgeH/2);
-        const arabicMaxWidth = W * 0.85; let arabicFontSize = 105;
-        ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
-        while (ctx.measureText(ayah.text).width > arabicMaxWidth && arabicFontSize > 55) { arabicFontSize -= 5; ctx.font = `600 ${arabicFontSize}px Amiri, serif`; }
-        ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 3;
-        ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-        const arabicLineHeight = arabicFontSize * 1.5;
-        const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-        const arabicStartY = (H / 2) - (arabicTotalHeight / 2);
-        arabicLines.forEach((line, i) => ctx.fillText(line, W/2, arabicStartY + (i * arabicLineHeight)));
-        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-        const englishMaxWidth = W * 0.72; let englishFontSize = 34;
-        ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
-        while (ctx.measureText(ayah.translation).width > englishMaxWidth && englishFontSize > 22) { englishFontSize -= 2; ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`; }
-        ctx.fillStyle = 'rgba(255,255,255,0.75)';
-        const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
-        const englishLineHeight = englishFontSize * 1.45;
-        const englishStartY = arabicStartY + arabicTotalHeight + 40;
-        englishLines.forEach((line, i) => ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight)));
-        const indicatorY = englishStartY + (englishLines.length * englishLineHeight) + 50;
-        ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '500 22px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(`♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, W/2, indicatorY);
-    }
-}
             const W = previewCanvas.width, H = previewCanvas.height;
             if (!bgVideo || bgVideo.readyState < 2 || bgVideo.videoWidth === 0) {
                 const grad = ctx.createLinearGradient(0, 0, 0, H);
