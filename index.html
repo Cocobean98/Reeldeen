@@ -302,20 +302,30 @@
         }
 
         async function loadSurahVerses(surahNum) {
-            try {
-                const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations`);
-                const data = await res.json();
-                if (!data.verses || data.verses.length === 0) throw new Error('No verses found');
-                return data.verses.map(v => {
-                    const verseNum = parseInt(v.verse_key.split(':')[1]);
-                    const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
-                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
-                });
-            } catch (error) {
-                console.error('Error loading verses:', error);
-                throw new Error('Failed to load verses');
-            }
+    try {
+        // Get surah info first to know total verses
+        const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
+        const surahInfo = await surahInfoRes.json();
+        const totalVerses = surahInfo.chapter.verses_count;
+        
+        // Fetch ALL verses with per_page parameter
+        const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations&per_page=${totalVerses}`);
+        const data = await res.json();
+        
+        if (!data.verses || data.verses.length === 0) {
+            throw new Error('No verses found');
         }
+        
+        return data.verses.map(v => {
+            const verseNum = parseInt(v.verse_key.split(':')[1]);
+            const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
+            return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
+        });
+    } catch (error) {
+        console.error('Error loading verses:', error);
+        throw new Error('Failed to load verses from Quran.com API');
+    }
+}
 
         function normalizeAyahData(ayahs, surahNum) {
             let a = [...ayahs];
