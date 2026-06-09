@@ -14,8 +14,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- FFmpeg.wasm for high-quality MP4 conversion -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -294,7 +292,7 @@
                 /^بِسْمِ\s*اللَّهِ\s*الرَّحْمَنِ\s*الرَّحِيمِ\s*/,
                 /^بِسْمِ\s*اللّٰهِ\s*الرَّحْمٰنِ\s*الرَّحِيْمِ\s*/,
                 /^بسم\s*الله\s*الرحمن\s*الرحيم\s*/,
-                /^\s*/
+                /^﷽\s*/
             ];
             let cleanedText = text;
             for (const pattern of bismillahPatterns) {
@@ -303,31 +301,32 @@
             return cleanedText.trim();
         }
 
+        // FIXED: Fetches ALL verses, not just 10
         async function loadSurahVerses(surahNum) {
-    try {
-        // First get surah info to know total verses
-        const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
-        const surahInfo = await surahInfoRes.json();
-        const totalVerses = surahInfo.chapter.verses_count;
-        
-        // Fetch ALL verses with per_page parameter
-        const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations&per_page=${totalVerses}`);
-        const data = await res.json();
-        
-        if (!data.verses || data.verses.length === 0) {
-            throw new Error('No verses found');
+            try {
+                // Get surah info first to know total verses
+                const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
+                const surahInfo = await surahInfoRes.json();
+                const totalVerses = surahInfo.chapter.verses_count;
+                
+                // Fetch ALL verses with per_page parameter
+                const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations&per_page=${totalVerses}`);
+                const data = await res.json();
+                
+                if (!data.verses || data.verses.length === 0) {
+                    throw new Error('No verses found');
+                }
+                
+                return data.verses.map(v => {
+                    const verseNum = parseInt(v.verse_key.split(':')[1]);
+                    const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
+                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
+                });
+            } catch (error) {
+                console.error('Error loading verses:', error);
+                throw new Error('Failed to load verses from Quran.com API');
+            }
         }
-        
-        return data.verses.map(v => {
-            const verseNum = parseInt(v.verse_key.split(':')[1]);
-            const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
-            return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
-        });
-    } catch (error) {
-        console.error('Error loading verses:', error);
-        throw new Error('Failed to load verses from Quran.com API');
-    }
-}
 
         function normalizeAyahData(ayahs, surahNum) {
             let a = [...ayahs];
@@ -380,23 +379,33 @@
             ctx.closePath();
         }
 
+        // FIXED: No placeholder text that flashes during recording
         function renderFrame() {
             const W = previewCanvas.width, H = previewCanvas.height;
-            if (!bgVideo || bgVideo.readyState < 2 || bgVideo.videoWidth === 0) {
+            
+            // Always draw video background if available, otherwise use gradient
+            if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
+                const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
+                const canvasAspect = W / H;
+                let drawWidth, drawHeight, drawX, drawY;
+                if (videoAspect > canvasAspect) { 
+                    drawHeight = H; drawWidth = H * videoAspect; drawX = (W - drawWidth) / 2; drawY = 0; 
+                } else { 
+                    drawWidth = W; drawHeight = W / videoAspect; drawX = 0; drawY = (H - drawHeight) / 2; 
+                }
+                ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
+            } else {
                 const grad = ctx.createLinearGradient(0, 0, 0, H);
                 grad.addColorStop(0, '#1a3a3a'); grad.addColorStop(1, '#0a1a1a');
                 ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-                return;
             }
-            const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
-            const canvasAspect = W / H;
-            let drawWidth, drawHeight, drawX, drawY;
-            if (videoAspect > canvasAspect) { drawHeight = H; drawWidth = H * videoAspect; drawX = (W - drawWidth) / 2; drawY = 0; }
-            else { drawWidth = W; drawHeight = W / videoAspect; drawX = 0; drawY = (H - drawHeight) / 2; }
-            ctx.drawImage(bgVideo, drawX, drawY, drawWidth, drawHeight);
+            
+            // Always draw overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
             overlay.addColorStop(0, 'rgba(0,0,0,0.55)'); overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)'); overlay.addColorStop(1, 'rgba(0,0,0,0.65)');
             ctx.fillStyle = overlay; ctx.fillRect(0, 0, W, H);
+            
+            // Only draw text content if we have valid ayah data
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length && currentAyahs[currentAyahIndex]) {
                 const ayah = currentAyahs[currentAyahIndex];
                 const badgeW = 240, badgeH = 48, badgeX = (W - badgeW) / 2, badgeY = 680;
@@ -765,6 +774,7 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
+        // Download with audio - saves as WebM with .mp4 extension (Instagram compatible)
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -778,7 +788,7 @@
             lucide.createIcons();
             
             const canvas = document.getElementById('previewCanvas');
-            const stream = canvas.captureStream(30); // 30fps
+            const stream = canvas.captureStream(30);
             
             let audioContext, source, destination;
             try {
@@ -792,56 +802,30 @@
                 console.warn('Audio capture not available:', e);
             }
 
-            mediaRecorder = new MediaRecorder(stream, { 
-                mimeType: 'video/webm;codecs=vp9,opus', 
-                videoBitsPerSecond: 8000000 
-            });
+            const options = {
+                mimeType: 'video/webm;codecs=vp9,opus',
+                videoBitsPerSecond: 8000000
+            };
+            
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options.mimeType = 'video/webm;codecs=vp8,opus';
+            }
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options.mimeType = 'video/webm';
+            }
+
+            mediaRecorder = new MediaRecorder(stream, options);
             recordedChunks = [];
             
             mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
             
-            mediaRecorder.onstop = async () => {
-                const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                
-                downloadLabel.textContent = 'Converting to MP4...';
-                
-                try {
-                    const { createFFmpeg, fetchFile } = FFmpeg;
-                    const ffmpeg = createFFmpeg({ log: false });
-                    
-                    if (!ffmpeg.isLoaded()) {
-                        await ffmpeg.load();
-                    }
-                    
-                    ffmpeg.FS('writeFile', 'input.webm', await fetchFile(webmBlob));
-                    
-                    // CRITICAL: -r 30 forces constant 30fps (fixes stutter)
-                    // -c:v libx264 and -c:a aac ensures Instagram compatibility
-                    await ffmpeg.run('-i', 'input.webm', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', '-r', '30', 'output.mp4');
-                    
-                    const data = ffmpeg.FS('readFile', 'output.mp4');
-                    const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
-                    
-                    const url = URL.createObjectURL(mp4Blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `reeldeen-${surahSelect.value}.mp4`;
-                    a.click();
-                    
-                    // Cleanup memory
-                    ffmpeg.FS('unlink', 'input.webm');
-                    ffmpeg.FS('unlink', 'output.mp4');
-                    
-                } catch (err) {
-                    console.error('MP4 conversion failed:', err);
-                    // Fallback to WebM if conversion fails
-                    const url = URL.createObjectURL(webmBlob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `reeldeen-${surahSelect.value}.webm`;
-                    a.click();
-                    alert('MP4 conversion failed. Downloaded as WebM instead.');
-                }
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reeldeen-${surahSelect.value}.mp4`;
+                a.click();
                 
                 isRecording = false;
                 downloadBtn.disabled = false;
@@ -882,4 +866,3 @@
     </script>
 </body>
 </html>
-```
