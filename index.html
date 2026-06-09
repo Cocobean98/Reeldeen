@@ -301,15 +301,12 @@
             return cleanedText.trim();
         }
 
-        // FIXED: Fetches ALL verses, not just 10
         async function loadSurahVerses(surahNum) {
             try {
-                // Get surah info first to know total verses
                 const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
                 const surahInfo = await surahInfoRes.json();
                 const totalVerses = surahInfo.chapter.verses_count;
                 
-                // Fetch ALL verses with per_page parameter
                 const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations&per_page=${totalVerses}`);
                 const data = await res.json();
                 
@@ -334,7 +331,7 @@
                 if (a.length > 0 && a[0].text) {
                     const firstText = a[0].text.trim();
                     const isOnlyBismillah = firstText.length < 100 && 
-                        (firstText.includes('بِسْمِ') || firstText.includes('بسم') || firstText.includes('﷽'));
+                        (firstText.includes('بِسْمِ') || firstText.includes('بسم') || firstText.includes(''));
                     if (isOnlyBismillah) {
                         a.shift();
                     } else {
@@ -379,11 +376,9 @@
             ctx.closePath();
         }
 
-        // FIXED: No placeholder text that flashes during recording
         function renderFrame() {
             const W = previewCanvas.width, H = previewCanvas.height;
             
-            // Always draw video background if available, otherwise use gradient
             if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
                 const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                 const canvasAspect = W / H;
@@ -400,12 +395,10 @@
                 ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
             }
             
-            // Always draw overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
             overlay.addColorStop(0, 'rgba(0,0,0,0.55)'); overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)'); overlay.addColorStop(1, 'rgba(0,0,0,0.65)');
             ctx.fillStyle = overlay; ctx.fillRect(0, 0, W, H);
             
-            // Only draw text content if we have valid ayah data
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length && currentAyahs[currentAyahIndex]) {
                 const ayah = currentAyahs[currentAyahIndex];
                 const badgeW = 240, badgeH = 48, badgeX = (W - badgeW) / 2, badgeY = 680;
@@ -774,7 +767,7 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
-        // Download with audio - saves as WebM with .mp4 extension (Instagram compatible)
+        // UPDATED: Records WebM then sends to server for Instagram-compatible MP4 conversion
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -819,13 +812,42 @@
             
             mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
             
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `reeldeen-${surahSelect.value}.mp4`;
-                a.click();
+            mediaRecorder.onstop = async () => {
+                const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                
+                downloadLabel.textContent = 'Converting to MP4...';
+                
+                try {
+                    // Send to server for real MP4 conversion (Instagram compatible)
+                    const response = await fetch('/api/convert-to-mp4', {
+                        method: 'POST',
+                        body: webmBlob,
+                        headers: { 'Content-Type': 'video/webm' }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    
+                    const mp4Blob = await response.blob();
+                    const url = URL.createObjectURL(mp4Blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `reeldeen-${surahSelect.value}.mp4`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                } catch (err) {
+                    console.error('MP4 conversion failed:', err);
+                    // Fallback: download as WebM
+                    const url = URL.createObjectURL(webmBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `reeldeen-${surahSelect.value}.webm`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    alert('MP4 conversion failed. Downloaded as WebM instead. Use cloudconvert.com to convert to MP4 for Instagram.');
+                }
                 
                 isRecording = false;
                 downloadBtn.disabled = false;
