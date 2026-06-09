@@ -303,7 +303,7 @@
             return cleanedText.trim();
         }
 
-        aasync function loadSurahVerses(surahNum) {
+        async function loadSurahVerses(surahNum) {
     try {
         // First get surah info to know total verses
         const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
