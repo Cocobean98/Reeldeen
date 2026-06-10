@@ -15,14 +15,18 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- FFmpeg.wasm 0.12.x - Client-side MP4 conversion (no server needed) -->
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.min.js"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], arabic: ['Amiri', 'serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], arabic: ['Scheherazade New', 'serif'], mono: ['JetBrains Mono', 'monospace'] },
                     colors: {
                         dark: { 900: '#0a0a0a', 800: '#121212', 700: '#1a1a1a', 600: '#242424' },
                         accent: { 500: '#10b981', 600: '#059669' }
@@ -62,6 +66,13 @@
             align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;
         }
         .video-thumbnail.selected .checkmark-overlay { opacity: 1; }
+        
+        /* Ensure Arabic text has proper line height for harakat */
+        .arabic-text {
+            line-height: 2.2;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -252,6 +263,10 @@
         let selectedVideoUrl = null;
         let pendingVideoUrl = null;
         let isReelGenerated = false;
+        
+        // FFmpeg instance for client-side MP4 conversion
+        let ffmpegInstance = null;
+        let ffmpegLoading = false;
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -274,6 +289,33 @@
             general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
+
+        // Initialize FFmpeg for client-side conversion
+        async function initFFmpeg() {
+            if (ffmpegInstance || ffmpegLoading) return ffmpegInstance;
+            
+            ffmpegLoading = true;
+            try {
+                const { FFmpeg } = FFmpegWASM;
+                ffmpegInstance = new FFmpeg();
+                
+                ffmpegInstance.on('log', ({ message }) => {
+                    console.log('[FFmpeg]', message);
+                });
+                
+                await ffmpegInstance.load({
+                    coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+                    wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
+                });
+                
+                console.log('FFmpeg loaded successfully');
+            } catch (error) {
+                console.error('FFmpeg load failed:', error);
+                ffmpegInstance = null;
+            }
+            ffmpegLoading = false;
+            return ffmpegInstance;
+        }
 
         function getAudioUrl(surah, ayah, reciter) {
             const reciterMap = {
@@ -409,29 +451,31 @@
                 const englishMaxWidth = W * 0.72;
                 const hasBismillah = !!ayah.bismillah;
                 
-                const bismillahSize = 60;
-                const bismillahLineHeight = bismillahSize * 1.3;
+                // Bismillah styling - using Scheherazade New for perfect harakat
+                const bismillahSize = 65;
+                const bismillahLineHeight = bismillahSize * 1.8; // Extra height for harakat
                 const bismillahGap = 30;
                 
                 let bismillahTotalHeight = 0;
                 let bismillahLines = [];
                 if (hasBismillah) {
-                    ctx.font = `600 ${bismillahSize}px Amiri, serif`;
+                    ctx.font = `700 ${bismillahSize}px "Scheherazade New", serif`;
                     bismillahLines = wrapText(ctx, ayah.bismillah, W * 0.85);
                     bismillahTotalHeight = (bismillahLines.length * bismillahLineHeight) + bismillahGap;
                 }
                 
                 const mainAvailableHeight = availableHeight - bismillahTotalHeight;
                 
+                // Main verse - using Scheherazade New for perfect harakat rendering
                 let arabicFontSize = 90;
                 let englishFontSize = 30;
                 const MIN_ARABIC = 50;
                 const MIN_ENGLISH = 18;
                 
                 function calculateMainHeight(aSize, eSize) {
-                    ctx.font = `600 ${aSize}px Amiri, serif`;
+                    ctx.font = `700 ${aSize}px "Scheherazade New", serif`;
                     const aLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-                    const aHeight = aLines.length * (aSize * 1.4);
+                    const aHeight = aLines.length * (aSize * 1.8); // Extra line height for harakat
                     
                     ctx.font = `italic 400 ${eSize}px Inter, sans-serif`;
                     const eLines = wrapText(ctx, ayah.translation, englishMaxWidth);
@@ -446,9 +490,9 @@
                     if (englishFontSize > MIN_ENGLISH) englishFontSize -= 1;
                 }
                 
-                ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
+                ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
                 const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-                const arabicLineHeight = arabicFontSize * 1.4;
+                const arabicLineHeight = arabicFontSize * 1.8;
                 const arabicTotalHeight = arabicLines.length * arabicLineHeight;
                 
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
@@ -463,8 +507,9 @@
                 
                 let currentY = contentStartY;
                 
+                // Draw Bismillah
                 if (hasBismillah) {
-                    ctx.font = `600 ${bismillahSize}px Amiri, serif`;
+                    ctx.font = `700 ${bismillahSize}px "Scheherazade New", serif`;
                     ctx.shadowColor = 'rgba(0,0,0,0.5)'; 
                     ctx.shadowBlur = 15; 
                     ctx.shadowOffsetY = 3;
@@ -482,7 +527,8 @@
                     ctx.shadowOffsetY = 0;
                 }
                 
-                ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
+                // Draw Arabic verse with Scheherazade New
+                ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
                 ctx.shadowColor = 'rgba(0,0,0,0.5)'; 
                 ctx.shadowBlur = 15; 
                 ctx.shadowOffsetY = 3;
@@ -500,6 +546,7 @@
                 
                 currentY += arabicTotalHeight + 30;
                 
+                // Draw English
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
                 ctx.textAlign = 'center';
@@ -509,6 +556,7 @@
                     ctx.fillText(line, W/2, currentY + (i * englishLineHeight) + englishLineHeight/2);
                 });
                 
+                // Draw Ayah indicator
                 ctx.fillStyle = 'rgba(255,255,255,0.55)'; 
                 ctx.font = '500 22px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center'; 
@@ -551,6 +599,10 @@
                     fetchVideoBatch();
                 }
             } catch (e) { console.error('Failed to load surahs:', e); }
+            
+            // Pre-load FFmpeg in background
+            initFFmpeg().catch(e => console.warn('FFmpeg pre-load failed:', e));
+            
             startRenderLoop();
         }
 
@@ -581,7 +633,7 @@
             currentSurahData.ayahs.forEach((ayah) => {
                 const div = document.createElement('div');
                 div.className = `ayah-row p-3 rounded-md cursor-pointer ${selectedAyahs.has(ayah.numberInSurah) ? 'selected' : ''}`;
-                div.innerHTML = `<div class="flex items-start gap-3"><span class="font-mono text-xs text-white/40 mt-1 w-6">${ayah.numberInSurah}</span><div class="flex-1 min-w-0"><p class="font-arabic text-right text-white text-sm mb-1 truncate" dir="rtl">${ayah.text}</p><p class="text-[10px] text-white/40 truncate">${ayah.translation || ''}</p></div></div>`;
+                div.innerHTML = `<div class="flex items-start gap-3"><span class="font-mono text-xs text-white/40 mt-1 w-6">${ayah.numberInSurah}</span><div class="flex-1 min-w-0"><p class="font-arabic text-right text-white text-sm mb-1 truncate" dir="rtl" style="line-height: 2.2;">${ayah.text}</p><p class="text-[10px] text-white/40 truncate">${ayah.translation || ''}</p></div></div>`;
                 div.onclick = () => {
                     if (selectedAyahs.has(ayah.numberInSurah)) selectedAyahs.delete(ayah.numberInSurah);
                     else selectedAyahs.add(ayah.numberInSurah);
@@ -850,6 +902,7 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
+        // FIXED: Client-side MP4 conversion using FFmpeg.wasm 0.12.x (no server needed!)
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -879,7 +932,7 @@
 
             const options = {
                 mimeType: 'video/webm;codecs=vp9,opus',
-                videoBitsPerSecond: 8000000
+                videoBitsPerSecond: 5000000 // Reduced to 5Mbps for faster conversion
             };
             
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -900,17 +953,37 @@
                 downloadLabel.textContent = 'Converting to MP4...';
                 
                 try {
-                    const response = await fetch('/api/convert-to-mp4', {
-                        method: 'POST',
-                        body: webmBlob,
-                        headers: { 'Content-Type': 'video/webm' }
-                    });
+                    // Ensure FFmpeg is loaded
+                    const ffmpeg = await initFFmpeg();
                     
-                    if (!response.ok) {
-                        throw new Error(`Server error: ${response.status}`);
+                    if (!ffmpeg) {
+                        throw new Error('FFmpeg not available');
                     }
                     
-                    const mp4Blob = await response.blob();
+                    // Convert WebM to MP4 entirely in the browser
+                    const { fetchFile } = FFmpegUtil;
+                    const webmData = await fetchFile(webmBlob);
+                    
+                    await ffmpeg.writeFile('input.webm', webmData);
+                    
+                    // Convert with Instagram-compatible settings
+                    await ffmpeg.exec([
+                        '-i', 'input.webm',
+                        '-c:v', 'libx264',
+                        '-preset', 'ultrafast',
+                        '-crf', '23',
+                        '-c:a', 'aac',
+                        '-b:a', '128k',
+                        '-r', '30',
+                        '-movflags', '+faststart',
+                        '-pix_fmt', 'yuv420p',
+                        'output.mp4'
+                    ]);
+                    
+                    // Read the converted file
+                    const data = await ffmpeg.readFile('output.mp4');
+                    const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
+                    
                     const url = URL.createObjectURL(mp4Blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -918,15 +991,20 @@
                     a.click();
                     URL.revokeObjectURL(url);
                     
+                    // Cleanup
+                    await ffmpeg.deleteFile('input.webm');
+                    await ffmpeg.deleteFile('output.mp4');
+                    
                 } catch (err) {
                     console.error('MP4 conversion failed:', err);
+                    // Fallback: download as WebM
                     const url = URL.createObjectURL(webmBlob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `reeldeen-${surahSelect.value}.webm`;
                     a.click();
                     URL.revokeObjectURL(url);
-                    alert('MP4 conversion failed. Downloaded as WebM instead. Use cloudconvert.com to convert to MP4 for Instagram.');
+                    alert('MP4 conversion failed. Downloaded as WebM instead. Please use cloudconvert.com to convert to MP4 for Instagram.');
                 }
                 
                 isRecording = false;
