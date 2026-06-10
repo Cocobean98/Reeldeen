@@ -18,9 +18,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- FFmpeg.wasm 0.12.x - Client-side MP4 conversion (no server needed) -->
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.min.js"></script>
+    <!-- FFmpeg 0.11.6 - Works on ANY hosting without special headers! -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -66,13 +65,6 @@
             align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;
         }
         .video-thumbnail.selected .checkmark-overlay { opacity: 1; }
-        
-        /* Ensure Arabic text has proper line height for harakat */
-        .arabic-text {
-            line-height: 2.2;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -264,8 +256,8 @@
         let pendingVideoUrl = null;
         let isReelGenerated = false;
         
-        // FFmpeg instance for client-side MP4 conversion
-        let ffmpegInstance = null;
+        // FFmpeg 0.11.6 instance - works on ANY hosting!
+        let ffmpeg = null;
         let ffmpegLoading = false;
 
         const previewCanvas = document.getElementById('previewCanvas');
@@ -290,31 +282,32 @@
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
-        // Initialize FFmpeg for client-side conversion
+        // Initialize FFmpeg 0.11.6 - NO special headers needed!
         async function initFFmpeg() {
-            if (ffmpegInstance || ffmpegLoading) return ffmpegInstance;
+            if (ffmpeg && ffmpeg.isLoaded()) return ffmpeg;
+            if (ffmpegLoading) {
+                // Wait for loading to complete
+                while (ffmpegLoading) await new Promise(r => setTimeout(r, 100));
+                return ffmpeg;
+            }
             
             ffmpegLoading = true;
             try {
-                const { FFmpeg } = FFmpegWASM;
-                ffmpegInstance = new FFmpeg();
-                
-                ffmpegInstance.on('log', ({ message }) => {
-                    console.log('[FFmpeg]', message);
+                const { createFFmpeg } = FFmpeg;
+                ffmpeg = createFFmpeg({ 
+                    log: false,
+                    corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
                 });
                 
-                await ffmpegInstance.load({
-                    coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-                    wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
-                });
-                
-                console.log('FFmpeg loaded successfully');
+                console.log('Loading FFmpeg...');
+                await ffmpeg.load();
+                console.log('FFmpeg loaded successfully!');
             } catch (error) {
                 console.error('FFmpeg load failed:', error);
-                ffmpegInstance = null;
+                ffmpeg = null;
             }
             ffmpegLoading = false;
-            return ffmpegInstance;
+            return ffmpeg;
         }
 
         function getAudioUrl(surah, ayah, reciter) {
@@ -451,9 +444,8 @@
                 const englishMaxWidth = W * 0.72;
                 const hasBismillah = !!ayah.bismillah;
                 
-                // Bismillah styling - using Scheherazade New for perfect harakat
                 const bismillahSize = 65;
-                const bismillahLineHeight = bismillahSize * 1.8; // Extra height for harakat
+                const bismillahLineHeight = bismillahSize * 1.8;
                 const bismillahGap = 30;
                 
                 let bismillahTotalHeight = 0;
@@ -466,7 +458,6 @@
                 
                 const mainAvailableHeight = availableHeight - bismillahTotalHeight;
                 
-                // Main verse - using Scheherazade New for perfect harakat rendering
                 let arabicFontSize = 90;
                 let englishFontSize = 30;
                 const MIN_ARABIC = 50;
@@ -475,7 +466,7 @@
                 function calculateMainHeight(aSize, eSize) {
                     ctx.font = `700 ${aSize}px "Scheherazade New", serif`;
                     const aLines = wrapText(ctx, ayah.text, arabicMaxWidth);
-                    const aHeight = aLines.length * (aSize * 1.8); // Extra line height for harakat
+                    const aHeight = aLines.length * (aSize * 1.8);
                     
                     ctx.font = `italic 400 ${eSize}px Inter, sans-serif`;
                     const eLines = wrapText(ctx, ayah.translation, englishMaxWidth);
@@ -507,7 +498,6 @@
                 
                 let currentY = contentStartY;
                 
-                // Draw Bismillah
                 if (hasBismillah) {
                     ctx.font = `700 ${bismillahSize}px "Scheherazade New", serif`;
                     ctx.shadowColor = 'rgba(0,0,0,0.5)'; 
@@ -527,7 +517,6 @@
                     ctx.shadowOffsetY = 0;
                 }
                 
-                // Draw Arabic verse with Scheherazade New
                 ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
                 ctx.shadowColor = 'rgba(0,0,0,0.5)'; 
                 ctx.shadowBlur = 15; 
@@ -546,7 +535,6 @@
                 
                 currentY += arabicTotalHeight + 30;
                 
-                // Draw English
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
                 ctx.textAlign = 'center';
@@ -556,7 +544,6 @@
                     ctx.fillText(line, W/2, currentY + (i * englishLineHeight) + englishLineHeight/2);
                 });
                 
-                // Draw Ayah indicator
                 ctx.fillStyle = 'rgba(255,255,255,0.55)'; 
                 ctx.font = '500 22px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center'; 
@@ -902,7 +889,7 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
-        // FIXED: Client-side MP4 conversion using FFmpeg.wasm 0.12.x (no server needed!)
+        // FIXED: Using FFmpeg 0.11.6 which works on ANY hosting!
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -932,7 +919,7 @@
 
             const options = {
                 mimeType: 'video/webm;codecs=vp9,opus',
-                videoBitsPerSecond: 5000000 // Reduced to 5Mbps for faster conversion
+                videoBitsPerSecond: 5000000
             };
             
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -950,24 +937,27 @@
             mediaRecorder.onstop = async () => {
                 const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
                 
-                downloadLabel.textContent = 'Converting to MP4...';
+                downloadLabel.textContent = 'Loading converter...';
                 
                 try {
-                    // Ensure FFmpeg is loaded
-                    const ffmpeg = await initFFmpeg();
+                    // Initialize FFmpeg 0.11.6
+                    const ffmpegInstance = await initFFmpeg();
                     
-                    if (!ffmpeg) {
-                        throw new Error('FFmpeg not available');
+                    if (!ffmpegInstance || !ffmpegInstance.isLoaded()) {
+                        throw new Error('FFmpeg failed to load');
                     }
                     
-                    // Convert WebM to MP4 entirely in the browser
-                    const { fetchFile } = FFmpegUtil;
+                    downloadLabel.textContent = 'Converting to MP4...';
+                    
+                    // Read the WebM blob data
+                    const { fetchFile } = FFmpeg;
                     const webmData = await fetchFile(webmBlob);
                     
-                    await ffmpeg.writeFile('input.webm', webmData);
+                    // Write to FFmpeg virtual filesystem
+                    ffmpegInstance.FS('writeFile', 'input.webm', webmData);
                     
-                    // Convert with Instagram-compatible settings
-                    await ffmpeg.exec([
+                    // Convert to MP4 with Instagram-compatible settings
+                    await ffmpegInstance.run(
                         '-i', 'input.webm',
                         '-c:v', 'libx264',
                         '-preset', 'ultrafast',
@@ -978,12 +968,13 @@
                         '-movflags', '+faststart',
                         '-pix_fmt', 'yuv420p',
                         'output.mp4'
-                    ]);
+                    );
                     
-                    // Read the converted file
-                    const data = await ffmpeg.readFile('output.mp4');
+                    // Read the converted MP4
+                    const data = ffmpegInstance.FS('readFile', 'output.mp4');
                     const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
                     
+                    // Download
                     const url = URL.createObjectURL(mp4Blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -991,9 +982,9 @@
                     a.click();
                     URL.revokeObjectURL(url);
                     
-                    // Cleanup
-                    await ffmpeg.deleteFile('input.webm');
-                    await ffmpeg.deleteFile('output.mp4');
+                    // Cleanup virtual filesystem
+                    ffmpegInstance.FS('unlink', 'input.webm');
+                    ffmpegInstance.FS('unlink', 'output.mp4');
                     
                 } catch (err) {
                     console.error('MP4 conversion failed:', err);
