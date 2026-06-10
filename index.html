@@ -279,6 +279,30 @@
         };
 
         // ─────────────────────────────────────────────────────────────────────────
+        // SHARED AUDIO CONTEXT
+        // createMediaElementSource() can only be called ONCE per audio element.
+        // We create it once here and reuse the same nodes for every recording.
+        // ─────────────────────────────────────────────────────────────────────────
+        let sharedAudioContext = null;
+        let sharedSourceNode = null;
+        let sharedDestNode = null;   // MediaStreamDestination — for MediaRecorder fallbacks
+        let sharedAudioStream = null; // the MediaStream from sharedDestNode
+
+        function ensureAudioContext() {
+            if (sharedAudioContext && sharedAudioContext.state !== 'closed') {
+                // Resume if suspended (browser auto-suspends idle contexts)
+                if (sharedAudioContext.state === 'suspended') sharedAudioContext.resume();
+                return;
+            }
+            sharedAudioContext = new AudioContext({ sampleRate: 44100 });
+            sharedSourceNode  = sharedAudioContext.createMediaElementSource(audioPlayer);
+            sharedDestNode    = sharedAudioContext.createMediaStreamDestination();
+            sharedSourceNode.connect(sharedDestNode);
+            sharedSourceNode.connect(sharedAudioContext.destination);
+            sharedAudioStream = sharedDestNode.stream;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
         // MP4 RECORDING ENGINE
         // Uses WebCodecs API (Chrome 94+, Edge 94+, Safari 16.4+) + mp4-muxer
         // No FFmpeg, no special server headers, no SharedArrayBuffer needed.
@@ -293,115 +317,6 @@
             return MediaRecorder.isTypeSupported('video/mp4') ||
                    MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') ||
                    MediaRecorder.isTypeSupported('video/mp4;codecs=h264');
-        }
-
-        /**
-         * Record the reel using WebCodecs → mp4-muxer.
-         * Produces a real .mp4 file directly — no conversion step.
-         */
-        async function recordWithWebCodecs(canvas, ayahs, onProgress) {
-            const FPS = 30;
-            const W = canvas.width;   // 1080
-            const H = canvas.height;  // 1920
-
-            // Set up mp4-muxer
-            const { Muxer, ArrayBufferTarget } = Mp4Muxer;
-            const target = new ArrayBufferTarget();
-            const muxer = new Muxer({
-                target,
-                video: {
-                    codec: 'avc',
-                    width: W,
-                    height: H,
-                    frameRate: FPS
-                },
-                audio: {
-                    codec: 'aac',
-                    sampleRate: 44100,
-                    numberOfChannels: 2
-                },
-                fastStart: 'in-memory'
-            });
-
-            // VideoEncoder
-            let videoEncoder = new VideoEncoder({
-                output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-                error: e => console.error('VideoEncoder error:', e)
-            });
-            videoEncoder.configure({
-                codec: 'avc1.42001f',   // H.264 Baseline, works everywhere
-                width: W,
-                height: H,
-                bitrate: 5_000_000,
-                framerate: FPS
-            });
-
-            // AudioEncoder
-            let audioEncoder = new AudioEncoder({
-                output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
-                error: e => console.error('AudioEncoder error:', e)
-            });
-            audioEncoder.configure({
-                codec: 'mp4a.40.2',     // AAC-LC
-                sampleRate: 44100,
-                numberOfChannels: 2,
-                bitrate: 128_000
-            });
-
-            // AudioContext for capturing audio from the audio element
-            const audioContext = new AudioContext({ sampleRate: 44100 });
-            const sourceNode = audioContext.createMediaElementSource(audioPlayer);
-            const destinationNode = audioContext.createMediaStreamDestination();
-            sourceNode.connect(destinationNode);
-            sourceNode.connect(audioContext.destination);
-
-            const audioStream = destinationNode.stream;
-            const audioTrack = audioStream.getAudioTracks()[0];
-            let audioReader = null;
-
-            if (audioTrack) {
-                const processor = new MediaStreamTrackProcessor({ track: audioTrack });
-                audioReader = processor.readable.getReader();
-            }
-
-            let frameTimestamp = 0;         // microseconds
-            const frameDuration = 1_000_000 / FPS;  // microseconds per frame
-            let audioTimestamp = 0;
-
-            // Process all ayahs one by one
-            for (let i = 0; i < ayahs.length; i++) {
-                if (!isRecording) break;
-
-                currentAyahIndex = i;
-                onProgress(Math.round(((i + 1) / ayahs.length) * 100));
-
-                // Play this ayah's audio
-                await new Promise((resolve) => {
-                    audioPlayer.src = ayahs[i].audio;
-                    audioPlayer.onended = resolve;
-                    audioPlayer.onerror = resolve;
-                    audioPlayer.play().catch(resolve);
-                });
-
-                // Small gap between ayahs (300ms)
-                await new Promise(r => setTimeout(r, 300));
-            }
-
-            // Drain remaining video frames by encoding a few blank frames worth
-            // to ensure audio/video sync at the end
-            await new Promise(r => setTimeout(r, 200));
-
-            // Flush encoders
-            await videoEncoder.flush();
-            await audioEncoder.flush();
-            videoEncoder.close();
-            audioEncoder.close();
-
-            muxer.finalize();
-
-            await audioContext.close();
-
-            return target.buffer;
         }
 
         /**
@@ -435,14 +350,10 @@
                 framerate: FPS
             });
 
-            // Audio capture
-            const audioContext = new AudioContext({ sampleRate: 44100 });
-            const sourceNode = audioContext.createMediaElementSource(audioPlayer);
-            const destNode = audioContext.createMediaStreamDestination();
-            sourceNode.connect(destNode);
-            sourceNode.connect(audioContext.destination);
-
-            const audioTrack = destNode.stream.getAudioTracks()[0];
+            // Audio capture — reuse the single shared AudioContext (createMediaElementSource
+            // can only be called once per element; calling it again throws on repeat downloads)
+            ensureAudioContext();
+            const audioTrack = sharedAudioStream.getAudioTracks()[0];
             let audioReader = null;
             if (audioTrack && typeof MediaStreamTrackProcessor !== 'undefined') {
                 const processor = new MediaStreamTrackProcessor({ track: audioTrack });
@@ -535,7 +446,7 @@
             audioEncoder.close();
 
             muxer.finalize();
-            await audioContext.close();
+            // Do NOT close sharedAudioContext — it is reused across multiple recordings
 
             return target.buffer;
         }
@@ -547,12 +458,9 @@
         async function recordWithNativeMP4() {
             const stream = previewCanvas.captureStream(30);
 
-            const audioContext = new AudioContext();
-            const source = audioContext.createMediaElementSource(audioPlayer);
-            const dest = audioContext.createMediaStreamDestination();
-            source.connect(dest);
-            source.connect(audioContext.destination);
-            dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+            // Reuse shared audio context — never call createMediaElementSource twice
+            ensureAudioContext();
+            sharedAudioStream.getAudioTracks().forEach(t => stream.addTrack(t));
 
             const mimeType = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=h264', 'video/mp4']
                 .find(m => MediaRecorder.isTypeSupported(m)) || 'video/mp4';
@@ -590,7 +498,7 @@
                 recorder.stop();
             });
 
-            await audioContext.close();
+            // Do NOT close sharedAudioContext — it is reused across recordings
             bgVideo.pause();
 
             return new Blob(chunks, { type: 'video/mp4' });
@@ -602,12 +510,9 @@
         async function recordWithWebM() {
             const stream = previewCanvas.captureStream(30);
 
-            const audioContext = new AudioContext();
-            const source = audioContext.createMediaElementSource(audioPlayer);
-            const dest = audioContext.createMediaStreamDestination();
-            source.connect(dest);
-            source.connect(audioContext.destination);
-            dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+            // Reuse shared audio context — never call createMediaElementSource twice
+            ensureAudioContext();
+            sharedAudioStream.getAudioTracks().forEach(t => stream.addTrack(t));
 
             const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
                 .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
@@ -642,7 +547,7 @@
                 recorder.stop();
             });
 
-            await audioContext.close();
+            // Do NOT close sharedAudioContext — it is reused across recordings
             bgVideo.pause();
 
             return new Blob(chunks, { type: 'video/webm' });
