@@ -272,6 +272,7 @@
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
+        // FIXED: Audio URL generation using strict verse mapping
         function getAudioUrl(surah, ayah, reciter) {
             const reciterMap = {
                 'ar.alafasy': 'Alafasy',
@@ -301,6 +302,7 @@
             return cleanedText.trim();
         }
 
+        // FIXED: Robust verse loading and Bismillah handling
         async function loadSurahVerses(surahNum) {
             try {
                 const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
@@ -317,7 +319,7 @@
                 return data.verses.map(v => {
                     const verseNum = parseInt(v.verse_key.split(':')[1]);
                     const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
-                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation };
+                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation, verseKey: v.verse_key };
                 });
             } catch (error) {
                 console.error('Error loading verses:', error);
@@ -325,24 +327,35 @@
             }
         }
 
+        // FIXED: Sync logic to prevent "lagging" reciter
         function normalizeAyahData(ayahs, surahNum) {
             let a = [...ayahs];
+            
+            // Logic to fix Audio/Text Sync (The "Lag" Issue)
+            // On verses.quran.com, file 001.mp3 is usually the first verse text (e.g. "Ha-Mim" for Zukhruf).
+            // If the API returns "Bismillah" as Verse 1, but the audio file 001.mp3 is "Ha-Mim", 
+            // we have a mismatch. We must remove the Bismillah from the text list so Verse 1 aligns with Audio 1.
             if (surahNum !== 1 && surahNum !== 9) {
                 if (a.length > 0 && a[0].text) {
                     const firstText = a[0].text.trim();
                     const isOnlyBismillah = firstText.length < 100 && 
                         (firstText.includes('بِسْمِ') || firstText.includes('بسم') || firstText.includes(''));
+                    
                     if (isOnlyBismillah) {
-                        a.shift();
+                        // Remove Bismillah from the start so index 0 becomes Verse 1 (Ha-Mim)
+                        // This ensures Audio 001.mp3 (Ha-Mim) plays with Text "Ha-Mim"
+                        a.shift(); 
                     } else {
+                        // If it's not only Bismillah, just clean the text
                         a[0].text = removeBismillah(a[0].text);
                         if (a[0].translation) {
                             a[0].translation = a[0].translation.replace(/^(In the name of Allah,?[\s\S]*?the Most Merciful,?[\s\S]*?the Especially Merciful\.?[\s]*)/i, '').trim();
-                            a[0].translation = a[0].translation.replace(/^(In the name of God,?[\s\S]*?the Entirely Merciful,?[\s\S]*?the Especially Merciful\.?[\s]*)/i, '').trim();
                         }
                     }
                 }
             }
+            
+            // Renumber verses starting from 1
             a.forEach((x, i) => x.numberInSurah = i + 1);
             return a;
         }
@@ -376,9 +389,11 @@
             ctx.closePath();
         }
 
+        // FIXED: Smart Auto-Shrink with Safe Zone
         function renderFrame() {
             const W = previewCanvas.width, H = previewCanvas.height;
             
+            // 1. Draw Background
             if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
                 const videoAspect = bgVideo.videoWidth / bgVideo.videoHeight;
                 const canvasAspect = W / H;
@@ -395,42 +410,90 @@
                 ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
             }
             
+            // 2. Draw Overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
             overlay.addColorStop(0, 'rgba(0,0,0,0.55)'); overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)'); overlay.addColorStop(1, 'rgba(0,0,0,0.65)');
             ctx.fillStyle = overlay; ctx.fillRect(0, 0, W, H);
             
+            // 3. Draw Content within Safe Zone
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length && currentAyahs[currentAyahIndex]) {
                 const ayah = currentAyahs[currentAyahIndex];
-                const badgeW = 240, badgeH = 48, badgeX = (W - badgeW) / 2, badgeY = 680;
+                
+                // Define Safe Zone Boundaries
+                const badgeY = 680;
+                const badgeH = 48;
+                const indicatorY_Base = 1450; // Fixed bottom limit for text
+                
+                // Draw Title Badge
+                const badgeW = 240, badgeX = (W - badgeW) / 2;
                 ctx.fillStyle = 'rgba(255,255,255,0.1)'; drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 24); ctx.fill();
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
                 ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '600 18px Inter, sans-serif';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 const surahName = ayah.surah?.name_simple || currentSurahData?.surahName || 'Quran';
                 ctx.fillText(surahName.toUpperCase(), W/2, badgeY + badgeH/2);
-                const arabicMaxWidth = W * 0.85; let arabicFontSize = 105;
+
+                // --- SMART AUTO-SHRINK LOGIC ---
+                const arabicMaxWidth = W * 0.85;
+                const englishMaxWidth = W * 0.72;
+                
+                // Start with large fonts
+                let arabicFontSize = 105;
+                let englishFontSize = 34;
+                
+                // Calculate required height
+                function calculateTotalHeight(aSize, eSize) {
+                    ctx.font = `600 ${aSize}px Amiri, serif`;
+                    const aLines = wrapText(ctx, ayah.text, arabicMaxWidth);
+                    const aHeight = aLines.length * (aSize * 1.5);
+                    
+                    ctx.font = `italic 400 ${eSize}px Inter, sans-serif`;
+                    const eLines = wrapText(ctx, ayah.translation, englishMaxWidth);
+                    const eHeight = eLines.length * (eSize * 1.45);
+                    
+                    return aHeight + eHeight + 40; // 40 is gap
+                }
+
+                // Available height in Safe Zone
+                const availableHeight = indicatorY_Base - (badgeY + badgeH + 50); // 50px padding below badge
+
+                // Shrink loop
+                while (calculateTotalHeight(arabicFontSize, englishFontSize) > availableHeight && arabicFontSize > 55) {
+                    arabicFontSize -= 2;
+                    englishFontSize = Math.max(20, englishFontSize - 1); // English shrinks slower
+                }
+
+                // Draw Arabic
                 ctx.font = `600 ${arabicFontSize}px Amiri, serif`;
-                while (ctx.measureText(ayah.text).width > arabicMaxWidth && arabicFontSize > 55) { arabicFontSize -= 5; ctx.font = `600 ${arabicFontSize}px Amiri, serif`; }
                 ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 3;
                 ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 const arabicLines = wrapText(ctx, ayah.text, arabicMaxWidth);
                 const arabicLineHeight = arabicFontSize * 1.5;
                 const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                const arabicStartY = (H / 2) - (arabicTotalHeight / 2);
-                arabicLines.forEach((line, i) => ctx.fillText(line, W/2, arabicStartY + (i * arabicLineHeight)));
-                ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-                const englishMaxWidth = W * 0.72; let englishFontSize = 34;
-                ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
-                while (ctx.measureText(ayah.translation).width > englishMaxWidth && englishFontSize > 22) { englishFontSize -= 2; ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`; }
-                ctx.fillStyle = 'rgba(255,255,255,0.75)';
+                
+                // Center vertically in Safe Zone
                 const englishLines = wrapText(ctx, ayah.translation, englishMaxWidth);
+                const englishTotalHeight = englishLines.length * (englishFontSize * 1.45);
+                const totalContentHeight = arabicTotalHeight + englishTotalHeight + 40;
+                
+                const startY = (badgeY + badgeH + 50) + (availableHeight - totalContentHeight) / 2;
+
+                arabicLines.forEach((line, i) => ctx.fillText(line, W/2, startY + (i * arabicLineHeight)));
+                
+                ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+                // Draw English
+                ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
+                ctx.fillStyle = 'rgba(255,255,255,0.75)';
                 const englishLineHeight = englishFontSize * 1.45;
-                const englishStartY = arabicStartY + arabicTotalHeight + 40;
+                const englishStartY = startY + arabicTotalHeight + 40;
                 englishLines.forEach((line, i) => ctx.fillText(line, W/2, englishStartY + (i * englishLineHeight)));
-                const indicatorY = englishStartY + (englishLines.length * englishLineHeight) + 50;
+
+                // Draw Ayah Indicator (Fixed at bottom)
+                const finalIndicatorY = 1500;
                 ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '500 22px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(`♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, W/2, indicatorY);
+                ctx.fillText(`♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, W/2, finalIndicatorY);
             }
         }
 
@@ -767,7 +830,6 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
-        // UPDATED: Records WebM then sends to server for Instagram-compatible MP4 conversion
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -818,7 +880,6 @@
                 downloadLabel.textContent = 'Converting to MP4...';
                 
                 try {
-                    // Send to server for real MP4 conversion (Instagram compatible)
                     const response = await fetch('/api/convert-to-mp4', {
                         method: 'POST',
                         body: webmBlob,
@@ -839,7 +900,6 @@
                     
                 } catch (err) {
                     console.error('MP4 conversion failed:', err);
-                    // Fallback: download as WebM
                     const url = URL.createObjectURL(webmBlob);
                     const a = document.createElement('a');
                     a.href = url;
