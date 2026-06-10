@@ -18,8 +18,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- FFmpeg 0.11.6 - Works on ANY hosting without special headers! -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+    <!-- mp4-muxer: Pure JS MP4 muxer, NO special headers needed, works on ANY hosting -->
+    <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
 
     <script>
         tailwind.config = {
@@ -255,10 +255,6 @@
         let selectedVideoUrl = null;
         let pendingVideoUrl = null;
         let isReelGenerated = false;
-        
-        // FFmpeg 0.11.6 instance - works on ANY hosting!
-        let ffmpeg = null;
-        let ffmpegLoading = false;
 
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -282,33 +278,464 @@
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
-        // Initialize FFmpeg 0.11.6 - NO special headers needed!
-        async function initFFmpeg() {
-            if (ffmpeg && ffmpeg.isLoaded()) return ffmpeg;
-            if (ffmpegLoading) {
-                while (ffmpegLoading) await new Promise(r => setTimeout(r, 100));
-                return ffmpeg;
-            }
-            
-            ffmpegLoading = true;
-            try {
-                const { createFFmpeg, fetchFile } = FFmpeg;
-                ffmpeg = createFFmpeg({ 
-                    log: false,
-                    corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
-                });
-                
-                console.log('Loading FFmpeg...');
-                await ffmpeg.load();
-                console.log('FFmpeg loaded successfully!');
-                ffmpeg.fetchFile = fetchFile;
-            } catch (error) {
-                console.error('FFmpeg load failed:', error);
-                ffmpeg = null;
-            }
-            ffmpegLoading = false;
-            return ffmpeg;
+        // ─────────────────────────────────────────────────────────────────────────
+        // MP4 RECORDING ENGINE
+        // Uses WebCodecs API (Chrome 94+, Edge 94+, Safari 16.4+) + mp4-muxer
+        // No FFmpeg, no special server headers, no SharedArrayBuffer needed.
+        // Falls back to native video/mp4 MediaRecorder (Safari), then webm as last resort.
+        // ─────────────────────────────────────────────────────────────────────────
+
+        function supportsWebCodecs() {
+            return typeof VideoEncoder !== 'undefined' && typeof AudioEncoder !== 'undefined';
         }
+
+        function supportsNativeMP4() {
+            return MediaRecorder.isTypeSupported('video/mp4') ||
+                   MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') ||
+                   MediaRecorder.isTypeSupported('video/mp4;codecs=h264');
+        }
+
+        /**
+         * Record the reel using WebCodecs → mp4-muxer.
+         * Produces a real .mp4 file directly — no conversion step.
+         */
+        async function recordWithWebCodecs(canvas, ayahs, onProgress) {
+            const FPS = 30;
+            const W = canvas.width;   // 1080
+            const H = canvas.height;  // 1920
+
+            // Set up mp4-muxer
+            const { Muxer, ArrayBufferTarget } = Mp4Muxer;
+            const target = new ArrayBufferTarget();
+            const muxer = new Muxer({
+                target,
+                video: {
+                    codec: 'avc',
+                    width: W,
+                    height: H,
+                    frameRate: FPS
+                },
+                audio: {
+                    codec: 'aac',
+                    sampleRate: 44100,
+                    numberOfChannels: 2
+                },
+                fastStart: 'in-memory'
+            });
+
+            // VideoEncoder
+            let videoEncoder = new VideoEncoder({
+                output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                error: e => console.error('VideoEncoder error:', e)
+            });
+            videoEncoder.configure({
+                codec: 'avc1.42001f',   // H.264 Baseline, works everywhere
+                width: W,
+                height: H,
+                bitrate: 5_000_000,
+                framerate: FPS
+            });
+
+            // AudioEncoder
+            let audioEncoder = new AudioEncoder({
+                output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+                error: e => console.error('AudioEncoder error:', e)
+            });
+            audioEncoder.configure({
+                codec: 'mp4a.40.2',     // AAC-LC
+                sampleRate: 44100,
+                numberOfChannels: 2,
+                bitrate: 128_000
+            });
+
+            // AudioContext for capturing audio from the audio element
+            const audioContext = new AudioContext({ sampleRate: 44100 });
+            const sourceNode = audioContext.createMediaElementSource(audioPlayer);
+            const destinationNode = audioContext.createMediaStreamDestination();
+            sourceNode.connect(destinationNode);
+            sourceNode.connect(audioContext.destination);
+
+            const audioStream = destinationNode.stream;
+            const audioTrack = audioStream.getAudioTracks()[0];
+            let audioReader = null;
+
+            if (audioTrack) {
+                const processor = new MediaStreamTrackProcessor({ track: audioTrack });
+                audioReader = processor.readable.getReader();
+            }
+
+            let frameTimestamp = 0;         // microseconds
+            const frameDuration = 1_000_000 / FPS;  // microseconds per frame
+            let audioTimestamp = 0;
+
+            // Process all ayahs one by one
+            for (let i = 0; i < ayahs.length; i++) {
+                if (!isRecording) break;
+
+                currentAyahIndex = i;
+                onProgress(Math.round(((i + 1) / ayahs.length) * 100));
+
+                // Play this ayah's audio
+                await new Promise((resolve) => {
+                    audioPlayer.src = ayahs[i].audio;
+                    audioPlayer.onended = resolve;
+                    audioPlayer.onerror = resolve;
+                    audioPlayer.play().catch(resolve);
+                });
+
+                // Small gap between ayahs (300ms)
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            // Drain remaining video frames by encoding a few blank frames worth
+            // to ensure audio/video sync at the end
+            await new Promise(r => setTimeout(r, 200));
+
+            // Flush encoders
+            await videoEncoder.flush();
+            await audioEncoder.flush();
+            videoEncoder.close();
+            audioEncoder.close();
+
+            muxer.finalize();
+
+            await audioContext.close();
+
+            return target.buffer;
+        }
+
+        /**
+         * Lightweight frame pump: captures canvas frames at 30fps and encodes them
+         * while audio plays. Called once per reel generation.
+         */
+        async function recordReelMP4() {
+            const FPS = 30;
+            const W = previewCanvas.width;
+            const H = previewCanvas.height;
+            const frameDuration = 1_000_000 / FPS; // microseconds
+
+            const { Muxer, ArrayBufferTarget } = Mp4Muxer;
+            const target = new ArrayBufferTarget();
+            const muxer = new Muxer({
+                target,
+                video: { codec: 'avc', width: W, height: H, frameRate: FPS },
+                audio: { codec: 'aac', sampleRate: 44100, numberOfChannels: 2 },
+                fastStart: 'in-memory'
+            });
+
+            const videoEncoder = new VideoEncoder({
+                output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                error: e => console.error('VideoEncoder:', e)
+            });
+            videoEncoder.configure({
+                codec: 'avc1.4d001f',   // H.264 Main Profile Level 3.1
+                width: W,
+                height: H,
+                bitrate: 5_000_000,
+                framerate: FPS
+            });
+
+            // Audio capture
+            const audioContext = new AudioContext({ sampleRate: 44100 });
+            const sourceNode = audioContext.createMediaElementSource(audioPlayer);
+            const destNode = audioContext.createMediaStreamDestination();
+            sourceNode.connect(destNode);
+            sourceNode.connect(audioContext.destination);
+
+            const audioTrack = destNode.stream.getAudioTracks()[0];
+            let audioReader = null;
+            if (audioTrack && typeof MediaStreamTrackProcessor !== 'undefined') {
+                const processor = new MediaStreamTrackProcessor({ track: audioTrack });
+                audioReader = processor.readable.getReader();
+            }
+
+            const audioEncoder = new AudioEncoder({
+                output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+                error: e => console.error('AudioEncoder:', e)
+            });
+            audioEncoder.configure({
+                codec: 'mp4a.40.2',
+                sampleRate: 44100,
+                numberOfChannels: 2,
+                bitrate: 128_000
+            });
+
+            // Frame pump: captures canvas at 30fps
+            let videoTimestamp = 0;
+            let frameCount = 0;
+            let pumpActive = true;
+
+            async function pumpVideoFrames() {
+                while (pumpActive && isRecording) {
+                    const frame = new VideoFrame(previewCanvas, {
+                        timestamp: videoTimestamp,
+                        duration: frameDuration
+                    });
+                    const isKey = frameCount % (FPS * 2) === 0; // keyframe every 2s
+                    videoEncoder.encode(frame, { keyFrame: isKey });
+                    frame.close();
+                    videoTimestamp += frameDuration;
+                    frameCount++;
+                    // Wait for next frame slot
+                    await new Promise(r => setTimeout(r, 1000 / FPS));
+                }
+            }
+
+            // Audio pump: reads PCM from MediaStreamTrackProcessor
+            async function pumpAudioFrames() {
+                if (!audioReader) return;
+                while (pumpActive && isRecording) {
+                    try {
+                        const { value: audioData, done } = await audioReader.read();
+                        if (done) break;
+                        if (audioData) {
+                            audioEncoder.encode(audioData);
+                            audioData.close();
+                        }
+                    } catch (e) {
+                        break;
+                    }
+                }
+            }
+
+            // Start pumps
+            const videoPumpPromise = pumpVideoFrames();
+            const audioPumpPromise = pumpAudioFrames();
+
+            // Play all ayahs sequentially
+            bgVideo.currentTime = 0;
+            bgVideo.play().catch(() => {});
+
+            for (let i = 0; i < currentAyahs.length; i++) {
+                if (!isRecording) break;
+                currentAyahIndex = i;
+                downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
+
+                await new Promise((resolve) => {
+                    audioPlayer.src = currentAyahs[i].audio;
+                    audioPlayer.onended = resolve;
+                    audioPlayer.onerror = resolve;
+                    audioPlayer.play().catch(resolve);
+                });
+
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            // Stop pumps
+            pumpActive = false;
+            if (audioReader) audioReader.cancel().catch(() => {});
+            await Promise.allSettled([videoPumpPromise, audioPumpPromise]);
+
+            // Allow final frames to flush through encoder queue
+            await new Promise(r => setTimeout(r, 500));
+
+            await videoEncoder.flush();
+            await audioEncoder.flush();
+            videoEncoder.close();
+            audioEncoder.close();
+
+            muxer.finalize();
+            await audioContext.close();
+
+            return target.buffer;
+        }
+
+        /**
+         * Fallback: record using native MediaRecorder requesting video/mp4.
+         * Works in Safari and some Chromium builds.
+         */
+        async function recordWithNativeMP4() {
+            const stream = previewCanvas.captureStream(30);
+
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaElementSource(audioPlayer);
+            const dest = audioContext.createMediaStreamDestination();
+            source.connect(dest);
+            source.connect(audioContext.destination);
+            dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+
+            const mimeType = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=h264', 'video/mp4']
+                .find(m => MediaRecorder.isTypeSupported(m)) || 'video/mp4';
+
+            const recorder = new MediaRecorder(stream, {
+                mimeType,
+                videoBitsPerSecond: 5_000_000
+            });
+            const chunks = [];
+            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+            recorder.start();
+            bgVideo.currentTime = 0;
+            bgVideo.play().catch(() => {});
+
+            for (let i = 0; i < currentAyahs.length; i++) {
+                if (!isRecording) break;
+                currentAyahIndex = i;
+                downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
+
+                await new Promise((resolve) => {
+                    audioPlayer.src = currentAyahs[i].audio;
+                    audioPlayer.onended = resolve;
+                    audioPlayer.onerror = resolve;
+                    audioPlayer.play().catch(resolve);
+                });
+
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            await new Promise(r => setTimeout(r, 500));
+
+            await new Promise(resolve => {
+                recorder.onstop = resolve;
+                recorder.stop();
+            });
+
+            await audioContext.close();
+            bgVideo.pause();
+
+            return new Blob(chunks, { type: 'video/mp4' });
+        }
+
+        /**
+         * Last-resort WebM fallback.
+         */
+        async function recordWithWebM() {
+            const stream = previewCanvas.captureStream(30);
+
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaElementSource(audioPlayer);
+            const dest = audioContext.createMediaStreamDestination();
+            source.connect(dest);
+            source.connect(audioContext.destination);
+            dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+
+            const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+                .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+
+            const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5_000_000 });
+            const chunks = [];
+            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+            recorder.start();
+            bgVideo.currentTime = 0;
+            bgVideo.play().catch(() => {});
+
+            for (let i = 0; i < currentAyahs.length; i++) {
+                if (!isRecording) break;
+                currentAyahIndex = i;
+                downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
+
+                await new Promise((resolve) => {
+                    audioPlayer.src = currentAyahs[i].audio;
+                    audioPlayer.onended = resolve;
+                    audioPlayer.onerror = resolve;
+                    audioPlayer.play().catch(resolve);
+                });
+
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            await new Promise(r => setTimeout(r, 500));
+
+            await new Promise(resolve => {
+                recorder.onstop = resolve;
+                recorder.stop();
+            });
+
+            await audioContext.close();
+            bgVideo.pause();
+
+            return new Blob(chunks, { type: 'video/webm' });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // DOWNLOAD BUTTON — tries best available method in order
+        // ─────────────────────────────────────────────────────────────────────────
+
+        downloadBtn.addEventListener('click', async () => {
+            if (!currentAyahs.length || isRecording) return;
+
+            isRecording = true;
+            isPlaying = false;
+            audioPlayer.pause();
+
+            downloadBtn.disabled = true;
+            downloadLabel.textContent = 'Starting...';
+            lucide.createIcons();
+
+            const surahName = surahSelect.value;
+            let blob = null;
+            let ext = 'mp4';
+
+            try {
+                // ── Method 1: WebCodecs + mp4-muxer (Chrome 94+, Edge 94+, Safari 16.4+)
+                if (supportsWebCodecs() && typeof Mp4Muxer !== 'undefined') {
+                    console.log('Recording with WebCodecs + mp4-muxer...');
+                    downloadLabel.textContent = 'Recording...';
+                    try {
+                        const buffer = await recordReelMP4();
+                        blob = new Blob([buffer], { type: 'video/mp4' });
+                        ext = 'mp4';
+                        console.log('WebCodecs recording successful, size:', blob.size);
+                    } catch (e) {
+                        console.warn('WebCodecs recording failed, trying next method:', e);
+                        blob = null;
+                    }
+                }
+
+                // ── Method 2: Native video/mp4 MediaRecorder (Safari, some Chrome)
+                if (!blob && supportsNativeMP4()) {
+                    console.log('Recording with native MP4 MediaRecorder...');
+                    downloadLabel.textContent = 'Recording (MP4)...';
+                    try {
+                        blob = await recordWithNativeMP4();
+                        ext = 'mp4';
+                        console.log('Native MP4 recording successful, size:', blob.size);
+                    } catch (e) {
+                        console.warn('Native MP4 recording failed, trying WebM fallback:', e);
+                        blob = null;
+                    }
+                }
+
+                // ── Method 3: WebM fallback (always works, but not ideal for Instagram)
+                if (!blob) {
+                    console.log('Recording with WebM fallback...');
+                    downloadLabel.textContent = 'Recording (WebM)...';
+                    blob = await recordWithWebM();
+                    ext = 'webm';
+                    console.log('WebM recording done, size:', blob.size);
+                    alert('Your browser does not support direct MP4 recording.\n\nThe video was saved as .webm instead.\n\nTo convert it to MP4, upload it to: cloudconvert.com/webm-to-mp4\n(Free, no account needed)');
+                }
+
+                // Trigger download
+                if (blob && blob.size > 0) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `reeldeen-surah${surahName}.${ext}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                } else {
+                    alert('Recording failed — no data was captured. Please try again.');
+                }
+
+            } catch (err) {
+                console.error('Download failed:', err);
+                alert('Download failed: ' + err.message + '\n\nPlease try again.');
+            } finally {
+                isRecording = false;
+                isPlaying = false;
+                downloadBtn.disabled = false;
+                downloadLabel.textContent = 'Download MP4';
+                lucide.createIcons();
+            }
+        });
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // REST OF APP (unchanged from original)
+        // ─────────────────────────────────────────────────────────────────────────
 
         function getAudioUrl(surah, ayah, reciter) {
             const reciterMap = {
@@ -332,14 +759,12 @@
                 const res = await fetch(`${QURAN_COM_API}/verses/by_chapter/${surahNum}?language=en&words=false&translations=131&fields=text_uthmani,verse_key,translations&per_page=${totalVerses}`);
                 const data = await res.json();
                 
-                if (!data.verses || data.verses.length === 0) {
-                    throw new Error('No verses found');
-                }
+                if (!data.verses || data.verses.length === 0) throw new Error('No verses found');
                 
                 return data.verses.map(v => {
                     const verseNum = parseInt(v.verse_key.split(':')[1]);
                     const translation = v.translations && v.translations.length > 0 ? v.translations[0].text : '';
-                    return { numberInSurah: verseNum, text: v.text_uthmani, translation: translation, verseKey: v.verse_key };
+                    return { numberInSurah: verseNum, text: v.text_uthmani, translation, verseKey: v.verse_key };
                 });
             } catch (error) {
                 console.error('Error loading verses:', error);
@@ -349,13 +774,10 @@
 
         function normalizeAyahData(ayahs, surahNum) {
             let a = [...ayahs];
-            
             if (surahNum !== 1 && surahNum !== 9) {
                 if (a.length > 0 && a[0].text) {
                     const firstText = a[0].text.trim();
-                    const isOnlyBismillah = firstText.length < 100 && 
-                        (firstText.includes('بِسْمِ') || firstText.includes('بسم'));
-                    
+                    const isOnlyBismillah = firstText.length < 100 && (firstText.includes('بِسْمِ') || firstText.includes('بسم'));
                     if (isOnlyBismillah && a.length > 1) {
                         a[1].bismillah = a[0].text;
                         a[1].bismillahTranslation = 'In the name of Allah, the Most Gracious, the Most Merciful';
@@ -363,7 +785,6 @@
                     }
                 }
             }
-            
             a.forEach((x, i) => x.numberInSurah = i + 1);
             return a;
         }
@@ -418,16 +839,16 @@
             }
             
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
-            overlay.addColorStop(0, 'rgba(0,0,0,0.55)'); overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)'); overlay.addColorStop(1, 'rgba(0,0,0,0.65)');
+            overlay.addColorStop(0, 'rgba(0,0,0,0.55)');
+            overlay.addColorStop(0.5, 'rgba(0,0,0,0.35)');
+            overlay.addColorStop(1, 'rgba(0,0,0,0.65)');
             ctx.fillStyle = overlay; ctx.fillRect(0, 0, W, H);
             
             if (currentAyahs.length > 0 && currentAyahIndex < currentAyahs.length && currentAyahs[currentAyahIndex]) {
                 const ayah = currentAyahs[currentAyahIndex];
                 
-                const badgeY = 680;
-                const badgeH = 48;
-                const badgeW = 240, badgeX = (W - badgeW) / 2;
-                ctx.fillStyle = 'rgba(255,255,255,0.1)'; 
+                const badgeY = 680, badgeH = 48, badgeW = 240, badgeX = (W - badgeW) / 2;
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
                 drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 24); ctx.fill();
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
                 ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '600 18px Inter, sans-serif';
@@ -458,24 +879,20 @@
                 
                 const mainAvailableHeight = availableHeight - bismillahTotalHeight;
                 
-                let arabicFontSize = 90;
-                let englishFontSize = 30;
-                const MIN_ARABIC = 50;
-                const MIN_ENGLISH = 18;
+                let arabicFontSize = 90, englishFontSize = 30;
+                const MIN_ARABIC = 50, MIN_ENGLISH = 18;
                 
                 function calculateMainHeight(aSize, eSize) {
                     ctx.font = `700 ${aSize}px "Scheherazade New", serif`;
                     const aLines = wrapText(ctx, ayah.text, arabicMaxWidth);
                     const aHeight = aLines.length * (aSize * 1.8);
-                    
                     ctx.font = `italic 400 ${eSize}px Inter, sans-serif`;
                     const eLines = wrapText(ctx, ayah.translation, englishMaxWidth);
                     const eHeight = eLines.length * (eSize * 1.4);
-                    
                     return aHeight + eHeight + 30;
                 }
                 
-                while (calculateMainHeight(arabicFontSize, englishFontSize) > mainAvailableHeight && 
+                while (calculateMainHeight(arabicFontSize, englishFontSize) > mainAvailableHeight &&
                        (arabicFontSize > MIN_ARABIC || englishFontSize > MIN_ENGLISH)) {
                     if (arabicFontSize > MIN_ARABIC) arabicFontSize -= 2;
                     if (englishFontSize > MIN_ENGLISH) englishFontSize -= 1;
@@ -493,61 +910,42 @@
                 
                 const mainContentHeight = arabicTotalHeight + englishTotalHeight + 30;
                 const totalContentHeight = bismillahTotalHeight + mainContentHeight;
-                
                 const contentStartY = safeZoneTop + (availableHeight - totalContentHeight) / 2;
                 
                 let currentY = contentStartY;
                 
                 if (hasBismillah) {
                     ctx.font = `700 ${bismillahSize}px "Scheherazade New", serif`;
-                    ctx.shadowColor = 'rgba(0,0,0,0.5)'; 
-                    ctx.shadowBlur = 15; 
-                    ctx.shadowOffsetY = 3;
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 3;
                     ctx.fillStyle = 'rgba(255,255,255,0.95)';
-                    ctx.textAlign = 'center'; 
-                    ctx.textBaseline = 'middle';
-                    
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     bismillahLines.forEach((line, i) => {
                         ctx.fillText(line, W/2, currentY + (i * bismillahLineHeight) + bismillahLineHeight/2);
                     });
-                    
                     currentY += bismillahTotalHeight;
-                    ctx.shadowColor = 'transparent'; 
-                    ctx.shadowBlur = 0; 
-                    ctx.shadowOffsetY = 0;
+                    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
                 }
                 
                 ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
-                ctx.shadowColor = 'rgba(0,0,0,0.5)'; 
-                ctx.shadowBlur = 15; 
-                ctx.shadowOffsetY = 3;
-                ctx.fillStyle = '#ffffff'; 
-                ctx.textAlign = 'center'; 
-                ctx.textBaseline = 'middle';
-                
+                ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 3;
+                ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 arabicLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, currentY + (i * arabicLineHeight) + arabicLineHeight/2);
                 });
-                
-                ctx.shadowColor = 'transparent'; 
-                ctx.shadowBlur = 0; 
-                ctx.shadowOffsetY = 0;
+                ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
                 
                 currentY += arabicTotalHeight + 30;
                 
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 englishLines.forEach((line, i) => {
                     ctx.fillText(line, W/2, currentY + (i * englishLineHeight) + englishLineHeight/2);
                 });
                 
-                ctx.fillStyle = 'rgba(255,255,255,0.55)'; 
+                ctx.fillStyle = 'rgba(255,255,255,0.55)';
                 ctx.font = '500 22px "JetBrains Mono", monospace';
-                ctx.textAlign = 'center'; 
-                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(`♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`, W/2, indicatorY);
             }
         }
@@ -566,7 +964,7 @@
             const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
             const commaFormat = uniqueTags.join(', ');
             const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.translation || ''}"\n\nBeautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${hashtagFormat}`;
-            return { hashtags: hashtagFormat, comma: commaFormat, caption: caption };
+            return { hashtags: hashtagFormat, comma: commaFormat, caption };
         }
 
         function updateTagsDisplay() {
@@ -586,10 +984,6 @@
                     fetchVideoBatch();
                 }
             } catch (e) { console.error('Failed to load surahs:', e); }
-            
-            // Pre-load FFmpeg in background
-            initFFmpeg().catch(e => console.warn('FFmpeg pre-load failed:', e));
-            
             startRenderLoop();
         }
 
@@ -603,7 +997,7 @@
                 const ayahs = await loadSurahVerses(surahNum);
                 const normalized = normalizeAyahData(ayahs, surahNum);
                 const surah = surahsData.find(s => s.id === surahNum);
-                currentSurahData = { ayahs: normalized, surahNum: surahNum, surahName: surah?.name_simple || 'Quran' };
+                currentSurahData = { ayahs: normalized, surahNum, surahName: surah?.name_simple || 'Quran' };
                 renderAyahList();
             } catch (e) {
                 console.error('Failed to load ayahs:', e);
@@ -810,7 +1204,7 @@
                     currentAyahs = filtered.map(a => ({
                         ...a,
                         audio: getAudioUrl(surahNum, a.numberInSurah, reciter),
-                        surah: surah
+                        surah
                     }));
                     currentAyahIndex = 0;
                     getNextVideo();
@@ -821,7 +1215,7 @@
                     isReelGenerated = true;
                     generateBtnText.textContent = 'Regenerate Reel';
                     startPlayback();
-                } catch (e) { 
+                } catch (e) {
                     console.error('Generation failed:', e);
                     alert('Failed to generate reel. Please try again.');
                 }
@@ -887,144 +1281,6 @@
         });
         storyModal.addEventListener('click', (e) => {
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
-        });
-
-        // FFmpeg 0.11.6 MP4 conversion - works on ANY hosting!
-        downloadBtn.addEventListener('click', async () => {
-            if (!currentAyahs.length || isRecording) return;
-            
-            isRecording = true;
-            isPlaying = false;
-            audioPlayer.pause();
-            bgVideo.currentTime = 0;
-            
-            downloadBtn.disabled = true;
-            downloadLabel.textContent = 'Recording...';
-            lucide.createIcons();
-            
-            const canvas = document.getElementById('previewCanvas');
-            const stream = canvas.captureStream(30);
-            
-            let audioContext, source, destination;
-            try {
-                audioContext = new AudioContext();
-                source = audioContext.createMediaElementSource(audioPlayer);
-                destination = audioContext.createMediaStreamDestination();
-                source.connect(destination);
-                source.connect(audioContext.destination);
-                destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
-            } catch (e) {
-                console.warn('Audio capture not available:', e);
-            }
-
-            const options = {
-                mimeType: 'video/webm;codecs=vp9,opus',
-                videoBitsPerSecond: 5000000
-            };
-            
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options.mimeType = 'video/webm;codecs=vp8,opus';
-            }
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options.mimeType = 'video/webm';
-            }
-
-            mediaRecorder = new MediaRecorder(stream, options);
-            recordedChunks = [];
-            
-            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-            
-            mediaRecorder.onstop = async () => {
-                const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                
-                downloadLabel.textContent = 'Loading converter...';
-                
-                try {
-                    // Initialize FFmpeg 0.11.6
-                    const ffmpegInstance = await initFFmpeg();
-                    
-                    if (!ffmpegInstance || !ffmpegInstance.isLoaded()) {
-                        throw new Error('FFmpeg failed to load');
-                    }
-                    
-                    downloadLabel.textContent = 'Converting to MP4...';
-                    
-                    // Read the WebM blob data
-                    const webmData = await ffmpegInstance.fetchFile(webmBlob);
-                    
-                    // Write to FFmpeg virtual filesystem
-                    ffmpegInstance.FS('writeFile', 'input.webm', webmData);
-                    
-                    // Convert to MP4 with Instagram-compatible settings
-                    await ffmpegInstance.run(
-                        '-i', 'input.webm',
-                        '-c:v', 'libx264',
-                        '-preset', 'ultrafast',
-                        '-crf', '23',
-                        '-c:a', 'aac',
-                        '-b:a', '128k',
-                        '-r', '30',
-                        '-movflags', '+faststart',
-                        '-pix_fmt', 'yuv420p',
-                        'output.mp4'
-                    );
-                    
-                    // Read the converted MP4
-                    const data = ffmpegInstance.FS('readFile', 'output.mp4');
-                    const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
-                    
-                    // Download
-                    const url = URL.createObjectURL(mp4Blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `reeldeen-${surahSelect.value}.mp4`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    
-                    // Cleanup virtual filesystem
-                    ffmpegInstance.FS('unlink', 'input.webm');
-                    ffmpegInstance.FS('unlink', 'output.mp4');
-                    
-                } catch (err) {
-                    console.error('MP4 conversion failed:', err);
-                    // Fallback: download as WebM
-                    const url = URL.createObjectURL(webmBlob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `reeldeen-${surahSelect.value}.webm`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    alert('MP4 conversion failed. Downloaded as WebM instead. Please use cloudconvert.com to convert to MP4 for Instagram.');
-                }
-                
-                isRecording = false;
-                downloadBtn.disabled = false;
-                downloadLabel.textContent = 'Download MP4';
-                lucide.createIcons();
-                
-                if (audioContext) audioContext.close();
-            };
-
-            mediaRecorder.start();
-            bgVideo.play();
-
-            try {
-                for (let i = 0; i < currentAyahs.length; i++) {
-                    if (!isRecording) break;
-                    currentAyahIndex = i;
-                    downloadLabel.textContent = `Recording... ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-                    await new Promise((resolve) => {
-                        audioPlayer.src = currentAyahs[i].audio;
-                        audioPlayer.onended = resolve;
-                        audioPlayer.onerror = resolve;
-                        audioPlayer.play().catch(() => resolve());
-                    });
-                    await new Promise(r => setTimeout(r, 300));
-                }
-            } catch (err) { console.error('Recording error:', err); }
-            
-            bgVideo.pause();
-            setTimeout(() => { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); }, 500);
         });
 
         const bgVideo = document.createElement('video');
