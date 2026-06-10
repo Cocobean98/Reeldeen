@@ -286,14 +286,13 @@
         async function initFFmpeg() {
             if (ffmpeg && ffmpeg.isLoaded()) return ffmpeg;
             if (ffmpegLoading) {
-                // Wait for loading to complete
                 while (ffmpegLoading) await new Promise(r => setTimeout(r, 100));
                 return ffmpeg;
             }
             
             ffmpegLoading = true;
             try {
-                const { createFFmpeg } = FFmpeg;
+                const { createFFmpeg, fetchFile } = FFmpeg;
                 ffmpeg = createFFmpeg({ 
                     log: false,
                     corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
@@ -302,6 +301,7 @@
                 console.log('Loading FFmpeg...');
                 await ffmpeg.load();
                 console.log('FFmpeg loaded successfully!');
+                ffmpeg.fetchFile = fetchFile;
             } catch (error) {
                 console.error('FFmpeg load failed:', error);
                 ffmpeg = null;
@@ -889,7 +889,7 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
-        // FIXED: Using FFmpeg 0.11.6 which works on ANY hosting!
+        // FFmpeg 0.11.6 MP4 conversion - works on ANY hosting!
         downloadBtn.addEventListener('click', async () => {
             if (!currentAyahs.length || isRecording) return;
             
@@ -950,8 +950,7 @@
                     downloadLabel.textContent = 'Converting to MP4...';
                     
                     // Read the WebM blob data
-                    const { fetchFile } = FFmpeg;
-                    const webmData = await fetchFile(webmBlob);
+                    const webmData = await ffmpegInstance.fetchFile(webmBlob);
                     
                     // Write to FFmpeg virtual filesystem
                     ffmpegInstance.FS('writeFile', 'input.webm', webmData);
