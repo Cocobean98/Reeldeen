@@ -65,6 +65,13 @@
             align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;
         }
         .video-thumbnail.selected .checkmark-overlay { opacity: 1; }
+        .disclaimer-box {
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.25);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-top: 12px;
+        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -150,6 +157,22 @@
                     <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
                     <option value="ar.sudais">Abdur-Rahman as-Sudais</option>
                 </select>
+                
+                <!-- NEW: Custom Audio Upload -->
+                <div class="mt-3 pt-3 border-t border-white/5">
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Or Use Your Own Audio</label>
+                    <label class="flex items-center justify-center gap-2 w-full bg-dark-700 hover:bg-dark-600 border border-white/10 hover:border-accent-500/50 rounded-md px-3 py-2 text-xs text-white/80 cursor-pointer transition">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                        <span id="customAudioLabel">Upload MP3</span>
+                        <input type="file" id="customAudioInput" accept="audio/mp3,audio/mpeg,audio/*" class="hidden">
+                    </label>
+                    <div id="customAudioInfo" class="hidden mt-2 p-2 bg-accent-500/10 border border-accent-500/30 rounded-md flex items-center gap-2">
+                        <i data-lucide="music" class="w-3.5 h-3.5 text-accent-500 flex-shrink-0"></i>
+                        <span id="customAudioName" class="text-xs text-accent-500 flex-1 truncate"></span>
+                        <button id="removeCustomAudio" class="text-white/40 hover:text-white text-xs underline flex-shrink-0">Remove</button>
+                    </div>
+                    <p class="text-[10px] text-white/40 mt-2 leading-tight">Upload your own recitation or background audio. You must have the rights to use any audio you upload.</p>
+                </div>
             </div>
 
             <div class="p-4 border-b border-white/5">
@@ -176,6 +199,19 @@
                         <i data-lucide="copy" class="w-3 h-3"></i> Copy Caption
                     </button>
                     <div id="captionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap"></div>
+                </div>
+            </div>
+
+            <!-- NEW: Disclaimer Section -->
+            <div class="p-4 mt-auto">
+                <div class="disclaimer-box">
+                    <div class="flex items-start gap-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
+                        <div class="text-[10px] text-yellow-200/80 leading-relaxed">
+                            <strong class="text-yellow-400 block mb-1">Audio & Copyright Notice</strong>
+                            Recitations are sourced from public Islamic audio libraries. While we select reciters not known to be registered with Content ID systems, automated copyright claims may occasionally occur on platforms like YouTube. If flagged, you can dispute the claim — Quran recitations by imams are generally recognized as public domain religious content. <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload and must ensure they hold the rights to use it.</strong>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -249,42 +285,22 @@
         let selectedVideoUrl = null;
         let pendingVideoUrl = null;
         let isReelGenerated = false;
-
-        const previewCanvas = document.getElementById('previewCanvas');
-        const ctx = previewCanvas.getContext('2d');
-        const surahSelect = document.getElementById('surahSelect');
-        const ayahList = document.getElementById('ayahList');
-        const reciterSelect = document.getElementById('reciterSelect');
-        const generateBtn = document.getElementById('generateBtn');
-        const generateBtnText = document.getElementById('generateBtnText');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const downloadLabel = document.getElementById('downloadLabel');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const countdownTimer = document.getElementById('countdownTimer');
-        const storyModal = document.getElementById('storyModal');
-        const tagsSection = document.getElementById('tagsSection');
-        const videoSearchInput = document.getElementById('videoSearchInput');
-        const searchVideoBtn = document.getElementById('searchVideoBtn');
-        const videoSearchResults = document.getElementById('videoSearchResults');
-
-        const viralTags = {
-            general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
-            recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
-        };
+        
+        // NEW: Custom audio state
+        let customAudioUrl = null;
+        let customAudioBlob = null;
+        let customAudioDuration = 0;
 
         // ─────────────────────────────────────────────────────────────────────────
         // SHARED AUDIO CONTEXT
-        // createMediaElementSource() can only be called ONCE per audio element.
-        // We create it once here and reuse the same nodes for every recording.
         // ─────────────────────────────────────────────────────────────────────────
         let sharedAudioContext = null;
         let sharedSourceNode = null;
-        let sharedDestNode = null;   // MediaStreamDestination — for MediaRecorder fallbacks
-        let sharedAudioStream = null; // the MediaStream from sharedDestNode
+        let sharedDestNode = null;
+        let sharedAudioStream = null;
 
         function ensureAudioContext() {
             if (sharedAudioContext && sharedAudioContext.state !== 'closed') {
-                // Resume if suspended (browser auto-suspends idle contexts)
                 if (sharedAudioContext.state === 'suspended') sharedAudioContext.resume();
                 return;
             }
@@ -298,9 +314,6 @@
 
         // ─────────────────────────────────────────────────────────────────────────
         // MP4 RECORDING ENGINE
-        // Uses WebCodecs API (Chrome 94+, Edge 94+, Safari 16.4+) + mp4-muxer
-        // No FFmpeg, no special server headers, no SharedArrayBuffer needed.
-        // Falls back to native video/mp4 MediaRecorder (Safari), then webm as last resort.
         // ─────────────────────────────────────────────────────────────────────────
 
         function supportsWebCodecs() {
@@ -313,15 +326,11 @@
                    MediaRecorder.isTypeSupported('video/mp4;codecs=h264');
         }
 
-        /**
-         * Lightweight frame pump: captures canvas frames at 30fps and encodes them
-         * while audio plays. Called once per reel generation.
-         */
         async function recordReelMP4() {
             const FPS = 30;
             const W = previewCanvas.width;
             const H = previewCanvas.height;
-            const frameDuration = 1_000_000 / FPS; // microseconds
+            const frameDuration = 1_000_000 / FPS;
 
             const { Muxer, ArrayBufferTarget } = Mp4Muxer;
             const target = new ArrayBufferTarget();
@@ -337,15 +346,13 @@
                 error: e => console.error('VideoEncoder:', e)
             });
             videoEncoder.configure({
-                codec: 'avc1.4d001f',   // H.264 Main Profile Level 3.1
+                codec: 'avc1.4d001f',
                 width: W,
                 height: H,
                 bitrate: 5_000_000,
                 framerate: FPS
             });
 
-            // Audio capture — reuse the single shared AudioContext (createMediaElementSource
-            // can only be called once per element; calling it again throws on repeat downloads)
             ensureAudioContext();
             const audioTrack = sharedAudioStream.getAudioTracks()[0];
             let audioReader = null;
@@ -365,10 +372,11 @@
                 bitrate: 128_000
             });
 
-            // Frame pump: captures canvas at 30fps
             let videoTimestamp = 0;
             let frameCount = 0;
             let pumpActive = true;
+
+            if (!renderLoopId) startRenderLoop();
 
             async function pumpVideoFrames() {
                 while (pumpActive && isRecording) {
@@ -376,17 +384,15 @@
                         timestamp: videoTimestamp,
                         duration: frameDuration
                     });
-                    const isKey = frameCount % (FPS * 2) === 0; // keyframe every 2s
+                    const isKey = frameCount % (FPS * 2) === 0;
                     videoEncoder.encode(frame, { keyFrame: isKey });
                     frame.close();
                     videoTimestamp += frameDuration;
                     frameCount++;
-                    // Wait for next frame slot
                     await new Promise(r => setTimeout(r, 1000 / FPS));
                 }
             }
 
-            // Audio pump: reads PCM from MediaStreamTrackProcessor
             async function pumpAudioFrames() {
                 if (!audioReader) return;
                 while (pumpActive && isRecording) {
@@ -403,35 +409,42 @@
                 }
             }
 
-            // Start pumps
             const videoPumpPromise = pumpVideoFrames();
             const audioPumpPromise = pumpAudioFrames();
 
-            // Play all ayahs sequentially
             bgVideo.currentTime = 0;
             bgVideo.play().catch(() => {});
 
-            for (let i = 0; i < currentAyahs.length; i++) {
-                if (!isRecording) break;
-                currentAyahIndex = i;
-                downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-
+            // NEW: Handle custom audio vs API audio
+            if (customAudioUrl) {
+                // Custom audio: play once for the entire duration
                 await new Promise((resolve) => {
-                    audioPlayer.src = currentAyahs[i].audio;
+                    audioPlayer.src = customAudioUrl;
                     audioPlayer.onended = resolve;
                     audioPlayer.onerror = resolve;
                     audioPlayer.play().catch(resolve);
                 });
+            } else {
+                // API audio: play ayah by ayah
+                for (let i = 0; i < currentAyahs.length; i++) {
+                    if (!isRecording) break;
+                    currentAyahIndex = i;
+                    downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
 
-                await new Promise(r => setTimeout(r, 300));
+                    await new Promise((resolve) => {
+                        audioPlayer.src = currentAyahs[i].audio;
+                        audioPlayer.onended = resolve;
+                        audioPlayer.onerror = resolve;
+                        audioPlayer.play().catch(resolve);
+                    });
+
+                    await new Promise(r => setTimeout(r, 300));
+                }
             }
 
-            // Stop pumps
             pumpActive = false;
             if (audioReader) audioReader.cancel().catch(() => {});
             await Promise.allSettled([videoPumpPromise, audioPumpPromise]);
-
-            // Allow final frames to flush through encoder queue
             await new Promise(r => setTimeout(r, 500));
 
             await videoEncoder.flush();
@@ -440,19 +453,12 @@
             audioEncoder.close();
 
             muxer.finalize();
-            // Do NOT close sharedAudioContext — it is reused across multiple recordings
 
             return target.buffer;
         }
 
-        /**
-         * Fallback: record using native MediaRecorder requesting video/mp4.
-         * Works in Safari and some Chromium builds.
-         */
         async function recordWithNativeMP4() {
             const stream = previewCanvas.captureStream(30);
-
-            // Reuse shared audio context — never call createMediaElementSource twice
             ensureAudioContext();
             sharedAudioStream.getAudioTracks().forEach(t => stream.addTrack(t));
 
@@ -466,23 +472,35 @@
             const chunks = [];
             recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
+            if (!renderLoopId) startRenderLoop();
+
             recorder.start();
             bgVideo.currentTime = 0;
             bgVideo.play().catch(() => {});
 
-            for (let i = 0; i < currentAyahs.length; i++) {
-                if (!isRecording) break;
-                currentAyahIndex = i;
-                downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-
+            // NEW: Handle custom audio vs API audio
+            if (customAudioUrl) {
                 await new Promise((resolve) => {
-                    audioPlayer.src = currentAyahs[i].audio;
+                    audioPlayer.src = customAudioUrl;
                     audioPlayer.onended = resolve;
                     audioPlayer.onerror = resolve;
                     audioPlayer.play().catch(resolve);
                 });
+            } else {
+                for (let i = 0; i < currentAyahs.length; i++) {
+                    if (!isRecording) break;
+                    currentAyahIndex = i;
+                    downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
 
-                await new Promise(r => setTimeout(r, 300));
+                    await new Promise((resolve) => {
+                        audioPlayer.src = currentAyahs[i].audio;
+                        audioPlayer.onended = resolve;
+                        audioPlayer.onerror = resolve;
+                        audioPlayer.play().catch(resolve);
+                    });
+
+                    await new Promise(r => setTimeout(r, 300));
+                }
             }
 
             await new Promise(r => setTimeout(r, 500));
@@ -492,19 +510,13 @@
                 recorder.stop();
             });
 
-            // Do NOT close sharedAudioContext — it is reused across recordings
             bgVideo.pause();
 
             return new Blob(chunks, { type: 'video/mp4' });
         }
 
-        /**
-         * Last-resort WebM fallback.
-         */
         async function recordWithWebM() {
             const stream = previewCanvas.captureStream(30);
-
-            // Reuse shared audio context — never call createMediaElementSource twice
             ensureAudioContext();
             sharedAudioStream.getAudioTracks().forEach(t => stream.addTrack(t));
 
@@ -515,23 +527,35 @@
             const chunks = [];
             recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
+            if (!renderLoopId) startRenderLoop();
+
             recorder.start();
             bgVideo.currentTime = 0;
             bgVideo.play().catch(() => {});
 
-            for (let i = 0; i < currentAyahs.length; i++) {
-                if (!isRecording) break;
-                currentAyahIndex = i;
-                downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-
+            // NEW: Handle custom audio vs API audio
+            if (customAudioUrl) {
                 await new Promise((resolve) => {
-                    audioPlayer.src = currentAyahs[i].audio;
+                    audioPlayer.src = customAudioUrl;
                     audioPlayer.onended = resolve;
                     audioPlayer.onerror = resolve;
                     audioPlayer.play().catch(resolve);
                 });
+            } else {
+                for (let i = 0; i < currentAyahs.length; i++) {
+                    if (!isRecording) break;
+                    currentAyahIndex = i;
+                    downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
 
-                await new Promise(r => setTimeout(r, 300));
+                    await new Promise((resolve) => {
+                        audioPlayer.src = currentAyahs[i].audio;
+                        audioPlayer.onended = resolve;
+                        audioPlayer.onerror = resolve;
+                        audioPlayer.play().catch(resolve);
+                    });
+
+                    await new Promise(r => setTimeout(r, 300));
+                }
             }
 
             await new Promise(r => setTimeout(r, 500));
@@ -541,14 +565,13 @@
                 recorder.stop();
             });
 
-            // Do NOT close sharedAudioContext — it is reused across recordings
             bgVideo.pause();
 
             return new Blob(chunks, { type: 'video/webm' });
         }
 
         // ─────────────────────────────────────────────────────────────────────────
-        // DOWNLOAD BUTTON — tries best available method in order
+        // DOWNLOAD BUTTON
         // ─────────────────────────────────────────────────────────────────────────
 
         downloadBtn.addEventListener('click', async () => {
@@ -567,7 +590,6 @@
             let ext = 'mp4';
 
             try {
-                // ── Method 1: WebCodecs + mp4-muxer (Chrome 94+, Edge 94+, Safari 16.4+)
                 if (supportsWebCodecs() && typeof Mp4Muxer !== 'undefined') {
                     console.log('Recording with WebCodecs + mp4-muxer...');
                     downloadLabel.textContent = 'Recording...';
@@ -575,38 +597,32 @@
                         const buffer = await recordReelMP4();
                         blob = new Blob([buffer], { type: 'video/mp4' });
                         ext = 'mp4';
-                        console.log('WebCodecs recording successful, size:', blob.size);
                     } catch (e) {
-                        console.warn('WebCodecs recording failed, trying next method:', e);
+                        console.warn('WebCodecs failed:', e);
                         blob = null;
                     }
                 }
 
-                // ── Method 2: Native video/mp4 MediaRecorder (Safari, some Chrome)
                 if (!blob && supportsNativeMP4()) {
                     console.log('Recording with native MP4 MediaRecorder...');
                     downloadLabel.textContent = 'Recording (MP4)...';
                     try {
                         blob = await recordWithNativeMP4();
                         ext = 'mp4';
-                        console.log('Native MP4 recording successful, size:', blob.size);
                     } catch (e) {
-                        console.warn('Native MP4 recording failed, trying WebM fallback:', e);
+                        console.warn('Native MP4 failed:', e);
                         blob = null;
                     }
                 }
 
-                // ── Method 3: WebM fallback (always works, but not ideal for Instagram)
                 if (!blob) {
                     console.log('Recording with WebM fallback...');
                     downloadLabel.textContent = 'Recording (WebM)...';
                     blob = await recordWithWebM();
                     ext = 'webm';
-                    console.log('WebM recording done, size:', blob.size);
                     alert('Your browser does not support direct MP4 recording.\n\nThe video was saved as .webm instead.\n\nTo convert it to MP4, upload it to: cloudconvert.com/webm-to-mp4\n(Free, no account needed)');
                 }
 
-                // Trigger download
                 if (blob && blob.size > 0) {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -633,7 +649,71 @@
         });
 
         // ─────────────────────────────────────────────────────────────────────────
-        // REST OF APP (unchanged from original)
+        // CUSTOM AUDIO HANDLING
+        // ─────────────────────────────────────────────────────────────────────────
+
+        const customAudioInput = document.getElementById('customAudioInput');
+        const customAudioLabel = document.getElementById('customAudioLabel');
+        const customAudioInfo = document.getElementById('customAudioInfo');
+        const customAudioName = document.getElementById('customAudioName');
+        const removeCustomAudioBtn = document.getElementById('removeCustomAudio');
+
+        customAudioInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Validate file type
+            if (!file.type.startsWith('audio/')) {
+                alert('Please select an audio file (MP3, WAV, etc.)');
+                return;
+            }
+            
+            // Validate file size (max 50MB)
+            if (file.size > 50 * 1024 * 1024) {
+                alert('File too large. Maximum size is 50MB.');
+                return;
+            }
+            
+            // Clean up previous custom audio
+            if (customAudioUrl) {
+                URL.revokeObjectURL(customAudioUrl);
+            }
+            
+            customAudioBlob = file;
+            customAudioUrl = URL.createObjectURL(file);
+            
+            // Get duration
+            const tempAudio = new Audio();
+            tempAudio.src = customAudioUrl;
+            tempAudio.addEventListener('loadedmetadata', () => {
+                customAudioDuration = tempAudio.duration;
+                const mins = Math.floor(customAudioDuration / 60);
+                const secs = Math.floor(customAudioDuration % 60);
+                customAudioName.textContent = `${file.name} (${mins}:${secs < 10 ? '0' : ''}${secs})`;
+            });
+            
+            // Update UI
+            customAudioLabel.textContent = 'Change MP3';
+            customAudioInfo.classList.remove('hidden');
+            customAudioInfo.classList.add('flex');
+            lucide.createIcons();
+        });
+
+        removeCustomAudioBtn.addEventListener('click', () => {
+            if (customAudioUrl) {
+                URL.revokeObjectURL(customAudioUrl);
+            }
+            customAudioUrl = null;
+            customAudioBlob = null;
+            customAudioDuration = 0;
+            customAudioInput.value = '';
+            customAudioLabel.textContent = 'Upload MP3';
+            customAudioInfo.classList.add('hidden');
+            customAudioInfo.classList.remove('flex');
+        });
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // REST OF APP
         // ─────────────────────────────────────────────────────────────────────────
 
         function getAudioUrl(surah, ayah, reciter) {
@@ -850,9 +930,11 @@
         }
 
         function startRenderLoop() {
-            if (renderLoopId) return;
-            function loop() { renderFrame(); renderLoopId = requestAnimationFrame(loop); }
-            loop();
+            function loop() {
+                renderFrame();
+                renderLoopId = requestAnimationFrame(loop);
+            }
+            if (!renderLoopId) loop();
         }
 
         function generateTagsAndCaption(surahName) {
@@ -1130,6 +1212,23 @@
 
         function playCurrentAyah() {
             if (!isPlaying || isRecording) return;
+            
+            // NEW: If custom audio is set, play it once for the entire reel
+            if (customAudioUrl) {
+                audioPlayer.src = customAudioUrl;
+                audioPlayer.play().catch(e => console.error('Audio play failed:', e));
+                audioPlayer.onended = () => {
+                    // When custom audio ends, cycle through ayahs again or stop
+                    if (isPlaying && !isRecording) {
+                        currentAyahIndex = 0;
+                        audioPlayer.currentTime = 0;
+                        audioPlayer.play().catch(() => {});
+                    }
+                };
+                return;
+            }
+            
+            // Original API audio behavior
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
             const ayah = currentAyahs[currentAyahIndex];
             audioPlayer.src = ayah.audio;
