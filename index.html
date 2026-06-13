@@ -10,15 +10,12 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
     <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
     
-    <!-- HalalSpark Auto Ads -->
     <script src="https://ads.halalspark.co.uk/get-auto-ads-script?websiteId=fefe7d1a-ffc0-4cbb-9781-13a19f5d469c&profile=reeldeen" async></script>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- mp4-muxer: Pure JS MP4 muxer, NO special headers needed, works on ANY hosting -->
     <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
 
     <script>
@@ -152,13 +149,12 @@
             <div class="p-4 border-b border-white/5">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
                 <select id="reciterSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
-                    <option value="ar.alafasy">Mishary Rashid Alafasy</option>
-                    <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
-                    <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
-                    <option value="ar.sudais">Abdur-Rahman as-Sudais</option>
+                    <option value="7">Mishary Rashid Alafasy</option>
+                    <option value="9">Abdul Basit (Murattal)</option>
+                    <option value="10">Mahmoud Khalil Al-Husary</option>
+                    <option value="12">Abdur-Rahman as-Sudais</option>
                 </select>
                 
-                <!-- NEW: Custom Audio Upload -->
                 <div class="mt-3 pt-3 border-t border-white/5">
                     <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Or Use Your Own Audio</label>
                     <label class="flex items-center justify-center gap-2 w-full bg-dark-700 hover:bg-dark-600 border border-white/10 hover:border-accent-500/50 rounded-md px-3 py-2 text-xs text-white/80 cursor-pointer transition">
@@ -202,14 +198,13 @@
                 </div>
             </div>
 
-            <!-- NEW: Disclaimer Section -->
             <div class="p-4 mt-auto">
                 <div class="disclaimer-box">
                     <div class="flex items-start gap-2">
                         <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
                         <div class="text-[10px] text-yellow-200/80 leading-relaxed">
                             <strong class="text-yellow-400 block mb-1">Audio & Copyright Notice</strong>
-                            Recitations are sourced from public Islamic audio libraries. While we select reciters not known to be registered with Content ID systems, automated copyright claims may occasionally occur on platforms like YouTube. If flagged, you can dispute the claim — Quran recitations by imams are generally recognized as public domain religious content. <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload and must ensure they hold the rights to use it.</strong>
+                            Recitations are sourced from the Quran.com API, which provides access to various recitations. While we select reciters commonly used in Islamic apps, automated copyright claims may occasionally occur on platforms like YouTube. If flagged, you can dispute the claim with proper attribution. <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload and must ensure they hold the rights to use it.</strong>
                         </div>
                     </div>
                 </div>
@@ -270,30 +265,61 @@
     <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
 
     <script>
+        // Initialize Lucide icons
         lucide.createIcons();
 
+        // API endpoints
         const QURAN_COM_API = 'https://api.quran.com/api/v4';
         
-        let surahsData = [], currentAyahs = [], currentAyahIndex = 0, isPlaying = false;
-        let selectedAyahs = new Set(), currentSurahData = null;
+        // Global variables - declared at top level
+        let surahsData = [];
+        let currentAyahs = [];
+        let currentAyahIndex = 0;
+        let isPlaying = false;
+        let selectedAyahs = new Set();
+        let currentSurahData = null;
         let audioPlayer = document.getElementById('audioPlayer');
-        let videoPool = [], videoPoolIndex = 0;
-        let mediaRecorder, recordedChunks = [];
+        let videoPool = [];
+        let videoPoolIndex = 0;
+        let mediaRecorder = null;
+        let recordedChunks = [];
         let isRecording = false;
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
         let selectedVideoUrl = null;
         let pendingVideoUrl = null;
         let isReelGenerated = false;
-        
-        // NEW: Custom audio state
         let customAudioUrl = null;
         let customAudioBlob = null;
         let customAudioDuration = 0;
+        
+        // Canvas and context
+        const previewCanvas = document.getElementById('previewCanvas');
+        const ctx = previewCanvas.getContext('2d');
+        
+        // DOM elements
+        const surahSelect = document.getElementById('surahSelect');
+        const ayahList = document.getElementById('ayahList');
+        const reciterSelect = document.getElementById('reciterSelect');
+        const generateBtn = document.getElementById('generateBtn');
+        const generateBtnText = document.getElementById('generateBtnText');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadLabel = document.getElementById('downloadLabel');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const countdownTimer = document.getElementById('countdownTimer');
+        const storyModal = document.getElementById('storyModal');
+        const tagsSection = document.getElementById('tagsSection');
+        const videoSearchInput = document.getElementById('videoSearchInput');
+        const searchVideoBtn = document.getElementById('searchVideoBtn');
+        const videoSearchResults = document.getElementById('videoSearchResults');
 
-        // ─────────────────────────────────────────────────────────────────────────
-        // SHARED AUDIO CONTEXT
-        // ─────────────────────────────────────────────────────────────────────────
+        // Viral tags for social media
+        const viralTags = {
+            general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
+            recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
+        };
+
+        // Shared audio context for recording
         let sharedAudioContext = null;
         let sharedSourceNode = null;
         let sharedDestNode = null;
@@ -305,430 +331,29 @@
                 return;
             }
             sharedAudioContext = new AudioContext({ sampleRate: 44100 });
-            sharedSourceNode  = sharedAudioContext.createMediaElementSource(audioPlayer);
-            sharedDestNode    = sharedAudioContext.createMediaStreamDestination();
+            sharedSourceNode = sharedAudioContext.createMediaElementSource(audioPlayer);
+            sharedDestNode = sharedAudioContext.createMediaStreamDestination();
             sharedSourceNode.connect(sharedDestNode);
             sharedSourceNode.connect(sharedAudioContext.destination);
             sharedAudioStream = sharedDestNode.stream;
         }
 
-        // ─────────────────────────────────────────────────────────────────────────
-        // MP4 RECORDING ENGINE
-        // ─────────────────────────────────────────────────────────────────────────
-
-        function supportsWebCodecs() {
-            return typeof VideoEncoder !== 'undefined' && typeof AudioEncoder !== 'undefined';
-        }
-
-        function supportsNativeMP4() {
-            return MediaRecorder.isTypeSupported('video/mp4') ||
-                   MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') ||
-                   MediaRecorder.isTypeSupported('video/mp4;codecs=h264');
-        }
-
-        async function recordReelMP4() {
-            const FPS = 30;
-            const W = previewCanvas.width;
-            const H = previewCanvas.height;
-            const frameDuration = 1_000_000 / FPS;
-
-            const { Muxer, ArrayBufferTarget } = Mp4Muxer;
-            const target = new ArrayBufferTarget();
-            const muxer = new Muxer({
-                target,
-                video: { codec: 'avc', width: W, height: H, frameRate: FPS },
-                audio: { codec: 'aac', sampleRate: 44100, numberOfChannels: 2 },
-                fastStart: 'in-memory'
-            });
-
-            const videoEncoder = new VideoEncoder({
-                output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-                error: e => console.error('VideoEncoder:', e)
-            });
-            videoEncoder.configure({
-                codec: 'avc1.4d001f',
-                width: W,
-                height: H,
-                bitrate: 5_000_000,
-                framerate: FPS
-            });
-
-            ensureAudioContext();
-            const audioTrack = sharedAudioStream.getAudioTracks()[0];
-            let audioReader = null;
-            if (audioTrack && typeof MediaStreamTrackProcessor !== 'undefined') {
-                const processor = new MediaStreamTrackProcessor({ track: audioTrack });
-                audioReader = processor.readable.getReader();
-            }
-
-            const audioEncoder = new AudioEncoder({
-                output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
-                error: e => console.error('AudioEncoder:', e)
-            });
-            audioEncoder.configure({
-                codec: 'mp4a.40.2',
-                sampleRate: 44100,
-                numberOfChannels: 2,
-                bitrate: 128_000
-            });
-
-            let videoTimestamp = 0;
-            let frameCount = 0;
-            let pumpActive = true;
-
-            if (!renderLoopId) startRenderLoop();
-
-            async function pumpVideoFrames() {
-                while (pumpActive && isRecording) {
-                    const frame = new VideoFrame(previewCanvas, {
-                        timestamp: videoTimestamp,
-                        duration: frameDuration
-                    });
-                    const isKey = frameCount % (FPS * 2) === 0;
-                    videoEncoder.encode(frame, { keyFrame: isKey });
-                    frame.close();
-                    videoTimestamp += frameDuration;
-                    frameCount++;
-                    await new Promise(r => setTimeout(r, 1000 / FPS));
-                }
-            }
-
-            async function pumpAudioFrames() {
-                if (!audioReader) return;
-                while (pumpActive && isRecording) {
-                    try {
-                        const { value: audioData, done } = await audioReader.read();
-                        if (done) break;
-                        if (audioData) {
-                            audioEncoder.encode(audioData);
-                            audioData.close();
-                        }
-                    } catch (e) {
-                        break;
-                    }
-                }
-            }
-
-            const videoPumpPromise = pumpVideoFrames();
-            const audioPumpPromise = pumpAudioFrames();
-
-            bgVideo.currentTime = 0;
-            bgVideo.play().catch(() => {});
-
-            // NEW: Handle custom audio vs API audio
-            if (customAudioUrl) {
-                // Custom audio: play once for the entire duration
-                await new Promise((resolve) => {
-                    audioPlayer.src = customAudioUrl;
-                    audioPlayer.onended = resolve;
-                    audioPlayer.onerror = resolve;
-                    audioPlayer.play().catch(resolve);
-                });
-            } else {
-                // API audio: play ayah by ayah
-                for (let i = 0; i < currentAyahs.length; i++) {
-                    if (!isRecording) break;
-                    currentAyahIndex = i;
-                    downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-
-                    await new Promise((resolve) => {
-                        audioPlayer.src = currentAyahs[i].audio;
-                        audioPlayer.onended = resolve;
-                        audioPlayer.onerror = resolve;
-                        audioPlayer.play().catch(resolve);
-                    });
-
-                    await new Promise(r => setTimeout(r, 300));
-                }
-            }
-
-            pumpActive = false;
-            if (audioReader) audioReader.cancel().catch(() => {});
-            await Promise.allSettled([videoPumpPromise, audioPumpPromise]);
-            await new Promise(r => setTimeout(r, 500));
-
-            await videoEncoder.flush();
-            await audioEncoder.flush();
-            videoEncoder.close();
-            audioEncoder.close();
-
-            muxer.finalize();
-
-            return target.buffer;
-        }
-
-        async function recordWithNativeMP4() {
-            const stream = previewCanvas.captureStream(30);
-            ensureAudioContext();
-            sharedAudioStream.getAudioTracks().forEach(t => stream.addTrack(t));
-
-            const mimeType = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=h264', 'video/mp4']
-                .find(m => MediaRecorder.isTypeSupported(m)) || 'video/mp4';
-
-            const recorder = new MediaRecorder(stream, {
-                mimeType,
-                videoBitsPerSecond: 5_000_000
-            });
-            const chunks = [];
-            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-
-            if (!renderLoopId) startRenderLoop();
-
-            recorder.start();
-            bgVideo.currentTime = 0;
-            bgVideo.play().catch(() => {});
-
-            // NEW: Handle custom audio vs API audio
-            if (customAudioUrl) {
-                await new Promise((resolve) => {
-                    audioPlayer.src = customAudioUrl;
-                    audioPlayer.onended = resolve;
-                    audioPlayer.onerror = resolve;
-                    audioPlayer.play().catch(resolve);
-                });
-            } else {
-                for (let i = 0; i < currentAyahs.length; i++) {
-                    if (!isRecording) break;
-                    currentAyahIndex = i;
-                    downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-
-                    await new Promise((resolve) => {
-                        audioPlayer.src = currentAyahs[i].audio;
-                        audioPlayer.onended = resolve;
-                        audioPlayer.onerror = resolve;
-                        audioPlayer.play().catch(resolve);
-                    });
-
-                    await new Promise(r => setTimeout(r, 300));
-                }
-            }
-
-            await new Promise(r => setTimeout(r, 500));
-
-            await new Promise(resolve => {
-                recorder.onstop = resolve;
-                recorder.stop();
-            });
-
-            bgVideo.pause();
-
-            return new Blob(chunks, { type: 'video/mp4' });
-        }
-
-        async function recordWithWebM() {
-            const stream = previewCanvas.captureStream(30);
-            ensureAudioContext();
-            sharedAudioStream.getAudioTracks().forEach(t => stream.addTrack(t));
-
-            const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
-                .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
-
-            const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5_000_000 });
-            const chunks = [];
-            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-
-            if (!renderLoopId) startRenderLoop();
-
-            recorder.start();
-            bgVideo.currentTime = 0;
-            bgVideo.play().catch(() => {});
-
-            // NEW: Handle custom audio vs API audio
-            if (customAudioUrl) {
-                await new Promise((resolve) => {
-                    audioPlayer.src = customAudioUrl;
-                    audioPlayer.onended = resolve;
-                    audioPlayer.onerror = resolve;
-                    audioPlayer.play().catch(resolve);
-                });
-            } else {
-                for (let i = 0; i < currentAyahs.length; i++) {
-                    if (!isRecording) break;
-                    currentAyahIndex = i;
-                    downloadLabel.textContent = `Recording ${Math.round(((i + 1) / currentAyahs.length) * 100)}%`;
-
-                    await new Promise((resolve) => {
-                        audioPlayer.src = currentAyahs[i].audio;
-                        audioPlayer.onended = resolve;
-                        audioPlayer.onerror = resolve;
-                        audioPlayer.play().catch(resolve);
-                    });
-
-                    await new Promise(r => setTimeout(r, 300));
-                }
-            }
-
-            await new Promise(r => setTimeout(r, 500));
-
-            await new Promise(resolve => {
-                recorder.onstop = resolve;
-                recorder.stop();
-            });
-
-            bgVideo.pause();
-
-            return new Blob(chunks, { type: 'video/webm' });
-        }
-
-        // ─────────────────────────────────────────────────────────────────────────
-        // DOWNLOAD BUTTON
-        // ─────────────────────────────────────────────────────────────────────────
-
-        downloadBtn.addEventListener('click', async () => {
-            if (!currentAyahs.length || isRecording) return;
-
-            isRecording = true;
-            isPlaying = false;
-            audioPlayer.pause();
-
-            downloadBtn.disabled = true;
-            downloadLabel.textContent = 'Starting...';
-            lucide.createIcons();
-
-            const surahName = surahSelect.value;
-            let blob = null;
-            let ext = 'mp4';
-
+        // Get audio URL from Quran.com API
+        async function getAudioUrl(surah, ayah, reciterId) {
             try {
-                if (supportsWebCodecs() && typeof Mp4Muxer !== 'undefined') {
-                    console.log('Recording with WebCodecs + mp4-muxer...');
-                    downloadLabel.textContent = 'Recording...';
-                    try {
-                        const buffer = await recordReelMP4();
-                        blob = new Blob([buffer], { type: 'video/mp4' });
-                        ext = 'mp4';
-                    } catch (e) {
-                        console.warn('WebCodecs failed:', e);
-                        blob = null;
-                    }
+                const response = await fetch(`${QURAN_COM_API}/recitations/${reciterId}/by_ayah/${surah}:${ayah}`);
+                const data = await response.json();
+                if (data.audio_files && data.audio_files.length > 0) {
+                    return data.audio_files[0].url;
                 }
-
-                if (!blob && supportsNativeMP4()) {
-                    console.log('Recording with native MP4 MediaRecorder...');
-                    downloadLabel.textContent = 'Recording (MP4)...';
-                    try {
-                        blob = await recordWithNativeMP4();
-                        ext = 'mp4';
-                    } catch (e) {
-                        console.warn('Native MP4 failed:', e);
-                        blob = null;
-                    }
-                }
-
-                if (!blob) {
-                    console.log('Recording with WebM fallback...');
-                    downloadLabel.textContent = 'Recording (WebM)...';
-                    blob = await recordWithWebM();
-                    ext = 'webm';
-                    alert('Your browser does not support direct MP4 recording.\n\nThe video was saved as .webm instead.\n\nTo convert it to MP4, upload it to: cloudconvert.com/webm-to-mp4\n(Free, no account needed)');
-                }
-
-                if (blob && blob.size > 0) {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `reeldeen-surah${surahName}.${ext}`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 5000);
-                } else {
-                    alert('Recording failed — no data was captured. Please try again.');
-                }
-
-            } catch (err) {
-                console.error('Download failed:', err);
-                alert('Download failed: ' + err.message + '\n\nPlease try again.');
-            } finally {
-                isRecording = false;
-                isPlaying = false;
-                downloadBtn.disabled = false;
-                downloadLabel.textContent = 'Download MP4';
-                lucide.createIcons();
+                return null;
+            } catch (error) {
+                console.error('Error fetching audio URL:', error);
+                return null;
             }
-        });
-
-        // ─────────────────────────────────────────────────────────────────────────
-        // CUSTOM AUDIO HANDLING
-        // ─────────────────────────────────────────────────────────────────────────
-
-        const customAudioInput = document.getElementById('customAudioInput');
-        const customAudioLabel = document.getElementById('customAudioLabel');
-        const customAudioInfo = document.getElementById('customAudioInfo');
-        const customAudioName = document.getElementById('customAudioName');
-        const removeCustomAudioBtn = document.getElementById('removeCustomAudio');
-
-        customAudioInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            // Validate file type
-            if (!file.type.startsWith('audio/')) {
-                alert('Please select an audio file (MP3, WAV, etc.)');
-                return;
-            }
-            
-            // Validate file size (max 50MB)
-            if (file.size > 50 * 1024 * 1024) {
-                alert('File too large. Maximum size is 50MB.');
-                return;
-            }
-            
-            // Clean up previous custom audio
-            if (customAudioUrl) {
-                URL.revokeObjectURL(customAudioUrl);
-            }
-            
-            customAudioBlob = file;
-            customAudioUrl = URL.createObjectURL(file);
-            
-            // Get duration
-            const tempAudio = new Audio();
-            tempAudio.src = customAudioUrl;
-            tempAudio.addEventListener('loadedmetadata', () => {
-                customAudioDuration = tempAudio.duration;
-                const mins = Math.floor(customAudioDuration / 60);
-                const secs = Math.floor(customAudioDuration % 60);
-                customAudioName.textContent = `${file.name} (${mins}:${secs < 10 ? '0' : ''}${secs})`;
-            });
-            
-            // Update UI
-            customAudioLabel.textContent = 'Change MP3';
-            customAudioInfo.classList.remove('hidden');
-            customAudioInfo.classList.add('flex');
-            lucide.createIcons();
-        });
-
-        removeCustomAudioBtn.addEventListener('click', () => {
-            if (customAudioUrl) {
-                URL.revokeObjectURL(customAudioUrl);
-            }
-            customAudioUrl = null;
-            customAudioBlob = null;
-            customAudioDuration = 0;
-            customAudioInput.value = '';
-            customAudioLabel.textContent = 'Upload MP3';
-            customAudioInfo.classList.add('hidden');
-            customAudioInfo.classList.remove('flex');
-        });
-
-        // ─────────────────────────────────────────────────────────────────────────
-        // REST OF APP
-        // ─────────────────────────────────────────────────────────────────────────
-
-        function getAudioUrl(surah, ayah, reciter) {
-            const reciterMap = {
-                'ar.alafasy': 'Alafasy',
-                'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal',
-                'ar.husary': 'Husary',
-                'ar.sudais': 'Sudais'
-            };
-            const reciterName = reciterMap[reciter] || 'Alafasy';
-            const surahPadded = String(surah).padStart(3, '0');
-            const ayahPadded = String(ayah).padStart(3, '0');
-            return `https://verses.quran.com/${reciterName}/mp3/${surahPadded}${ayahPadded}.mp3`;
         }
 
+        // Load surah verses from Quran.com API
         async function loadSurahVerses(surahNum) {
             try {
                 const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
@@ -1174,7 +799,7 @@
         generateBtn.addEventListener('click', async () => {
             if (!surahSelect.value || selectedAyahs.size === 0) return;
             const surahNum = parseInt(surahSelect.value);
-            const reciter = reciterSelect.value;
+            const reciterId = reciterSelect.value;
             if (pendingVideoUrl) { selectedVideoUrl = pendingVideoUrl; pendingVideoUrl = null; }
             startLoadingSequence(async () => {
                 try {
@@ -1182,9 +807,15 @@
                     const ayahs = await loadSurahVerses(surahNum);
                     const normalized = normalizeAyahData(ayahs, surahNum);
                     const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                    
+                    // Fetch audio URLs for each ayah
+                    for (let i = 0; i < filtered.length; i++) {
+                        const audioUrl = await getAudioUrl(surahNum, filtered[i].numberInSurah, reciterId);
+                        filtered[i].audio = audioUrl;
+                    }
+                    
                     currentAyahs = filtered.map(a => ({
                         ...a,
-                        audio: getAudioUrl(surahNum, a.numberInSurah, reciter),
                         surah
                     }));
                     currentAyahIndex = 0;
@@ -1213,12 +844,10 @@
         function playCurrentAyah() {
             if (!isPlaying || isRecording) return;
             
-            // NEW: If custom audio is set, play it once for the entire reel
             if (customAudioUrl) {
                 audioPlayer.src = customAudioUrl;
                 audioPlayer.play().catch(e => console.error('Audio play failed:', e));
                 audioPlayer.onended = () => {
-                    // When custom audio ends, cycle through ayahs again or stop
                     if (isPlaying && !isRecording) {
                         currentAyahIndex = 0;
                         audioPlayer.currentTime = 0;
@@ -1228,9 +857,14 @@
                 return;
             }
             
-            // Original API audio behavior
             if (currentAyahIndex >= currentAyahs.length) currentAyahIndex = 0;
             const ayah = currentAyahs[currentAyahIndex];
+            if (!ayah.audio) {
+                console.error('No audio URL for ayah:', ayah);
+                currentAyahIndex++;
+                if (isPlaying && !isRecording) playCurrentAyah();
+                return;
+            }
             audioPlayer.src = ayah.audio;
             audioPlayer.play().catch(e => console.error('Audio play failed:', e));
             audioPlayer.onended = () => {
@@ -1281,11 +915,69 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
+        // Custom audio handling
+        const customAudioInput = document.getElementById('customAudioInput');
+        const customAudioLabel = document.getElementById('customAudioLabel');
+        const customAudioInfo = document.getElementById('customAudioInfo');
+        const customAudioName = document.getElementById('customAudioName');
+        const removeCustomAudioBtn = document.getElementById('removeCustomAudio');
+
+        customAudioInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('audio/')) {
+                alert('Please select an audio file (MP3, WAV, etc.)');
+                return;
+            }
+            
+            if (file.size > 50 * 1024 * 1024) {
+                alert('File too large. Maximum size is 50MB.');
+                return;
+            }
+            
+            if (customAudioUrl) {
+                URL.revokeObjectURL(customAudioUrl);
+            }
+            
+            customAudioBlob = file;
+            customAudioUrl = URL.createObjectURL(file);
+            
+            const tempAudio = new Audio();
+            tempAudio.src = customAudioUrl;
+            tempAudio.addEventListener('loadedmetadata', () => {
+                customAudioDuration = tempAudio.duration;
+                const mins = Math.floor(customAudioDuration / 60);
+                const secs = Math.floor(customAudioDuration % 60);
+                customAudioName.textContent = `${file.name} (${mins}:${secs < 10 ? '0' : ''}${secs})`;
+            });
+            
+            customAudioLabel.textContent = 'Change MP3';
+            customAudioInfo.classList.remove('hidden');
+            customAudioInfo.classList.add('flex');
+            lucide.createIcons();
+        });
+
+        removeCustomAudioBtn.addEventListener('click', () => {
+            if (customAudioUrl) {
+                URL.revokeObjectURL(customAudioUrl);
+            }
+            customAudioUrl = null;
+            customAudioBlob = null;
+            customAudioDuration = 0;
+            customAudioInput.value = '';
+            customAudioLabel.textContent = 'Upload MP3';
+            customAudioInfo.classList.add('hidden');
+            customAudioInfo.classList.remove('flex');
+        });
+
+        // Background video element
         const bgVideo = document.createElement('video');
         bgVideo.loop = true; bgVideo.muted = true; bgVideo.playsInline = true;
         bgVideo.crossOrigin = 'anonymous'; bgVideo.style.display = 'none';
         document.body.appendChild(bgVideo);
 
+        // Initialize app
         init();
     </script>
 </body>
