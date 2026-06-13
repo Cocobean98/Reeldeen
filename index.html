@@ -203,8 +203,11 @@
                     <div class="flex items-start gap-2">
                         <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
                         <div class="text-[10px] text-yellow-200/80 leading-relaxed">
-                            <strong class="text-yellow-400 block mb-1">Audio & Copyright Notice</strong>
-                            Recitations are sourced from the Quran.com API, which provides access to various recitations. While we select reciters commonly used in Islamic apps, automated copyright claims may occasionally occur on platforms like YouTube. If flagged, you can dispute the claim with proper attribution. <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload and must ensure they hold the rights to use it.</strong>
+                            <strong class="text-yellow-400 block mb-1">Sources & Attribution</strong>
+                            <strong>Video Backgrounds:</strong> Pexels API & Pixabay API (Creative Commons Zero / Public Domain media).<br>
+                            <strong>Quran Text & Translations:</strong> Quran.com API (Uthmani script text with open-source translations).<br>
+                            <strong>Audio Recitations:</strong> Quran.com API (recitations hosted on verses.quran.com CDN).<br><br>
+                            While the Quran text itself is public domain, specific recitations may occasionally be flagged by automated copyright systems on platforms like YouTube. If this occurs, you can dispute with proper attribution to Quran.com. <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload and must ensure they hold the rights to use it.</strong>
                         </div>
                     </div>
                 </div>
@@ -265,13 +268,11 @@
     <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
 
     <script>
-        // Initialize Lucide icons
         lucide.createIcons();
 
-        // API endpoints
         const QURAN_COM_API = 'https://api.quran.com/api/v4';
+        const VERSES_QURAN_COM = 'https://verses.quran.com';
         
-        // Global variables - declared at top level
         let surahsData = [];
         let currentAyahs = [];
         let currentAyahIndex = 0;
@@ -293,11 +294,9 @@
         let customAudioBlob = null;
         let customAudioDuration = 0;
         
-        // Canvas and context
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
         
-        // DOM elements
         const surahSelect = document.getElementById('surahSelect');
         const ayahList = document.getElementById('ayahList');
         const reciterSelect = document.getElementById('reciterSelect');
@@ -313,13 +312,11 @@
         const searchVideoBtn = document.getElementById('searchVideoBtn');
         const videoSearchResults = document.getElementById('videoSearchResults');
 
-        // Viral tags for social media
         const viralTags = {
             general: ['quran', 'islam', 'muslim', 'allah', 'islamic', 'muslimtiktok', 'quranrecitation', 'islamicreels', 'muslimreels', 'fyp', 'viral', 'trending', 'islamicvideo', 'quranverses', 'deen', 'sunnah', 'muslimah', 'islamicpost', 'quranquotes', 'islamicreminder'],
             recitation: ['quranrecitation', 'tilawat', 'tajweed', 'quranreciter', 'beautifulrecitation', 'quranaudio', 'recitation', 'quranlover', 'quranlife', 'qurandaily']
         };
 
-        // Shared audio context for recording
         let sharedAudioContext = null;
         let sharedSourceNode = null;
         let sharedDestNode = null;
@@ -338,14 +335,45 @@
             sharedAudioStream = sharedDestNode.stream;
         }
 
-        // Get audio URL from Quran.com API
-        async function getAudioUrl(surah, ayah, reciterId) {
+        // FIXED: Properly construct audio URL from Quran.com API response
+        function buildAudioUrl(audioFileUrl) {
+            if (!audioFileUrl) return null;
+            
+            // If it's already a full URL, return as-is
+            if (audioFileUrl.startsWith('http://') || audioFileUrl.startsWith('https://')) {
+                return audioFileUrl;
+            }
+            
+            // If it's a relative URL (starts with /), prepend the domain
+            if (audioFileUrl.startsWith('/')) {
+                return VERSES_QURAN_COM + audioFileUrl;
+            }
+            
+            // Otherwise, assume it's a path and prepend the domain
+            return VERSES_QURAN_COM + '/' + audioFileUrl;
+        }
+
+        // Fetch audio URL for a specific ayah from Quran.com API
+        async function getAudioUrlForAyah(surahNum, ayahNum, reciterId) {
             try {
-                const response = await fetch(`${QURAN_COM_API}/recitations/${reciterId}/by_ayah/${surah}:${ayah}`);
-                const data = await response.json();
-                if (data.audio_files && data.audio_files.length > 0) {
-                    return data.audio_files[0].url;
+                const response = await fetch(
+                    `${QURAN_COM_API}/recitations/${reciterId}/by_ayah/${surahNum}:${ayahNum}`,
+                    { headers: { 'Accept': 'application/json' } }
+                );
+                
+                if (!response.ok) {
+                    console.warn(`Audio fetch failed for ${surahNum}:${ayahNum}: ${response.status}`);
+                    return null;
                 }
+                
+                const data = await response.json();
+                
+                if (data.audio_files && data.audio_files.length > 0) {
+                    const audioUrl = buildAudioUrl(data.audio_files[0].url);
+                    console.log(`Audio URL for ${surahNum}:${ayahNum}:`, audioUrl);
+                    return audioUrl;
+                }
+                
                 return null;
             } catch (error) {
                 console.error('Error fetching audio URL:', error);
@@ -353,7 +381,6 @@
             }
         }
 
-        // Load surah verses from Quran.com API
         async function loadSurahVerses(surahNum) {
             try {
                 const surahInfoRes = await fetch(`${QURAN_COM_API}/chapters/${surahNum}`);
@@ -809,9 +836,14 @@
                     const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
                     
                     // Fetch audio URLs for each ayah
+                    downloadLabel.textContent = 'Fetching audio...';
                     for (let i = 0; i < filtered.length; i++) {
-                        const audioUrl = await getAudioUrl(surahNum, filtered[i].numberInSurah, reciterId);
+                        const audioUrl = await getAudioUrlForAyah(surahNum, filtered[i].numberInSurah, reciterId);
                         filtered[i].audio = audioUrl;
+                        
+                        // Update progress
+                        const progress = Math.round(((i + 1) / filtered.length) * 100);
+                        downloadLabel.textContent = `Fetching audio ${progress}%...`;
                     }
                     
                     currentAyahs = filtered.map(a => ({
@@ -915,7 +947,6 @@
             if (e.target === storyModal) { storyModal.classList.add('hidden'); storyModal.classList.remove('flex'); }
         });
 
-        // Custom audio handling
         const customAudioInput = document.getElementById('customAudioInput');
         const customAudioLabel = document.getElementById('customAudioLabel');
         const customAudioInfo = document.getElementById('customAudioInfo');
@@ -971,13 +1002,11 @@
             customAudioInfo.classList.remove('flex');
         });
 
-        // Background video element
         const bgVideo = document.createElement('video');
         bgVideo.loop = true; bgVideo.muted = true; bgVideo.playsInline = true;
         bgVideo.crossOrigin = 'anonymous'; bgVideo.style.display = 'none';
         document.body.appendChild(bgVideo);
 
-        // Initialize app
         init();
     </script>
 </body>
