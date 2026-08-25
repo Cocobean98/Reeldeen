@@ -384,7 +384,7 @@
                         <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
                         <div class="text-[10px] text-yellow-200/80 leading-relaxed">
                             <strong class="text-yellow-400 block mb-1">Image Sources</strong>
-                            Background images from Unsplash (Free to use).
+                            Background images from Pexels & Pixabay (Creative Commons Zero / Public Domain).
                         </div>
                     </div>
                 </div>
@@ -658,29 +658,51 @@
             });
         });
 
-        // Post Maker - Image search using Unsplash
+        // Post Maker - Image search using Pexels and Pixabay (same as reels)
         async function searchImages(query) {
             if (!query) return;
             const resultsDiv = document.getElementById('imageSearchResults');
             resultsDiv.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching images...</div>';
             resultsDiv.classList.remove('hidden');
             
+            let allImages = [];
+            
             try {
-                // Using Unsplash Source for free, no-API-key image search
-                const searchTerms = query.split(',').map(t => t.trim()).join(',');
-                const images = [];
+                // Pixabay Images
+                try {
+                    const pixabayRes = await fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=12`);
+                    if (pixabayRes.ok) {
+                        const pixabayData = await pixabayRes.json();
+                        if (pixabayData.hits && pixabayData.hits.length > 0) {
+                            allImages = allImages.concat(pixabayData.hits.map(img => ({
+                                source: 'pixabay',
+                                url: img.largeImageURL || img.webformatURL,
+                                thumbnail: img.previewURL || img.webformatURL
+                            })));
+                        }
+                    }
+                } catch (e) { console.warn('Pixabay failed:', e); }
                 
-                // Generate multiple unique images by adding random seeds
-                for (let i = 1; i <= 12; i++) {
-                    images.push({
-                        url: `https://source.unsplash.com/400x400/?${searchTerms}&sig=${i}`,
-                        thumbnail: `https://source.unsplash.com/200x200/?${searchTerms}&sig=${i}`,
-                        full: `https://source.unsplash.com/1600x1600/?${searchTerms}&sig=${i}`
-                    });
+                // Pexels Images
+                try {
+                    const pexelsRes = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12`);
+                    if (pexelsRes.ok) {
+                        const pexelsData = await pexelsRes.json();
+                        if (pexelsData.photos && pexelsData.photos.length > 0) {
+                            allImages = allImages.concat(pexelsData.photos.map(img => ({
+                                source: 'pexels',
+                                url: img.src.large || img.src.original,
+                                thumbnail: img.src.medium || img.src.large
+                            })));
+                        }
+                    }
+                } catch (e) { console.warn('Pexels failed:', e); }
+                
+                if (allImages.length > 0) {
+                    displayImageSearchResults(allImages);
+                } else {
+                    resultsDiv.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No images found. Try: nature, mosque, sky, ocean</div>';
                 }
-                
-                displayImageSearchResults(images);
-                
             } catch (e) {
                 console.error('Image search failed:', e);
                 resultsDiv.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Error loading images</div>';
@@ -701,10 +723,6 @@
                 imgEl.className = 'thumbnail-img';
                 imgEl.style.opacity = '1';
                 imgEl.crossOrigin = 'anonymous';
-                imgEl.onerror = () => {
-                    // Fallback to a default image if loading fails
-                    imgEl.src = 'https://picsum.photos/200/200?random=' + idx;
-                };
                 
                 const checkEl = document.createElement('div');
                 checkEl.className = 'checkmark-overlay';
@@ -716,7 +734,7 @@
                 div.onclick = () => {
                     document.querySelectorAll('#imageSearchResults .image-thumbnail').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
-                    selectImage(img, img.full);
+                    selectImage(img, img.url);
                 };
                 
                 resultsDiv.appendChild(div);
@@ -898,7 +916,7 @@
                 if (match) surahName = match[1] || 'Bukhari';
             }
             
-            const emojis = ['', '', '', '', ''];
+            const emojis = ['📖', '✨', '🤍', '', '💫'];
             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
             
             const caption = `${randomEmoji} A reminder your heart needs to hear today.
@@ -910,8 +928,8 @@ Translation: "${englishText || arabicText}"
 Reflection:
 In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometimes we get so caught up in the noise of the world that we forget the ultimate source of peace is just a reflection away. Take a moment to let these words settle in your heart.
 
- Save this post to return to whenever you need a moment of peace.
- Share this with someone who needs to hear it today. (Sadaqah Jariyah)
+📌 Save this post to return to whenever you need a moment of peace.
+🤍 Share this with someone who needs to hear it today. (Sadaqah Jariyah)
 💬 Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
 
 🎥 Image: ReelDeen Studio
@@ -1316,11 +1334,11 @@ The Hadith: Sahih al-Bukhari ${hadithNum}
 "${currentAyahs[0]?.translation || ''}"
 
 Reflection:
-The words of our beloved Prophet Muhammad () continue to guide us through the complexities of life. Let this hadith be a source of peace and motivation for your day. Take a moment to reflect on how you can apply this beautiful teaching in your daily life.
+The words of our beloved Prophet Muhammad (ﷺ) continue to guide us through the complexities of life. Let this hadith be a source of peace and motivation for your day. Take a moment to reflect on how you can apply this beautiful teaching in your daily life.
 
- Save this post to return to whenever you need a moment of peace.
- Share this with someone who needs to hear it today. (Sadaqah Jariyah)
- Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
+📌 Save this post to return to whenever you need a moment of peace.
+🤍 Share this with someone who needs to hear it today. (Sadaqah Jariyah)
+💬 Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
 
 🎙️ Source: Sahih al-Bukhari
 🎥 Footage: ReelDeen Studio
