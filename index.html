@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReelDeen Studio | Professional Quran Reel Generator</title>
-    <meta name="description" content="Create stunning 9:16 Islamic videos with synchronized recitation.">
+    <title>ReelDeen Studio | Professional Quran & Hadith Reel Generator</title>
+    <meta name="description" content="Create stunning 9:16 Islamic videos with synchronized recitation and authentic Hadith.">
     
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
@@ -42,7 +42,7 @@
         .ayah-row:hover { background: #1a1a1a; }
         .ayah-row.selected { background: #1a1a1a; border-left-color: #10b981; }
         .modal-overlay { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
-        #previewCanvas {
+        #previewCanvas, #postCanvas {
             width: 100%; max-width: 360px; aspect-ratio: 9/16;
             border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
@@ -78,6 +78,25 @@
             width: 16px;
             height: 16px;
         }
+        .tab-active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: #10b981;
+        }
+        .size-btn {
+            transition: all 0.2s;
+        }
+        .size-btn.active {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+        .tool-section {
+            display: none !important;
+        }
+        .tool-section.active {
+            display: flex !important;
+        }
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col overflow-hidden">
@@ -89,6 +108,16 @@
             </div>
             <span class="font-semibold text-white tracking-tight">ReelDeen <span class="text-white/40 font-normal">Studio</span></span>
         </div>
+        
+        <nav class="flex items-center gap-2">
+            <button id="reelTab" class="tab-active px-4 py-1.5 rounded-md text-sm font-medium border border-transparent transition flex items-center gap-2">
+                <i data-lucide="video" class="w-4 h-4"></i> Reel Studio
+            </button>
+            <button id="postTab" class="px-4 py-1.5 rounded-md text-sm font-medium border border-transparent text-white/60 hover:text-white transition flex items-center gap-2">
+                <i data-lucide="image" class="w-4 h-4"></i> Post Maker
+            </button>
+        </nav>
+        
         <div class="flex items-center gap-4 text-sm">
             <button id="storyBtn" class="text-white/60 hover:text-white transition flex items-center gap-1">
                 <i data-lucide="heart" class="w-4 h-4"></i> Our Story
@@ -96,21 +125,18 @@
             <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support</a>
             
             <div class="flex items-center gap-3 pl-4 border-l border-white/10">
-                <!-- Instagram Icon (Inline SVG) -->
                 <a href="https://www.instagram.com/reeldeen.app/" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Instagram">
                     <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
                     </svg>
                 </a>
                 
-                <!-- Threads Icon (Inline SVG) -->
                 <a href="https://www.threads.net/@reeldeen.app" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Threads">
                     <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.27 18.354 1.5 15.246 1.5 12c0-3.219.904-6.162 2.615-8.514C6.005.9 8.754 0 12 0h.035c3.252.011 5.998.914 8.161 2.687 2.17 1.779 3.302 4.273 3.36 7.413a1.05 1.05 0 0 1-1.027 1.07h-.023a1.05 1.05 0 0 1-1.049-1.022c-.028-1.617-.523-2.868-1.509-3.818-1.036-.999-2.564-1.528-4.539-1.573h-.066c-1.905.005-3.39.49-4.404 1.443-1.039.977-1.582 2.365-1.615 4.125-.033 1.789.476 3.215 1.512 4.246 1.026 1.021 2.496 1.538 4.373 1.538h.034c1.885-.005 3.372-.507 4.416-1.493 1.056-.998 1.61-2.414 1.646-4.208a1.05 1.05 0 0 1 1.05-1.027h.023a1.05 1.05 0 0 1 1.027 1.073c-.058 3.14-1.19 5.634-3.36 7.413-2.163 1.773-4.909 2.676-8.161 2.687h-.007zm-.137-7.127c-1.443 0-2.678-.508-3.578-1.473-.903-.968-1.389-2.28-1.371-3.694.018-1.416.538-2.714 1.463-3.656.921-.938 2.174-1.423 3.622-1.402 1.448.02 2.682.544 3.578 1.514.893.967 1.375 2.278 1.357 3.693-.018 1.416-.538 2.714-1.463 3.656-.921.938-2.174 1.423-3.622 1.402h.014z"/>
                     </svg>
                 </a>
                 
-                <!-- Facebook Icon (Inline SVG) -->
                 <a href="https://www.facebook.com/profile.php?viewas=100000686899395&id=61590823768385" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Facebook">
                     <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -121,10 +147,14 @@
             <button id="downloadBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium items-center gap-2 transition">
                 <i data-lucide="download" class="w-4 h-4"></i> <span id="downloadLabel">Download MP4</span>
             </button>
+            <button id="downloadPostBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium items-center gap-2 transition">
+                <i data-lucide="download" class="w-4 h-4"></i> Download Image
+            </button>
         </div>
     </header>
 
-    <div class="flex-1 flex overflow-hidden" style="min-width: 0;">
+    <!-- REEL STUDIO SECTION -->
+    <div id="reelSection" class="tool-section active flex-1 flex overflow-hidden">
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0" style="min-height: 0;">
             <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
@@ -144,10 +174,31 @@
             </div>
 
             <div class="p-4 border-b border-white/5 shrink-0">
-                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
-                <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
-                    <option value="">Loading...</option>
+                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Content Type</label>
+                <select id="contentTypeSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500 mb-3">
+                    <option value="quran">Quran</option>
+                    <option value="hadith">Hadith (Sahih Bukhari)</option>
                 </select>
+
+                <!-- Quran Selector -->
+                <div id="quranSelector">
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
+                    <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+
+                <!-- Hadith Selector -->
+                <div id="hadithSelector" class="hidden">
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Hadith Number (1 - 7563)</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="hadithNumberInput" min="1" max="7563" placeholder="e.g., 1" 
+                               class="flex-1 bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                        <button id="loadHadithBtn" class="bg-accent-500 hover:bg-accent-600 text-white px-3 py-2 rounded-md transition">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
             
             <div class="flex-1 overflow-y-auto p-2" style="min-height: 0;">
@@ -159,7 +210,7 @@
                     </div>
                 </div>
                 <div id="ayahList" class="space-y-1">
-                    <div class="text-center text-white/30 text-sm py-8">Select a Surah to view verses</div>
+                    <div class="text-center text-white/30 text-sm py-8">Select a Surah or load a Hadith</div>
                 </div>
             </div>
             
@@ -200,7 +251,7 @@
                         <span id="customAudioName" class="text-xs text-accent-500 flex-1 truncate"></span>
                         <button id="removeCustomAudio" class="text-white/40 hover:text-white text-xs underline flex-shrink-0">Remove</button>
                     </div>
-                    <p class="text-[10px] text-white/40 mt-2 leading-tight">Upload your own recitation or background audio. You must have the rights to use any audio you upload.</p>
+                    <p class="text-[10px] text-white/40 mt-2 leading-tight">Upload your own recitation or background audio. <strong class="text-accent-500">Required for Hadith reels.</strong></p>
                 </div>
             </div>
 
@@ -239,13 +290,104 @@
                             <strong class="text-yellow-400 block mb-1">Sources & Attribution</strong>
                             <strong>Video Backgrounds:</strong> Pexels API & Pixabay API (Creative Commons Zero / Public Domain media).<br>
                             <strong>Quran Text & Translations:</strong> Quran.com API (Uthmani script text with open-source translations).<br>
+                            <strong>Hadith Text:</strong> Sahih al-Bukhari (Open Source Dataset).<br>
                             <strong>Audio Recitations:</strong> Quran.com API (recitations hosted on verses.quran.com CDN).<br><br>
-                            While the Quran text itself is public domain, specific recitations may occasionally be flagged by automated copyright systems on platforms like YouTube. If this occurs, you can dispute with proper attribution to Quran.com. <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload and must ensure they hold the rights to use it.</strong>
+                            While the Quran and Hadith texts are public domain, specific recitations may occasionally be flagged by automated copyright systems. <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload and must ensure they hold the rights to use it.</strong>
                         </div>
                     </div>
                 </div>
             </div>
         </aside>
+    </div>
+
+    <!-- POST MAKER SECTION -->
+    <div id="postSection" class="tool-section flex-1 flex overflow-hidden">
+        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0" style="min-height: 0;">
+            <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
+                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Images</label>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="imageSearchInput" placeholder="e.g., nature, mosque, sky..." 
+                           class="flex-1 bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                    <button id="searchImageBtn" class="bg-accent-500 hover:bg-accent-600 text-white px-3 py-2 rounded-md transition">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="imageSearchResults" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto hidden"></div>
+                <div id="selectedImageIndicator" class="hidden mt-3 p-2 bg-accent-500/10 border border-accent-500/30 rounded-lg items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-accent-500"></i>
+                    <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
+                    <button id="changeImageBtn" class="text-xs text-white/60 hover:text-white underline">Change</button>
+                </div>
+            </div>
+
+            <div class="p-4 border-b border-white/5 shrink-0">
+                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Aspect Ratio</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button class="size-btn active bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-ratio="9:16" data-width="1080" data-height="1920">
+                        9:16<br><span class="text-[10px] text-white/40">Stories</span>
+                    </button>
+                    <button class="size-btn bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-ratio="1:1" data-width="1080" data-height="1080">
+                        1:1<br><span class="text-[10px] text-white/40">Square</span>
+                    </button>
+                    <button class="size-btn bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-ratio="16:9" data-width="1920" data-height="1080">
+                        16:9<br><span class="text-[10px] text-white/40">Landscape</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 border-b border-white/5 shrink-0 space-y-3">
+                <div>
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Arabic Quote / Hadith</label>
+                    <textarea id="arabicQuote" rows="3" placeholder="Enter Arabic text..." 
+                              class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white font-arabic text-right focus:outline-none focus:border-accent-500 resize-none" dir="rtl"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">English Translation</label>
+                    <textarea id="englishQuote" rows="2" placeholder="Enter English translation..." 
+                              class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reference (Optional)</label>
+                    <input type="text" id="quoteReference" placeholder="e.g., Surah Al-Baqarah 2:286 or Sahih Bukhari 1" 
+                           class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                </div>
+            </div>
+
+            <div class="p-4 border-b border-white/5">
+                <button id="generatePostBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 rounded-md flex items-center justify-center gap-2 transition text-sm mb-3">
+                    <i data-lucide="wand-2" class="w-4 h-4"></i> Generate Post
+                </button>
+            </div>
+
+            <div id="postTagsSection" class="hidden p-4 border-b border-white/5 flex-1 overflow-y-auto">
+                <div class="mb-3">
+                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider block mb-2">Caption</span>
+                    <button id="copyPostCaptionBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
+                        <i data-lucide="copy" class="w-3 h-3"></i> Copy Caption
+                    </button>
+                    <div id="postCaptionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-48 overflow-y-auto whitespace-pre-wrap"></div>
+                </div>
+            </div>
+
+            <div class="p-4 mt-auto">
+                <div class="disclaimer-box">
+                    <div class="flex items-start gap-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
+                        <div class="text-[10px] text-yellow-200/80 leading-relaxed">
+                            <strong class="text-yellow-400 block mb-1">Image Sources</strong>
+                            Background images from Pexels & Pixabay (Creative Commons Zero / Public Domain).
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative min-w-0 overflow-hidden">
+            <div class="flex flex-col items-center justify-center max-h-full">
+                <canvas id="postCanvas" width="1080" height="1920"></canvas>
+                <p class="mt-6 text-xs text-white/30 font-mono">Post Preview</p>
+            </div>
+        </main>
     </div>
 
     <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
@@ -328,8 +470,17 @@
         let customAudioBlob = null;
         let customAudioDuration = 0;
         
+        // Post Maker variables
+        let selectedImageUrl = null;
+        let pendingImageUrl = null;
+        let currentPostRatio = { width: 1080, height: 1920, ratio: '9:16' };
+        let postBgImage = new Image();
+        let postCaptionData = null;
+        
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
+        const postCanvas = document.getElementById('postCanvas');
+        const postCtx = postCanvas.getContext('2d');
         
         const surahSelect = document.getElementById('surahSelect');
         const ayahList = document.getElementById('ayahList');
@@ -369,6 +520,454 @@
             sharedAudioStream = sharedDestNode.stream;
         }
 
+        // Tab switching
+        document.getElementById('reelTab').addEventListener('click', () => {
+            document.getElementById('reelTab').classList.add('tab-active');
+            document.getElementById('reelTab').classList.remove('text-white/60');
+            document.getElementById('postTab').classList.remove('tab-active');
+            document.getElementById('postTab').classList.add('text-white/60');
+            document.getElementById('reelSection').classList.add('active');
+            document.getElementById('postSection').classList.remove('active');
+            if (isReelGenerated) {
+                downloadBtn.classList.remove('hidden');
+                downloadBtn.style.display = 'flex';
+            }
+            downloadPostBtn.classList.add('hidden');
+            downloadPostBtn.style.display = 'none';
+        });
+
+        document.getElementById('postTab').addEventListener('click', () => {
+            document.getElementById('postTab').classList.add('tab-active');
+            document.getElementById('postTab').classList.remove('text-white/60');
+            document.getElementById('reelTab').classList.remove('tab-active');
+            document.getElementById('reelTab').classList.add('text-white/60');
+            document.getElementById('postSection').classList.add('active');
+            document.getElementById('reelSection').classList.remove('active');
+            if (postCaptionData) {
+                downloadPostBtn.classList.remove('hidden');
+                downloadPostBtn.style.display = 'flex';
+            }
+            downloadBtn.classList.add('hidden');
+            downloadBtn.style.display = 'none';
+        });
+
+        // Content Type Switching
+        const contentTypeSelect = document.getElementById('contentTypeSelect');
+        const quranSelector = document.getElementById('quranSelector');
+        const hadithSelector = document.getElementById('hadithSelector');
+        const hadithNumberInput = document.getElementById('hadithNumberInput');
+        const loadHadithBtn = document.getElementById('loadHadithBtn');
+
+        contentTypeSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'quran') {
+                quranSelector.classList.remove('hidden');
+                hadithSelector.classList.add('hidden');
+                ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Select a Surah to view verses</div>';
+                selectedAyahs.clear();
+                document.getElementById('selectedCount').textContent = '0';
+            } else {
+                quranSelector.classList.add('hidden');
+                hadithSelector.classList.remove('hidden');
+                ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Enter a Hadith number to load</div>';
+                selectedAyahs.clear();
+                document.getElementById('selectedCount').textContent = '0';
+            }
+        });
+
+        loadHadithBtn.addEventListener('click', async () => {
+            const num = parseInt(hadithNumberInput.value);
+            if (!num || num < 1 || num > 7563) {
+                alert('Please enter a valid Hadith number between 1 and 7563');
+                return;
+            }
+            
+            ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">Loading Hadith...</div>';
+            selectedAyahs.clear();
+            
+            try {
+                const [engRes, araRes] = await Promise.all([
+                    fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari/${num}.json`),
+                    fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/ara-bukhari/${num}.json`)
+                ]);
+                
+                if (!engRes.ok || !araRes.ok) throw new Error('Hadith not found');
+                
+                const engData = await engRes.json();
+                const araData = await araRes.json();
+                
+                const engText = engData.hadiths[0]?.text || '';
+                const araText = araData.hadiths[0]?.text || '';
+                
+                const hadithObj = {
+                    numberInSurah: num,
+                    text: araText,
+                    translation: engText,
+                    verseKey: `Bukhari:${num}`,
+                    isHadith: true
+                };
+                
+                currentSurahData = { 
+                    ayahs: [hadithObj], 
+                    surahNum: num, 
+                    surahName: 'Sahih Bukhari' 
+                };
+                
+                renderAyahList();
+                selectedAyahs.add(num);
+                document.querySelectorAll('.ayah-row')[0]?.classList.add('selected');
+                document.getElementById('selectedCount').textContent = '1';
+                
+            } catch (e) {
+                console.error('Failed to load hadith:', e);
+                ayahList.innerHTML = `<div class="text-center text-red-400 text-sm py-8">Error: Hadith #${num} not found. Please try another number.</div>`;
+            }
+        });
+
+        // Post Maker - Size selection
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPostRatio = {
+                    width: parseInt(btn.dataset.width),
+                    height: parseInt(btn.dataset.height),
+                    ratio: btn.dataset.ratio
+                };
+                postCanvas.width = currentPostRatio.width;
+                postCanvas.height = currentPostRatio.height;
+                renderPostFrame();
+            });
+        });
+
+        // Post Maker - Image search
+        async function searchImages(query) {
+            if (!query) return;
+            const resultsDiv = document.getElementById('imageSearchResults');
+            resultsDiv.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">Searching images...</div>';
+            resultsDiv.classList.remove('hidden');
+            
+            let allImages = [];
+            try {
+                try {
+                    const pixabayRes = await fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=12`);
+                    if (pixabayRes.ok) {
+                        const pixabayData = await pixabayRes.json();
+                        if (pixabayData.hits && pixabayData.hits.length > 0) {
+                            allImages = allImages.concat(pixabayData.hits.map(img => ({
+                                source: 'pixabay',
+                                url: img.largeImageURL || img.webformatURL,
+                                thumbnail: img.previewURL || img.webformatURL
+                            })));
+                        }
+                    }
+                } catch (e) { console.warn('Pixabay failed:', e); }
+                
+                try {
+                    const pexelsRes = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12`);
+                    if (pexelsRes.ok) {
+                        const pexelsData = await pexelsRes.json();
+                        if (pexelsData.photos && pexelsData.photos.length > 0) {
+                            allImages = allImages.concat(pexelsData.photos.map(img => ({
+                                source: 'pexels',
+                                url: img.src.large || img.src.original,
+                                thumbnail: img.src.medium || img.src.large
+                            })));
+                        }
+                    }
+                } catch (e) { console.warn('Pexels failed:', e); }
+                
+                if (allImages.length > 0) {
+                    displayImageSearchResults(allImages);
+                } else {
+                    resultsDiv.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No images found. Try: nature, mosque, sky, ocean</div>';
+                }
+            } catch (e) {
+                console.error('Image search failed:', e);
+                resultsDiv.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Error loading images</div>';
+            }
+        }
+
+        function displayImageSearchResults(images) {
+            const resultsDiv = document.getElementById('imageSearchResults');
+            resultsDiv.innerHTML = '';
+            
+            images.forEach((img, idx) => {
+                const div = document.createElement('div');
+                div.className = `video-thumbnail rounded-lg overflow-hidden border-2 ${selectedImageUrl === img.url || pendingImageUrl === img.url ? 'selected' : ''}`;
+                div.style.aspectRatio = '1';
+                
+                const imgEl = document.createElement('img');
+                imgEl.src = img.thumbnail;
+                imgEl.alt = `Image ${idx + 1}`;
+                imgEl.className = 'thumbnail-img';
+                imgEl.style.opacity = '1';
+                
+                const checkEl = document.createElement('div');
+                checkEl.className = 'checkmark-overlay';
+                checkEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                
+                div.appendChild(imgEl);
+                div.appendChild(checkEl);
+                
+                div.onclick = () => {
+                    document.querySelectorAll('#imageSearchResults .video-thumbnail').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    selectImage(img, img.url);
+                };
+                
+                resultsDiv.appendChild(div);
+            });
+            
+            resultsDiv.classList.remove('hidden');
+        }
+
+        function selectImage(img, imageUrl) {
+            if (imageUrl) {
+                pendingImageUrl = imageUrl;
+                const indicator = document.getElementById('selectedImageIndicator');
+                indicator.classList.remove('hidden');
+                indicator.classList.add('flex');
+                lucide.createIcons();
+                
+                postBgImage = new Image();
+                postBgImage.crossOrigin = 'anonymous';
+                postBgImage.onload = () => {
+                    selectedImageUrl = imageUrl;
+                    renderPostFrame();
+                };
+                postBgImage.src = imageUrl;
+                
+                setTimeout(() => {
+                    document.getElementById('imageSearchResults').classList.add('hidden');
+                    document.getElementById('imageSearchInput').value = '';
+                }, 300);
+            }
+        }
+
+        document.getElementById('changeImageBtn').addEventListener('click', () => {
+            pendingImageUrl = null;
+            selectedImageUrl = null;
+            const indicator = document.getElementById('selectedImageIndicator');
+            indicator.classList.add('hidden');
+            indicator.classList.remove('flex');
+            document.getElementById('imageSearchInput').focus();
+        });
+
+        document.getElementById('searchImageBtn').addEventListener('click', () => {
+            const query = document.getElementById('imageSearchInput').value.trim();
+            if (query) searchImages(query);
+        });
+
+        document.getElementById('imageSearchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = document.getElementById('imageSearchInput').value.trim();
+                if (query) searchImages(query);
+            }
+        });
+
+        // Post rendering
+        function renderPostFrame() {
+            const W = postCanvas.width;
+            const H = postCanvas.height;
+            const ctx = postCtx;
+            
+            ctx.clearRect(0, 0, W, H);
+            
+            if (postBgImage && postBgImage.complete && postBgImage.naturalWidth > 0) {
+                const imgAspect = postBgImage.naturalWidth / postBgImage.naturalHeight;
+                const canvasAspect = W / H;
+                let drawWidth, drawHeight, drawX, drawY;
+                
+                if (imgAspect > canvasAspect) {
+                    drawHeight = H;
+                    drawWidth = H * imgAspect;
+                    drawX = (W - drawWidth) / 2;
+                    drawY = 0;
+                } else {
+                    drawWidth = W;
+                    drawHeight = W / imgAspect;
+                    drawX = 0;
+                    drawY = (H - drawHeight) / 2;
+                }
+                
+                ctx.drawImage(postBgImage, drawX, drawY, drawWidth, drawHeight);
+            } else {
+                const grad = ctx.createLinearGradient(0, 0, 0, H);
+                grad.addColorStop(0, '#1a3a3a');
+                grad.addColorStop(1, '#0a1a1a');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+            }
+            
+            const overlay = ctx.createLinearGradient(0, 0, 0, H);
+            overlay.addColorStop(0, 'rgba(0,0,0,0.6)');
+            overlay.addColorStop(0.5, 'rgba(0,0,0,0.4)');
+            overlay.addColorStop(1, 'rgba(0,0,0,0.7)');
+            ctx.fillStyle = overlay;
+            ctx.fillRect(0, 0, W, H);
+            
+            const arabicText = document.getElementById('arabicQuote').value.trim();
+            const englishText = document.getElementById('englishQuote').value.trim();
+            const reference = document.getElementById('quoteReference').value.trim();
+            
+            if (!arabicText && !englishText) return;
+            
+            const padding = W * 0.08;
+            const safeZoneTop = padding;
+            const safeZoneBottom = H - padding;
+            const availableHeight = safeZoneBottom - safeZoneTop;
+            
+            if (arabicText) {
+                const arabicMaxWidth = W * 0.85;
+                const arabicFontSize = Math.min(72, W / 12);
+                const arabicLineHeight = arabicFontSize * 1.8;
+                
+                ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0,0,0,0.7)';
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetY = 4;
+                
+                const arabicLines = wrapText(ctx, arabicText, arabicMaxWidth);
+                const arabicTotalHeight = arabicLines.length * arabicLineHeight;
+                
+                const startY = safeZoneTop + (availableHeight - arabicTotalHeight) / 2 - (englishText ? arabicLineHeight : 0);
+                
+                arabicLines.forEach((line, i) => {
+                    ctx.fillText(line, W / 2, startY + (i * arabicLineHeight) + arabicLineHeight / 2);
+                });
+                
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+            }
+            
+            if (englishText) {
+                const englishMaxWidth = W * 0.75;
+                const englishFontSize = Math.min(32, W / 28);
+                const englishLineHeight = englishFontSize * 1.4;
+                
+                ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                
+                const englishLines = wrapText(ctx, englishText, englishMaxWidth);
+                const englishTotalHeight = englishLines.length * englishLineHeight;
+                
+                const startY = arabicText ? 
+                    safeZoneTop + (availableHeight - (arabicText.split('\n').length * 72 * 1.8 + englishTotalHeight + 40)) / 2 + (arabicText.split('\n').length * 72 * 1.8) + 40 :
+                    safeZoneTop + (availableHeight - englishTotalHeight) / 2;
+                
+                englishLines.forEach((line, i) => {
+                    ctx.fillText(line, W / 2, startY + (i * englishLineHeight) + englishLineHeight / 2);
+                });
+            }
+            
+            if (reference) {
+                ctx.font = '500 20px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.fillText(reference, W / 2, H - padding - 30);
+            }
+            
+            ctx.font = '600 16px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillText('ReelDeen Studio', W / 2, H - 20);
+        }
+
+        function generatePostCaption() {
+            const arabicText = document.getElementById('arabicQuote').value.trim();
+            const englishText = document.getElementById('englishQuote').value.trim();
+            const reference = document.getElementById('quoteReference').value.trim();
+            
+            let surahName = 'Quran';
+            if (reference) {
+                const match = reference.match(/Surah\s+(\w+)/i) || reference.match(/Bukhari/i);
+                if (match) surahName = match[1] || 'Bukhari';
+            }
+            
+            const emojis = ['📖', '✨', '🤍', '🌙', '💫'];
+            const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            
+            const caption = `${randomEmoji} A reminder your heart needs to hear today.
+
+The Verse: ${reference || 'Quran'}
+
+Translation: "${englishText || arabicText}"
+
+Reflection:
+In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometimes we get so caught up in the noise of the world that we forget the ultimate source of peace is just a reflection away. Take a moment to let these words settle in your heart.
+
+📌 Save this post to return to whenever you need a moment of peace.
+🤍 Share this with someone who needs to hear it today. (Sadaqah Jariyah)
+💬 Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
+
+🎥 Image: ReelDeen Studio
+
+.
+.
+.
+#Quran #QuranQuotes #Islam #Muslim #IslamicReminders #IslamicPost #Surah${surahName} #SpiritualPeace #DeenOverDunya #Alhamdulillah #MuslimTikTok #IslamicContent #QuranReflection #DailyReminder #Faith`;
+
+            return caption;
+        }
+
+        document.getElementById('generatePostBtn').addEventListener('click', () => {
+            const arabicText = document.getElementById('arabicQuote').value.trim();
+            const englishText = document.getElementById('englishQuote').value.trim();
+            
+            if (!arabicText && !englishText) {
+                alert('Please enter at least Arabic or English quote');
+                return;
+            }
+            
+            renderPostFrame();
+            
+            postCaptionData = generatePostCaption();
+            document.getElementById('postCaptionContainer').textContent = postCaptionData;
+            document.getElementById('postTagsSection').classList.remove('hidden');
+            document.getElementById('downloadPostBtn').classList.remove('hidden');
+            document.getElementById('downloadPostBtn').style.display = 'flex';
+            
+            lucide.createIcons();
+        });
+
+        document.getElementById('copyPostCaptionBtn').addEventListener('click', () => {
+            const text = document.getElementById('postCaptionContainer').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyPostCaptionBtn');
+                btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Copy Caption';
+                    lucide.createIcons();
+                }, 2000);
+            });
+        });
+
+        document.getElementById('downloadPostBtn').addEventListener('click', () => {
+            postCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reeldeen-post-${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+            }, 'image/png', 1.0);
+        });
+
+        document.getElementById('arabicQuote').addEventListener('input', renderPostFrame);
+        document.getElementById('englishQuote').addEventListener('input', renderPostFrame);
+        document.getElementById('quoteReference').addEventListener('input', renderPostFrame);
+
+        // Existing reel functions
         function splitWordsIntoChunks(words, numChunks) {
             const chunks = [];
             const wordsPerChunk = Math.ceil(words.length / numChunks);
@@ -676,9 +1275,11 @@
                 ctx.fillStyle = 'rgba(255,255,255,0.55)';
                 ctx.font = '500 22px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                const prefix = ayah.isHadith ? 'HADITH' : 'AYAH';
+                const padLength = ayah.isHadith ? 4 : 2;
                 const indicatorText = parts.length > 1 
-                    ? `♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}  •  ${currentPartIndex + 1}/${parts.length}`
-                    : `♪  AYAH ${String(ayah.numberInSurah).padStart(2, '0')}`;
+                    ? `♪  ${prefix} ${String(ayah.numberInSurah).padStart(padLength, '0')}  •  ${currentPartIndex + 1}/${parts.length}`
+                    : `♪  ${prefix} ${String(ayah.numberInSurah).padStart(padLength, '0')}`;
                 ctx.fillText(indicatorText, W/2, indicatorY);
             }
         }
@@ -692,18 +1293,52 @@
         }
 
         function generateTagsAndCaption(surahName) {
-            const surahSlug = surahName.toLowerCase().replace(/-/g, '');
-            const surahTags = [surahSlug, `surah${surahSlug}`, 'quran'];
-            const allTags = [...surahTags, ...viralTags.general, ...viralTags.recitation];
-            const uniqueTags = [...new Set(allTags)].slice(0, 25);
-            const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
-            const commaFormat = uniqueTags.join(', ');
-            const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.parts?.[0]?.translation || currentAyahs[0]?.translation || ''}"\n\nBeautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${hashtagFormat}`;
-            return { hashtags: hashtagFormat, comma: commaFormat, caption };
+            const isHadith = currentAyahs[0]?.isHadith;
+            let tagsData;
+            
+            if (isHadith) {
+                const hadithNum = currentAyahs[0].numberInSurah;
+                const allTags = ['hadith', 'sahihbukhari', 'bukhari', 'sunnah', 'prophetmuhammad', 'islam', 'muslim', 'islamicreminder', 'islamicquotes', 'deen', 'fyp', 'viral', 'trending', 'islamicreels', 'muslimreels', 'islamicpost', 'hadithoftheday'];
+                const uniqueTags = [...new Set(allTags)].slice(0, 25);
+                const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
+                const commaFormat = uniqueTags.join(', ');
+                const caption = `📖 A beautiful reminder from the Sunnah.
+
+The Hadith: Sahih al-Bukhari ${hadithNum}
+
+"${currentAyahs[0]?.translation || ''}"
+
+Reflection:
+The words of our beloved Prophet Muhammad (ﷺ) continue to guide us through the complexities of life. Let this hadith be a source of peace and motivation for your day. Take a moment to reflect on how you can apply this beautiful teaching in your daily life.
+
+📌 Save this post to return to whenever you need a moment of peace.
+🤍 Share this with someone who needs to hear it today. (Sadaqah Jariyah)
+💬 Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
+
+🎙️ Source: Sahih al-Bukhari
+🎥 Footage: ReelDeen Studio
+
+.
+.
+.
+${hashtagFormat}`;
+                tagsData = { hashtags: hashtagFormat, comma: commaFormat, caption };
+            } else {
+                const surahSlug = surahName.toLowerCase().replace(/-/g, '');
+                const surahTags = [surahSlug, `surah${surahSlug}`, 'quran'];
+                const allTags = [...surahTags, ...viralTags.general, ...viralTags.recitation];
+                const uniqueTags = [...new Set(allTags)].slice(0, 25);
+                const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
+                const commaFormat = uniqueTags.join(', ');
+                const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.parts?.[0]?.translation || currentAyahs[0]?.translation || ''}"\n\nBeautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${hashtagFormat}`;
+                tagsData = { hashtags: hashtagFormat, comma: commaFormat, caption };
+            }
+            
+            return tagsData;
         }
 
         function updateTagsDisplay() {
-            const surahName = currentAyahs[0]?.surah?.name_simple || 'Quran';
+            const surahName = currentAyahs[0]?.isHadith ? 'Sahih Bukhari' : (currentAyahs[0]?.surah?.name_simple || 'Quran');
             const tagsData = generateTagsAndCaption(surahName);
             document.getElementById('tagsContainer').textContent = currentTagFormat === 'hashtags' ? tagsData.hashtags : tagsData.comma;
             document.getElementById('captionContainer').textContent = tagsData.caption;
@@ -720,6 +1355,7 @@
                 }
             } catch (e) { console.error('Failed to load surahs:', e); }
             startRenderLoop();
+            renderPostFrame();
         }
 
         surahSelect.addEventListener('change', async (e) => {
@@ -743,13 +1379,14 @@
         function renderAyahList() {
             ayahList.innerHTML = '';
             if (!currentSurahData || !currentSurahData.ayahs || currentSurahData.ayahs.length === 0) {
-                ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">No verses available</div>';
+                ayahList.innerHTML = '<div class="text-center text-white/30 text-sm py-8">No content available</div>';
                 return;
             }
             currentSurahData.ayahs.forEach((ayah) => {
                 const div = document.createElement('div');
                 div.className = `ayah-row p-3 rounded-md cursor-pointer ${selectedAyahs.has(ayah.numberInSurah) ? 'selected' : ''}`;
-                div.innerHTML = `<div class="flex items-start gap-3"><span class="font-mono text-xs text-white/40 mt-1 w-6">${ayah.numberInSurah}</span><div class="flex-1 min-w-0"><p class="font-arabic text-right text-white text-sm mb-1 truncate" dir="rtl" style="line-height: 2.2;">${ayah.text}</p><p class="text-[10px] text-white/40 truncate">${ayah.translation || ''}</p></div></div>`;
+                const prefix = ayah.isHadith ? 'Hadith' : 'Verse';
+                div.innerHTML = `<div class="flex items-start gap-3"><span class="font-mono text-xs text-white/40 mt-1 w-6">${prefix} ${ayah.numberInSurah}</span><div class="flex-1 min-w-0"><p class="font-arabic text-right text-white text-sm mb-1 truncate" dir="rtl" style="line-height: 2.2;">${ayah.text}</p><p class="text-[10px] text-white/40 truncate">${ayah.translation || ''}</p></div></div>`;
                 div.onclick = () => {
                     if (selectedAyahs.has(ayah.numberInSurah)) selectedAyahs.delete(ayah.numberInSurah);
                     else selectedAyahs.add(ayah.numberInSurah);
@@ -926,23 +1563,44 @@
         }
 
         generateBtn.addEventListener('click', async () => {
-            if (!surahSelect.value || selectedAyahs.size === 0) return;
-            const surahNum = parseInt(surahSelect.value);
-            const reciterId = reciterSelect.value;
+            const isHadith = contentTypeSelect.value === 'hadith';
+            
+            if (isHadith) {
+                if (selectedAyahs.size === 0) {
+                    alert('Please load and select a Hadith first.');
+                    return;
+                }
+                if (!customAudioUrl) {
+                    alert('For Hadith reels, please upload your own audio recitation or background audio first.');
+                    return;
+                }
+            } else {
+                if (!surahSelect.value || selectedAyahs.size === 0) return;
+            }
+
             if (pendingVideoUrl) { selectedVideoUrl = pendingVideoUrl; pendingVideoUrl = null; }
+            
             startLoadingSequence(async () => {
                 try {
-                    const surah = surahsData.find(s => s.id === surahNum);
-                    const ayahs = await loadSurahVerses(surahNum);
-                    const normalized = normalizeAyahData(ayahs, surahNum);
-                    const filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
-                    
-                    downloadLabel.textContent = 'Fetching audio...';
-                    for (let i = 0; i < filtered.length; i++) {
-                        const audioUrl = await getAudioUrlForAyah(surahNum, filtered[i].numberInSurah, reciterId);
-                        filtered[i].audio = audioUrl;
-                        const progress = Math.round(((i + 1) / filtered.length) * 100);
-                        downloadLabel.textContent = `Fetching audio ${progress}%...`;
+                    let filtered = [];
+                    if (!isHadith) {
+                        const surahNum = parseInt(surahSelect.value);
+                        const reciterId = reciterSelect.value;
+                        const surah = surahsData.find(s => s.id === surahNum);
+                        const ayahs = await loadSurahVerses(surahNum);
+                        const normalized = normalizeAyahData(ayahs, surahNum);
+                        filtered = normalized.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                        
+                        downloadLabel.textContent = 'Fetching audio...';
+                        for (let i = 0; i < filtered.length; i++) {
+                            const audioUrl = await getAudioUrlForAyah(surahNum, filtered[i].numberInSurah, reciterId);
+                            filtered[i].audio = audioUrl;
+                            const progress = Math.round(((i + 1) / filtered.length) * 100);
+                            downloadLabel.textContent = `Fetching audio ${progress}%...`;
+                        }
+                    } else {
+                        filtered = currentSurahData.ayahs.filter(a => selectedAyahs.has(a.numberInSurah)).sort((a,b) => a.numberInSurah - b.numberInSurah);
+                        downloadLabel.textContent = 'Preparing Hadith...';
                     }
                     
                     downloadLabel.textContent = 'Download MP4';
@@ -955,7 +1613,7 @@
                         ayah.parts = splitLongAyah(ayah, availableHeight);
                     }
                     
-                    currentAyahs = filtered.map(a => ({ ...a, surah }));
+                    currentAyahs = filtered.map(a => ({ ...a, surah: { name_simple: currentSurahData.surahName } }));
                     currentAyahIndex = 0;
                     currentPartIndex = 0;
                     getNextVideo();
@@ -984,7 +1642,12 @@
         function playCurrentAyah() {
             if (!isPlaying || isRecording) return;
             
-            if (customAudioUrl) {
+            if (currentAyahs[0]?.isHadith || customAudioUrl) {
+                if (!customAudioUrl) {
+                    alert('No audio available. Please upload custom audio for Hadith.');
+                    isPlaying = false;
+                    return;
+                }
                 audioPlayer.src = customAudioUrl;
                 currentAyahIndex = 0;
                 currentPartIndex = 0;
@@ -1344,7 +2007,7 @@
             downloadLabel.textContent = 'Starting...';
             lucide.createIcons();
 
-            const surahName = surahSelect.value;
+            const surahName = surahSelect.value || 'bukhari';
             let blob = null;
             let ext = 'mp4';
 
@@ -1383,7 +2046,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `reeldeen-surah${surahName}.${ext}`;
+                    a.download = `reeldeen-${contentTypeSelect.value === 'hadith' ? 'hadith' : 'surah'}${surahName}.${ext}`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
