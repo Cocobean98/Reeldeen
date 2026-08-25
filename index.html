@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReelDeen Studio | Professional Quran & Hadith Reel Generator</title>
-    <meta name="description" content="Create stunning 9:16 Islamic videos with synchronized recitation and authentic Hadith.">
+    <title>ReelDeen Studio | Professional Quran & Hadith Generator</title>
+    <meta name="description" content="Create stunning Islamic content with Quran reels and beautiful quote posts.">
     
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
@@ -86,10 +86,10 @@
             color: #10b981;
             border-color: #10b981;
         }
-        .size-btn {
+        .size-btn, .mode-btn {
             transition: all 0.2s;
         }
-        .size-btn.active {
+        .size-btn.active, .mode-btn.active {
             background: #10b981;
             color: white;
             border-color: #10b981;
@@ -104,6 +104,18 @@
             min-width: 140px;
             text-align: center;
             justify-content: center;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #10b981;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -312,6 +324,71 @@
     <!-- POST MAKER SECTION -->
     <div id="postSection" class="tool-section flex-1 flex overflow-hidden">
         <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0" style="min-height: 0;">
+            <!-- Mode Selection -->
+            <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
+                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Post Mode</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="mode-btn active bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-mode="manual">
+                        Manual Input
+                    </button>
+                    <button class="mode-btn bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-mode="hadith">
+                        Select Hadith
+                    </button>
+                </div>
+            </div>
+
+            <!-- Manual Mode -->
+            <div id="manualModeSection" class="p-4 border-b border-white/5 shrink-0 space-y-3">
+                <div>
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Arabic Quote / Hadith</label>
+                    <textarea id="arabicQuote" rows="3" placeholder="Enter Arabic text..." 
+                              class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white font-arabic text-right focus:outline-none focus:border-accent-500 resize-none" dir="rtl"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">English Translation</label>
+                    <textarea id="englishQuote" rows="2" placeholder="Enter English translation..." 
+                              class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reference (Optional)</label>
+                    <input type="text" id="quoteReference" placeholder="e.g., Surah Al-Baqarah 2:286 or Sahih Bukhari 1" 
+                           class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                </div>
+            </div>
+
+            <!-- Hadith Mode -->
+            <div id="hadithModeSection" class="hidden p-4 border-b border-white/5 shrink-0 space-y-3">
+                <div>
+                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Hadith Number (1 - 7563)</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="postHadithNumberInput" min="1" max="7563" placeholder="e.g., 1" 
+                               class="flex-1 bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                        <button id="loadPostHadithBtn" class="bg-accent-500 hover:bg-accent-600 text-white px-3 py-2 rounded-md transition">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="hadithContentSection" class="hidden space-y-3">
+                    <div class="p-3 bg-dark-700 rounded-md">
+                        <p class="text-xs text-white/60 mb-2">Select what to display:</p>
+                        <label class="checkbox-label text-sm text-white mb-2">
+                            <input type="checkbox" id="showHadithText" checked>
+                            <span>Arabic Text</span>
+                        </label>
+                        <label class="checkbox-label text-sm text-white mb-2">
+                            <input type="checkbox" id="showHadithTranslation" checked>
+                            <span>English Translation</span>
+                        </label>
+                        <label class="checkbox-label text-sm text-white">
+                            <input type="checkbox" id="showHadithSource" checked>
+                            <span>Source Reference</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Search -->
             <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Images</label>
                 <div class="flex gap-2 mb-3">
@@ -341,24 +418,6 @@
                     <button class="size-btn bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-ratio="16:9" data-width="1920" data-height="1080">
                         16:9<br><span class="text-[10px] text-white/40">Landscape</span>
                     </button>
-                </div>
-            </div>
-
-            <div class="p-4 border-b border-white/5 shrink-0 space-y-3">
-                <div>
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Arabic Quote / Hadith</label>
-                    <textarea id="arabicQuote" rows="3" placeholder="Enter Arabic text..." 
-                              class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white font-arabic text-right focus:outline-none focus:border-accent-500 resize-none" dir="rtl"></textarea>
-                </div>
-                <div>
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">English Translation</label>
-                    <textarea id="englishQuote" rows="2" placeholder="Enter English translation..." 
-                              class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500 resize-none"></textarea>
-                </div>
-                <div>
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reference (Optional)</label>
-                    <input type="text" id="quoteReference" placeholder="e.g., Surah Al-Baqarah 2:286 or Sahih Bukhari 1" 
-                           class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
                 </div>
             </div>
 
@@ -485,6 +544,8 @@
         let currentPostRatio = { width: 1080, height: 1920, ratio: '9:16' };
         let postBgImage = new Image();
         let postCaptionData = null;
+        let currentPostMode = 'manual'; // 'manual' or 'hadith'
+        let selectedHadithData = null;
         
         const previewCanvas = document.getElementById('previewCanvas');
         const ctx = previewCanvas.getContext('2d');
@@ -560,7 +621,82 @@
             downloadBtn.style.display = 'none';
         });
 
-        // Content Type Switching
+        // Post Maker Mode Switching
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const mode = btn.dataset.mode;
+                currentPostMode = mode;
+                
+                if (mode === 'manual') {
+                    document.getElementById('manualModeSection').classList.remove('hidden');
+                    document.getElementById('hadithModeSection').classList.add('hidden');
+                } else {
+                    document.getElementById('manualModeSection').classList.add('hidden');
+                    document.getElementById('hadithModeSection').classList.remove('hidden');
+                }
+            });
+        });
+
+        // Load Hadith for Post Maker
+        document.getElementById('loadPostHadithBtn').addEventListener('click', async () => {
+            const num = parseInt(document.getElementById('postHadithNumberInput').value);
+            if (!num || num < 1 || num > 7563) {
+                alert('Please enter a valid Hadith number between 1 and 7563');
+                return;
+            }
+            
+            try {
+                const [engRes, araRes] = await Promise.all([
+                    fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari/${num}.json`),
+                    fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/ara-bukhari/${num}.json`)
+                ]);
+                
+                if (!engRes.ok || !araRes.ok) throw new Error('Hadith not found');
+                
+                const engData = await engRes.json();
+                const araData = await araRes.json();
+                
+                selectedHadithData = {
+                    number: num,
+                    arabic: araData.hadiths[0]?.text || '',
+                    english: engData.hadiths[0]?.text || '',
+                    reference: `Sahih Bukhari ${num}`
+                };
+                
+                document.getElementById('hadithContentSection').classList.remove('hidden');
+                
+                // Update preview
+                updatePostFromHadith();
+                
+            } catch (e) {
+                console.error('Failed to load hadith:', e);
+                alert('Hadith #' + num + ' not found. Please try another number.');
+            }
+        });
+
+        // Checkbox listeners for Hadith mode
+        ['showHadithText', 'showHadithTranslation', 'showHadithSource'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', updatePostFromHadith);
+        });
+
+        function updatePostFromHadith() {
+            if (!selectedHadithData) return;
+            
+            const showArabic = document.getElementById('showHadithText').checked;
+            const showEnglish = document.getElementById('showHadithTranslation').checked;
+            const showSource = document.getElementById('showHadithSource').checked;
+            
+            document.getElementById('arabicQuote').value = showArabic ? selectedHadithData.arabic : '';
+            document.getElementById('englishQuote').value = showEnglish ? selectedHadithData.english : '';
+            document.getElementById('quoteReference').value = showSource ? selectedHadithData.reference : '';
+            
+            renderPostFrame();
+        }
+
+        // Content Type Switching for Reels
         const contentTypeSelect = document.getElementById('contentTypeSelect');
         const quranSelector = document.getElementById('quranSelector');
         const hadithSelector = document.getElementById('hadithSelector');
@@ -916,7 +1052,7 @@
                 if (match) surahName = match[1] || 'Bukhari';
             }
             
-            const emojis = ['📖', '✨', '🤍', '', '💫'];
+            const emojis = ['', '✨', '🤍', '🌙', '💫'];
             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
             
             const caption = `${randomEmoji} A reminder your heart needs to hear today.
@@ -1327,20 +1463,20 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
                 const uniqueTags = [...new Set(allTags)].slice(0, 25);
                 const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
                 const commaFormat = uniqueTags.join(', ');
-                const caption = ` A beautiful reminder from the Sunnah.
+                const caption = `📖 A beautiful reminder from the Sunnah.
 
 The Hadith: Sahih al-Bukhari ${hadithNum}
 
 "${currentAyahs[0]?.translation || ''}"
 
 Reflection:
-The words of our beloved Prophet Muhammad (ﷺ) continue to guide us through the complexities of life. Let this hadith be a source of peace and motivation for your day. Take a moment to reflect on how you can apply this beautiful teaching in your daily life.
+The words of our beloved Prophet Muhammad () continue to guide us through the complexities of life. Let this hadith be a source of peace and motivation for your day. Take a moment to reflect on how you can apply this beautiful teaching in your daily life.
 
-📌 Save this post to return to whenever you need a moment of peace.
+ Save this post to return to whenever you need a moment of peace.
 🤍 Share this with someone who needs to hear it today. (Sadaqah Jariyah)
 💬 Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
 
-🎙️ Source: Sahih al-Bukhari
+️ Source: Sahih al-Bukhari
 🎥 Footage: ReelDeen Studio
 
 .
@@ -1355,7 +1491,7 @@ ${hashtagFormat}`;
                 const uniqueTags = [...new Set(allTags)].slice(0, 25);
                 const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
                 const commaFormat = uniqueTags.join(', ');
-                const caption = ` ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.parts?.[0]?.translation || currentAyahs[0]?.translation || ''}"\n\nBeautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${hashtagFormat}`;
+                const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.parts?.[0]?.translation || currentAyahs[0]?.translation || ''}"\n\nBeautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${hashtagFormat}`;
                 tagsData = { hashtags: hashtagFormat, comma: commaFormat, caption };
             }
             
