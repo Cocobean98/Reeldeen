@@ -124,9 +124,9 @@
         
         <div class="flex items-center gap-4 text-sm">
             <button id="storyBtn" class="text-white/60 hover:text-white transition flex items-center gap-1">
-                <i data-lucide="heart" class="w-4 h-4"></i> Our Story
+                <i data-lucide="heart" class="w-4 h-4"></i> My Story
             </button>
-            <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support</a>
+            <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support Me</a>
             
             <div class="flex items-center gap-3 pl-4 border-l border-white/10">
                 <a href="https://www.instagram.com/reeldeen.app/" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Instagram">
@@ -483,11 +483,31 @@
         </div>
     </div>
 
+    <!-- Post Loading Overlay (30 seconds) -->
+    <div id="postLoadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
+        <div class="max-w-sm w-full text-center">
+            <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
+            <h3 class="text-xl font-semibold text-white mb-2">Preparing Your Post</h3>
+            <p class="text-white/60 text-sm mb-8">Optimizing image and applying effects...</p>
+            <div class="flex items-center justify-center gap-2 text-white/80 mb-8">
+                <span class="text-sm">Post ready in</span>
+                <span id="postCountdownTimer" class="font-mono font-bold text-accent-500 text-lg">0:30</span>
+            </div>
+            <div class="glass rounded-lg p-6 text-left">
+                <h4 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                    <i data-lucide="heart" class="w-4 h-4 text-accent-500"></i> The Heart Behind ReelDeen
+                </h4>
+                <p class="text-xs text-white/60 leading-relaxed mb-4">I'm a 28-year-old engineer supporting a family of six on a tight budget. I built ReelDeen as a Sadaqah Jariyah—a project for my Akhira.</p>
+                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full bg-accent-500 hover:bg-accent-600 text-white text-xs font-medium py-2.5 rounded text-center transition">Support ReelDeen & Our Charity</a>
+            </div>
+        </div>
+    </div>
+
     <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
         <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div class="p-8">
                 <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-white">The Story Behind ReelDeen</h2>
+                    <h2 class="text-2xl font-bold text-white">My Story</h2>
                     <button id="closeStoryBtn" class="text-white/40 hover:text-white transition"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
                 <p class="text-accent-500 mb-6 text-sm">One project for my Dunya, one for my Akhira.</p>
@@ -497,7 +517,7 @@
                     <p>I made a vow to Allah: if He grants me financial stability, I will take <em>Kafalah</em>, give generously to the poor, and provide for my family with dignity.</p>
                 </div>
                 <div class="mt-8 p-6 glass rounded-lg text-center">
-                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 px-6 rounded-lg transition text-sm">Support ReelDeen</a>
+                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 px-6 rounded-lg transition text-sm">Support Me</a>
                 </div>
             </div>
         </div>
@@ -1223,7 +1243,7 @@
                 if (match) surahName = match[1] || 'Bukhari';
             }
             
-            const emojis = ['📖', '✨', '🤍', '', '💫'];
+            const emojis = ['📖', '✨', '🤍', '', ''];
             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
             
             const caption = `${randomEmoji} A reminder your heart needs to hear today.
@@ -1249,6 +1269,38 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
             return caption;
         }
 
+        // ============================================
+        // POST LOADING SEQUENCE (30 seconds)
+        // ============================================
+        function startPostLoadingSequence(finalCallback) {
+            const postLoadingOverlay = document.getElementById('postLoadingOverlay');
+            const postCountdownTimer = document.getElementById('postCountdownTimer');
+            
+            postLoadingOverlay.classList.remove('hidden');
+            postLoadingOverlay.classList.add('flex');
+            lucide.createIcons();
+            
+            let timeLeft = 30;
+            updatePostTimerDisplay(timeLeft, postCountdownTimer);
+            
+            const interval = setInterval(() => {
+                timeLeft--;
+                updatePostTimerDisplay(timeLeft, postCountdownTimer);
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    postLoadingOverlay.classList.add('hidden');
+                    postLoadingOverlay.classList.remove('flex');
+                    finalCallback();
+                }
+            }, 1000);
+        }
+
+        function updatePostTimerDisplay(seconds, timerElement) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            timerElement.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
         document.getElementById('generatePostBtn').addEventListener('click', () => {
             const arabicText = document.getElementById('arabicQuote').value.trim();
             const englishText = document.getElementById('englishQuote').value.trim();
@@ -1258,15 +1310,19 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
                 return;
             }
             
-            renderPostFrame();
-            
-            postCaptionData = generatePostCaption();
-            document.getElementById('postCaptionContainer').textContent = postCaptionData;
-            document.getElementById('postTagsSection').classList.remove('hidden');
-            document.getElementById('downloadPostBtn').classList.remove('hidden');
-            document.getElementById('downloadPostBtn').style.display = 'flex';
-            
-            lucide.createIcons();
+            // Show loading screen for 30 seconds
+            startPostLoadingSequence(() => {
+                // After 30 seconds, complete the generation
+                renderPostFrame();
+                
+                postCaptionData = generatePostCaption();
+                document.getElementById('postCaptionContainer').textContent = postCaptionData;
+                document.getElementById('postTagsSection').classList.remove('hidden');
+                document.getElementById('downloadPostBtn').classList.remove('hidden');
+                document.getElementById('downloadPostBtn').style.display = 'flex';
+                
+                lucide.createIcons();
+            });
         });
 
         document.getElementById('copyPostCaptionBtn').addEventListener('click', () => {
@@ -1627,7 +1683,7 @@ The Hadith: Sahih al-Bukhari ${hadithNum}
 "${currentAyahs[0]?.translation || ''}"
 
 📌 Save this post.
-🤍 Share with someone who needs it. (Sadaqah Jariyah)
+ Share with someone who needs it. (Sadaqah Jariyah)
 💬 Comment 'Alhamdulillah' if this reached you at the perfect time.
 
 🎙️ Source: Sahih al-Bukhari
