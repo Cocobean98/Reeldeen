@@ -604,40 +604,6 @@
         }
 
         // ============================================
-        // REMOVE CHAIN OF NARRATION (ISNAD) FROM HADITH
-        // ============================================
-        function removeIsnad(text) {
-            if (!text) return text;
-            
-            // Pattern 1: Extract text within Arabic quotes « » or after قَالَ
-            // Match quoted text first
-            const quoteMatch = text.match(/[""«»]\s*([\u0600-\u06FF\s\.،]+?)\s*[""«»]/);
-            if (quoteMatch && quoteMatch[1]) {
-                return quoteMatch[1].trim();
-            }
-            
-            // Pattern 2: Remove everything before قَالَ (he said) and extract what follows
-            const qalaMatch = text.match(/قَالَ\s+(?:عَنِ النَّبِيِّ صلى الله عليه وسلم\s+)?[""«»]?\s*([\u0600-\u06FF\s\.،]+?)(?:\s*[""«»])?/);
-            if (qalaMatch && qalaMatch[1]) {
-                return qalaMatch[1].trim();
-            }
-            
-            // Pattern 3: Remove chain starting with حَدَّثَنَا or أَخْبَرَنَا up to قَالَ
-            let cleaned = text.replace(/^[\s\u0600-\u06FF]*?(?:حَدَّثَنَا|أَخْبَرَنَا)[\s\u0600-\u06FF]*?قَالَ\s+/g, '');
-            
-            // Remove narrator names and chains
-            cleaned = cleaned.replace(/^(?:عَنْ|عن)\s+[\u0600-\u06FF\s]+?\s+(?:عَنْ|عن|قَالَ)/g, 'قال ');
-            
-            // Clean up extra spaces and formatting marks
-            cleaned = cleaned.trim().replace(/\s+/g, ' ');
-            
-            // Remove any remaining chain indicators at the start
-            cleaned = cleaned.replace(/^[\u0600-\u06FF]*?(?:عَنْ|عن)\s+[\u0600-\u06FF\s]+?\s+(?:عَنْ|عن|قَالَ)\s*/g, '');
-            
-            return cleaned;
-        }
-
-        // ============================================
         // SMART TRUNCATION - Breaks at sentence boundaries
         // ============================================
         function smartTruncate(text, maxChars) {
@@ -758,7 +724,7 @@
         });
 
         // ============================================
-        // LOAD HADITH FOR POST MAKER (WITH ISNAD REMOVAL)
+        // LOAD HADITH FOR POST MAKER - Using Sunnah.com API
         // ============================================
         document.getElementById('loadPostHadithBtn').addEventListener('click', async () => {
             const num = parseInt(document.getElementById('postHadithNumberInput').value);
@@ -768,31 +734,29 @@
             }
             
             try {
-                const [engRes, araRes] = await Promise.all([
-                    fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari/${num}.json`),
-                    fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/ara-bukhari/${num}.json`)
-                ]);
+                // Use Sunnah.com API which provides clean hadith text without isnad
+                const response = await fetch(`https://api.sunnah.com/v1/hadiths/bukhari/${num}`);
                 
-                if (!engRes.ok || !araRes.ok) throw new Error('Hadith not found');
+                if (!response.ok) {
+                    throw new Error('Hadith not found');
+                }
                 
-                const engData = await engRes.json();
-                const araData = await araRes.json();
+                const data = await response.json();
                 
-                // Remove chain of narration (isnad) from both texts
-                const originalArabic = araData.hadiths[0]?.text || '';
-                const originalEnglish = engData.hadiths[0]?.text || '';
+                // Sunnah.com API provides the hadith text directly without the chain
+                const hadithData = data.data;
                 
                 selectedHadithData = {
                     number: num,
-                    arabic: removeIsnad(originalArabic),
-                    english: removeIsnad(originalEnglish),
+                    arabic: hadithData.arabic || '',
+                    english: hadithData.english || '',
                     reference: `Sahih Bukhari ${num}`
                 };
                 
                 document.getElementById('hadithContentSection').classList.remove('hidden');
                 document.getElementById('hadithPreviewSection').classList.remove('hidden');
                 
-                // Display full text preview (without isnad)
+                // Display full text preview
                 document.getElementById('hadithArabicPreview').textContent = selectedHadithData.arabic;
                 document.getElementById('hadithEnglishPreview').textContent = selectedHadithData.english;
                 
@@ -884,24 +848,20 @@
             selectedAyahs.clear();
             
             try {
-                const [engRes, araRes] = await Promise.all([
-                    fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari/${num}.json`),
-                    fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/ara-bukhari/${num}.json`)
-                ]);
+                // Use Sunnah.com API for reels as well
+                const response = await fetch(`https://api.sunnah.com/v1/hadiths/bukhari/${num}`);
                 
-                if (!engRes.ok || !araRes.ok) throw new Error('Hadith not found');
+                if (!response.ok) {
+                    throw new Error('Hadith not found');
+                }
                 
-                const engData = await engRes.json();
-                const araData = await araRes.json();
-                
-                // Remove chain of narration (isnad) from both texts
-                const originalArabic = araData.hadiths[0]?.text || '';
-                const originalEnglish = engData.hadiths[0]?.text || '';
+                const data = await response.json();
+                const hadithData = data.data;
                 
                 const hadithObj = {
                     numberInSurah: num,
-                    text: removeIsnad(originalArabic),
-                    translation: removeIsnad(originalEnglish),
+                    text: hadithData.arabic || '',
+                    translation: hadithData.english || '',
                     verseKey: `Bukhari:${num}`,
                     isHadith: true
                 };
@@ -1735,8 +1695,8 @@ The Hadith: Sahih al-Bukhari ${hadithNum}
  Share with someone who needs it. (Sadaqah Jariyah)
 💬 Comment 'Alhamdulillah' if this reached you at the perfect time.
 
-️ Source: Sahih al-Bukhari
- Footage: ReelDeen Studio
+🎙️ Source: Sahih al-Bukhari
+🎥 Footage: ReelDeen Studio
 
 .
 .
@@ -1750,7 +1710,7 @@ ${hashtagFormat}`;
                 const uniqueTags = [...new Set(allTags)].slice(0, 25);
                 const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
                 const commaFormat = uniqueTags.join(', ');
-                const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.parts?.[0]?.translation || currentAyahs[0]?.translation || ''}"\n\n💫 Save this for later & share!\n\n${hashtagFormat}`;
+                const caption = ` ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.parts?.[0]?.translation || currentAyahs[0]?.translation || ''}"\n\n💫 Save this for later & share!\n\n${hashtagFormat}`;
                 tagsData = { hashtags: hashtagFormat, comma: commaFormat, caption };
             }
             
