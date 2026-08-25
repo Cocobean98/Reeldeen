@@ -604,6 +604,30 @@
         }
 
         // ============================================
+        // REMOVE CHAIN OF NARRATION (ISNAD) FROM HADITH
+        // ============================================
+        function removeIsnad(text) {
+            if (!text) return text;
+            
+            // Remove Arabic chain patterns
+            // Pattern: حدثنا ... عن ... عن ... (narrated to us ... from ... from ...)
+            let cleaned = text.replace(/حدثنا\s+[\u0600-\u06FF\s]+?\s+(?:عن|قال)\s+/g, '');
+            
+            // Remove English chain patterns
+            // Pattern: "Narrated by ...", "It was narrated that ...", etc.
+            cleaned = cleaned.replace(/^(Narrated|It was narrated|He said|She said)\s+[^.]*\.\s*/i, '');
+            cleaned = cleaned.replace(/^(Abu|Ibn|Anas|Aisha|Abdullah)\s+[^.]*\.\s*/i, '');
+            
+            // Remove common narrator names at the beginning
+            cleaned = cleaned.replace(/^(Muhammad|Ahmad|Ali|Umar|Abu Bakr|Ibn Abbas|Anas bin Malik)\s+[^.]*\.\s*/i, '');
+            
+            // Clean up extra spaces
+            cleaned = cleaned.trim().replace(/\s+/g, ' ');
+            
+            return cleaned;
+        }
+
+        // ============================================
         // SMART TRUNCATION - Breaks at sentence boundaries
         // ============================================
         function smartTruncate(text, maxChars) {
@@ -724,7 +748,7 @@
         });
 
         // ============================================
-        // LOAD HADITH FOR POST MAKER
+        // LOAD HADITH FOR POST MAKER (WITH ISNAD REMOVAL)
         // ============================================
         document.getElementById('loadPostHadithBtn').addEventListener('click', async () => {
             const num = parseInt(document.getElementById('postHadithNumberInput').value);
@@ -744,17 +768,21 @@
                 const engData = await engRes.json();
                 const araData = await araRes.json();
                 
+                // Remove chain of narration (isnad) from both texts
+                const originalArabic = araData.hadiths[0]?.text || '';
+                const originalEnglish = engData.hadiths[0]?.text || '';
+                
                 selectedHadithData = {
                     number: num,
-                    arabic: araData.hadiths[0]?.text || '',
-                    english: engData.hadiths[0]?.text || '',
+                    arabic: removeIsnad(originalArabic),
+                    english: removeIsnad(originalEnglish),
                     reference: `Sahih Bukhari ${num}`
                 };
                 
                 document.getElementById('hadithContentSection').classList.remove('hidden');
                 document.getElementById('hadithPreviewSection').classList.remove('hidden');
                 
-                // Display full text preview
+                // Display full text preview (without isnad)
                 document.getElementById('hadithArabicPreview').textContent = selectedHadithData.arabic;
                 document.getElementById('hadithEnglishPreview').textContent = selectedHadithData.english;
                 
@@ -856,10 +884,14 @@
                 const engData = await engRes.json();
                 const araData = await araRes.json();
                 
+                // Remove chain of narration (isnad) from both texts
+                const originalArabic = araData.hadiths[0]?.text || '';
+                const originalEnglish = engData.hadiths[0]?.text || '';
+                
                 const hadithObj = {
                     numberInSurah: num,
-                    text: araData.hadiths[0]?.text || '',
-                    translation: engData.hadiths[0]?.text || '',
+                    text: removeIsnad(originalArabic),
+                    translation: removeIsnad(originalEnglish),
                     verseKey: `Bukhari:${num}`,
                     isHadith: true
                 };
@@ -906,7 +938,7 @@
         });
 
         // ============================================
-        // POST MAKER - IMAGE SEARCH (FIXED)
+        // POST MAKER - IMAGE SEARCH (FIXED WITH DIRECT URLS)
         // ============================================
         async function searchImages(query) {
             if (!query) return;
@@ -917,9 +949,11 @@
             let allImages = [];
             
             try {
-                // Pixabay Images
+                // Pixabay Images - using direct API URL
                 try {
-                    const pixabayRes = await fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=12`);
+                    const pixabayKey = ''; // Add your Pixabay API key here if needed
+                    const pixabayUrl = `https://pixabay.com/api/?key=${pixabayKey}&q=${encodeURIComponent(query)}&per_page=12&image_type=photo`;
+                    const pixabayRes = await fetch(pixabayUrl);
                     if (pixabayRes.ok) {
                         const pixabayData = await pixabayRes.json();
                         if (pixabayData.hits && pixabayData.hits.length > 0) {
@@ -932,9 +966,14 @@
                     }
                 } catch (e) { console.warn('Pixabay failed:', e); }
                 
-                // Pexels Images
+                // Pexels Images - using direct API URL
                 try {
-                    const pexelsRes = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12`);
+                    const pexelsKey = ''; // Add your Pexels API key here if needed
+                    const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=12`, {
+                        headers: {
+                            'Authorization': pexelsKey
+                        }
+                    });
                     if (pexelsRes.ok) {
                         const pexelsData = await pexelsRes.json();
                         if (pexelsData.photos && pexelsData.photos.length > 0) {
