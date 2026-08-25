@@ -590,7 +590,7 @@
             if (!text || text.length <= maxChars) return { text: text, truncated: false };
             
             // Try to find a sentence boundary (period, question mark, exclamation, or Arabic sentence end)
-            const sentenceEndings = /[.!?؟。]/g;
+            const sentenceEndings = /[.!?؟۔]/g;
             let lastSentenceEnd = -1;
             let match;
             
@@ -886,7 +886,7 @@
         });
 
         // ============================================
-        // POST MAKER - IMAGE SEARCH
+        // POST MAKER - IMAGE SEARCH (FIXED)
         // ============================================
         async function searchImages(query) {
             if (!query) return;
@@ -897,6 +897,7 @@
             let allImages = [];
             
             try {
+                // Pixabay Images
                 try {
                     const pixabayRes = await fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=12`);
                     if (pixabayRes.ok) {
@@ -911,6 +912,7 @@
                     }
                 } catch (e) { console.warn('Pixabay failed:', e); }
                 
+                // Pexels Images
                 try {
                     const pexelsRes = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12`);
                     if (pexelsRes.ok) {
@@ -950,6 +952,11 @@
                 imgEl.className = 'thumbnail-img';
                 imgEl.style.opacity = '1';
                 imgEl.crossOrigin = 'anonymous';
+                
+                // Add error handler for broken images
+                imgEl.onerror = () => {
+                    imgEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23333" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                };
                 
                 const checkEl = document.createElement('div');
                 checkEl.className = 'checkmark-overlay';
@@ -1018,7 +1025,7 @@
         });
 
         // ============================================
-        // POST RENDERING WITH SMART TRUNCATION
+        // POST RENDERING WITH SMART TRUNCATION (FIXED)
         // ============================================
         function renderPostFrame() {
             const W = postCanvas.width;
@@ -1027,7 +1034,7 @@
             
             ctx.clearRect(0, 0, W, H);
             
-            // Draw background
+            // Draw background image if available
             if (postBgImage && postBgImage.complete && postBgImage.naturalWidth > 0) {
                 const imgAspect = postBgImage.naturalWidth / postBgImage.naturalHeight;
                 const canvasAspect = W / H;
@@ -1047,6 +1054,7 @@
                 
                 ctx.drawImage(postBgImage, drawX, drawY, drawWidth, drawHeight);
             } else {
+                // Fallback gradient background
                 const grad = ctx.createLinearGradient(0, 0, 0, H);
                 grad.addColorStop(0, '#1a3a3a');
                 grad.addColorStop(1, '#0a1a1a');
@@ -1215,7 +1223,7 @@
                 if (match) surahName = match[1] || 'Bukhari';
             }
             
-            const emojis = ['📖', '✨', '🤍', '🌙', '💫'];
+            const emojis = ['📖', '✨', '🤍', '', '💫'];
             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
             
             const caption = `${randomEmoji} A reminder your heart needs to hear today.
@@ -1228,8 +1236,8 @@ Reflection:
 In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometimes we get so caught up in the noise of the world that we forget the ultimate source of peace is just a reflection away.
 
 📌 Save this post to return to whenever you need a moment of peace.
-🤍 Share this with someone who needs to hear it today. (Sadaqah Jariyah)
-💬 Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
+ Share this with someone who needs to hear it today. (Sadaqah Jariyah)
+ Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
 
 🎥 Image: ReelDeen Studio
 
@@ -1612,7 +1620,7 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
                 const uniqueTags = [...new Set(allTags)].slice(0, 25);
                 const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
                 const commaFormat = uniqueTags.join(', ');
-                const caption = `📖 A beautiful reminder from the Sunnah.
+                const caption = ` A beautiful reminder from the Sunnah.
 
 The Hadith: Sahih al-Bukhari ${hadithNum}
 
