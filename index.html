@@ -14,7 +14,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
 
@@ -22,10 +22,63 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], arabic: ['Scheherazade New', 'serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'], 
+                        arabic: ['Scheherazade New', 'serif'], 
+                        mono: ['JetBrains Mono', 'monospace'],
+                        display: ['Playfair Display', 'serif']
+                    },
                     colors: {
-                        dark: { 900: '#0a0a0a', 800: '#121212', 700: '#1a1a1a', 600: '#242424' },
-                        accent: { 500: '#10b981', 600: '#059669' }
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        },
+                        gold: {
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'slide-down': 'slideDown 0.5s ease-out',
+                        'scale-in': 'scaleIn 0.4s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideDown: {
+                            '0%': { transform: 'translateY(-20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
                     }
                 }
             }
@@ -33,123 +86,381 @@
     </script>
 
     <style>
-        body { background: #0a0a0a; color: #e5e5e5; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #121212; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        .glass { background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
-        .ayah-row { transition: all 0.15s; border-left: 2px solid transparent; }
-        .ayah-row:hover { background: #1a1a1a; }
-        .ayah-row.selected { background: #1a1a1a; border-left-color: #10b981; }
-        .modal-overlay { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
-        #previewCanvas, #postCanvas {
-            width: 100%; max-width: 360px; aspect-ratio: 9/16;
-            border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+        body { 
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%); 
+            color: #e5e5e5;
+            overflow-x: hidden;
         }
-        .video-thumbnail, .image-thumbnail {
-            cursor: pointer; transition: transform 0.2s, border-color 0.2s;
-            aspect-ratio: 9/16; overflow: hidden; position: relative; background: #1a1a1a;
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.7); }
+        
+        /* Glassmorphism */
+        .glass { 
+            background: rgba(18, 18, 18, 0.7); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
-        .image-thumbnail { aspect-ratio: 1; }
-        .video-thumbnail:hover, .image-thumbnail:hover { transform: scale(1.05); border-color: #10b981; }
-        .video-thumbnail.selected, .image-thumbnail.selected { border-color: #10b981 !important; border-width: 3px; }
-        .video-thumbnail video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
-        .video-thumbnail .thumbnail-img, .image-thumbnail .thumbnail-img { 
-            width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; transition: opacity 0.3s; 
+        
+        .glass-card {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.3s ease;
         }
-        .video-thumbnail:hover .thumbnail-img, .image-thumbnail:hover .thumbnail-img { opacity: 0; }
-        .checkmark-overlay {
-            position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
-            background: #10b981; border-radius: 50%; display: flex;
-            align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; z-index: 10;
+        
+        .glass-card:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(16, 185, 129, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(16, 185, 129, 0.1);
         }
-        .video-thumbnail.selected .checkmark-overlay, .image-thumbnail.selected .checkmark-overlay { opacity: 1; }
-        .disclaimer-box {
-            background: rgba(251, 191, 36, 0.08);
-            border: 1px solid rgba(251, 191, 36, 0.25);
+        
+        /* Islamic Pattern Background */
+        .islamic-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Button Styles */
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+        
+        /* Input Styles */
+        .input-field {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            background: rgba(255,255,255,0.08);
+        }
+        
+        /* Canvas Container */
+        .canvas-container {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .canvas-container:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 30px 100px rgba(16, 185, 129, 0.2);
+        }
+        
+        /* Loading Screen */
+        .loading-screen {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+        }
+        
+        /* Prayer Reminder */
+        .prayer-reminder {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 90;
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        /* Ayah Row */
+        .ayah-row { 
+            transition: all 0.2s ease; 
+            border-left: 3px solid transparent;
             border-radius: 8px;
-            padding: 10px 12px;
-            margin-top: 12px;
         }
-        .social-icon { display: flex; align-items: center; justify-content: center; }
-        .social-icon svg { width: 16px; height: 16px; }
-        .tab-active { background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: #10b981; }
-        .size-btn, .mode-btn { transition: all 0.2s; }
-        .size-btn.active, .mode-btn.active { background: #10b981; color: white; border-color: #10b981; }
-        .tool-section { display: none !important; }
-        .tool-section.active { display: flex !important; }
-        .nav-tab { min-width: 140px; text-align: center; justify-content: center; }
-        .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-        .checkbox-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: #10b981; cursor: pointer; }
-        .char-warning { 
-            background: rgba(251, 191, 36, 0.1); 
+        .ayah-row:hover { 
+            background: rgba(16, 185, 129, 0.1); 
+            border-left-color: #10b981;
+            transform: translateX(4px);
+        }
+        .ayah-row.selected { 
+            background: rgba(16, 185, 129, 0.15); 
+            border-left-color: #10b981;
+        }
+        
+        /* Modal Overlay */
+        .modal-overlay { 
+            background: rgba(0, 0, 0, 0.85); 
+            backdrop-filter: blur(8px); 
+        }
+        
+        /* Video/Image Thumbnails */
+        .media-thumbnail {
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            aspect-ratio: 9/16; 
+            overflow: hidden; 
+            position: relative; 
+            background: #1a1a1a;
+            border-radius: 12px;
+            border: 2px solid transparent;
+        }
+        
+        .image-thumbnail { aspect-ratio: 1; }
+        
+        .media-thumbnail:hover { 
+            transform: scale(1.05); 
+            border-color: #10b981;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+        
+        .media-thumbnail.selected { 
+            border-color: #10b981 !important; 
+            border-width: 3px;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+        }
+        
+        .media-thumbnail video, .media-thumbnail img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+        }
+        
+        .checkmark-overlay {
+            position: absolute; 
+            top: 8px; 
+            right: 8px; 
+            width: 28px; 
+            height: 28px;
+            background: #10b981; 
+            border-radius: 50%; 
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            opacity: 0; 
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+        
+        .media-thumbnail.selected .checkmark-overlay { 
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        /* Tab Styles */
+        .nav-tab {
+            min-width: 140px;
+            text-align: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-active {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+        }
+        
+        /* Size/Mode Buttons */
+        .size-btn, .mode-btn {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .size-btn.active, .mode-btn.active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-color: #10b981;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+        
+        .tool-section {
+            display: none !important;
+        }
+        .tool-section.active {
+            display: flex !important;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        /* Checkbox */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .checkbox-label:hover {
+            color: #10b981;
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #10b981;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        /* Warning Box */
+        .char-warning {
+            background: rgba(251, 191, 36, 0.1);
             border: 1px solid rgba(251, 191, 36, 0.3);
             color: #fbbf24;
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-size: 11px;
-            margin-top: 6px;
+            margin-top: 8px;
+            animation: slideDown 0.3s ease-out;
         }
+        
+        /* Full Text Preview */
         .full-text-preview {
             background: rgba(16, 185, 129, 0.05);
             border: 1px solid rgba(16, 185, 129, 0.2);
-            border-radius: 6px;
-            padding: 8px;
+            border-radius: 8px;
+            padding: 12px;
             max-height: 120px;
             overflow-y: auto;
             font-size: 11px;
-            line-height: 1.5;
+            line-height: 1.6;
+        }
+        
+        /* Social Icons */
+        .social-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icon:hover {
+            background: rgba(16, 185, 129, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .social-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        /* Disclaimer Box */
+        .disclaimer-box {
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.25);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 16px;
+        }
+        
+        /* Canvas */
+        #previewCanvas, #postCanvas {
+            width: 100%; 
+            max-width: 360px; 
+            aspect-ratio: 9/16;
+            border-radius: 16px; 
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255,255,255,0.1); 
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #previewCanvas:hover, #postCanvas:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 30px 100px rgba(16, 185, 129, 0.2);
         }
     </style>
 </head>
-<body class="font-sans h-screen flex flex-col overflow-hidden">
+<body class="font-sans h-screen flex flex-col overflow-hidden islamic-pattern">
 
-    <header class="h-14 border-b border-white/5 bg-dark-900 flex items-center justify-between px-6 shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="w-7 h-7 bg-accent-500 rounded-md flex items-center justify-center">
-                <i data-lucide="play" class="w-4 h-4 text-white fill-white"></i>
+    <!-- Header -->
+    <header class="h-16 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 animate-slide-down">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
+                <i data-lucide="play" class="w-5 h-5 text-white fill-white"></i>
             </div>
-            <span class="font-semibold text-white tracking-tight">ReelDeen <span class="text-white/40 font-normal">Studio</span></span>
+            <div>
+                <span class="font-display font-bold text-xl text-white tracking-tight">ReelDeen</span>
+                <span class="text-white/40 font-normal text-sm ml-1">Studio</span>
+            </div>
         </div>
         
-        <nav class="flex items-center gap-2">
-            <button id="reelTab" class="nav-tab tab-active px-4 py-1.5 rounded-md text-sm font-medium border border-transparent transition flex items-center gap-2">
+        <nav class="flex items-center gap-3">
+            <button id="reelTab" class="nav-tab tab-active px-5 py-2.5 rounded-xl text-sm font-medium border border-transparent transition flex items-center gap-2">
                 <i data-lucide="video" class="w-4 h-4"></i> Reel Studio
             </button>
-            <button id="postTab" class="nav-tab px-4 py-1.5 rounded-md text-sm font-medium border border-transparent text-white/60 hover:text-white transition flex items-center gap-2">
+            <button id="postTab" class="nav-tab px-5 py-2.5 rounded-xl text-sm font-medium border border-transparent text-white/60 hover:text-white transition flex items-center gap-2">
                 <i data-lucide="image" class="w-4 h-4"></i> Post Maker
             </button>
         </nav>
         
-        <div class="flex items-center gap-4 text-sm">
-            <button id="storyBtn" class="text-white/60 hover:text-white transition flex items-center gap-1">
-                <i data-lucide="heart" class="w-4 h-4"></i> Our Story
+        <div class="flex items-center gap-6 text-sm">
+            <button id="storyBtn" class="text-white/60 hover:text-white transition flex items-center gap-2 group">
+                <i data-lucide="heart" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> Our Story
             </button>
             <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="text-white/60 hover:text-white transition">Support</a>
             
-            <div class="flex items-center gap-3 pl-4 border-l border-white/10">
-                <a href="https://www.instagram.com/reeldeen.app/" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Instagram">
-                    <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-                    </svg>
+            <div class="flex items-center gap-3 pl-6 border-l border-white/10">
+                <a href="https://www.instagram.com/reeldeen.app/" target="_blank" class="social-icon text-white/60 hover:text-white" title="Instagram">
+                    <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                 </a>
-                <a href="https://www.threads.net/@reeldeen.app" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Threads">
-                    <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.27 18.354 1.5 15.246 1.5 12c0-3.219.904-6.162 2.615-8.514C6.005.9 8.754 0 12 0h.035c3.252.011 5.998.914 8.161 2.687 2.17 1.779 3.302 4.273 3.36 7.413a1.05 1.05 0 0 1-1.027 1.07h-.023a1.05 1.05 0 0 1-1.049-1.022c-.028-1.617-.523-2.868-1.509-3.818-1.036-.999-2.564-1.528-4.539-1.573h-.066c-1.905.005-3.39.49-4.404 1.443-1.039.977-1.582 2.365-1.615 4.125-.033 1.789.476 3.215 1.512 4.246 1.026 1.021 2.496 1.538 4.373 1.538h.034c1.885-.005 3.372-.507 4.416-1.493 1.056-.998 1.61-2.414 1.646-4.208a1.05 1.05 0 0 1 1.05-1.027h.023a1.05 1.05 0 0 1 1.027 1.073c-.058 3.14-1.19 5.634-3.36 7.413-2.163 1.773-4.909 2.676-8.161 2.687h-.007zm-.137-7.127c-1.443 0-2.678-.508-3.578-1.473-.903-.968-1.389-2.28-1.371-3.694.018-1.416.538-2.714 1.463-3.656.921-.938 2.174-1.423 3.622-1.402 1.448.02 2.682.544 3.578 1.514.893.967 1.375 2.278 1.357 3.693-.018 1.416-.538 2.714-1.463 3.656-.921.938-2.174 1.423-3.622 1.402h.014z"/>
-                    </svg>
+                <a href="https://www.threads.net/@reeldeen.app" target="_blank" class="social-icon text-white/60 hover:text-white" title="Threads">
+                    <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.27 18.354 1.5 15.246 1.5 12c0-3.219.904-6.162 2.615-8.514C6.005.9 8.754 0 12 0h.035c3.252.011 5.998.914 8.161 2.687 2.17 1.779 3.302 4.273 3.36 7.413a1.05 1.05 0 0 1-1.027 1.07h-.023a1.05 1.05 0 0 1-1.049-1.022c-.028-1.617-.523-2.868-1.509-3.818-1.036-.999-2.564-1.528-4.539-1.573h-.066c-1.905.005-3.39.49-4.404 1.443-1.039.977-1.582 2.365-1.615 4.125-.033 1.789.476 3.215 1.512 4.246 1.026 1.021 2.496 1.538 4.373 1.538h.034c1.885-.005 3.372-.507 4.416-1.493 1.056-.998 1.61-2.414 1.646-4.208a1.05 1.05 0 0 1 1.05-1.027h.023a1.05 1.05 0 0 1 1.027 1.073c-.058 3.14-1.19 5.634-3.36 7.413-2.163 1.773-4.909 2.676-8.161 2.687h-.007zm-.137-7.127c-1.443 0-2.678-.508-3.578-1.473-.903-.968-1.389-2.28-1.371-3.694.018-1.416.538-2.714 1.463-3.656.921-.938 2.174-1.423 3.622-1.402 1.448.02 2.682.544 3.578 1.514.893.967 1.375 2.278 1.357 3.693-.018 1.416-.538 2.714-1.463 3.656-.921.938-2.174 1.423-3.622 1.402h.014z"/></svg>
                 </a>
-                <a href="https://www.facebook.com/profile.php?viewas=100000686899395&id=61590823768385" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Facebook">
-                    <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
+                <a href="https://www.facebook.com/profile.php?viewas=100000686899395&id=61590823768385" target="_blank" class="social-icon text-white/60 hover:text-white" title="Facebook">
+                    <svg fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                 </a>
             </div>
             
-            <button id="downloadBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium items-center gap-2 transition">
+            <button id="downloadBtn" class="hidden btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
                 <i data-lucide="download" class="w-4 h-4"></i> <span id="downloadLabel">Download MP4</span>
             </button>
-            <button id="downloadPostBtn" class="hidden bg-accent-500 hover:bg-accent-600 text-white px-4 py-1.5 rounded-md text-sm font-medium items-center gap-2 transition">
+            <button id="downloadPostBtn" class="hidden btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
                 <i data-lucide="download" class="w-4 h-4"></i> Download Image
             </button>
         </div>
@@ -157,44 +468,44 @@
 
     <!-- REEL STUDIO SECTION -->
     <div id="reelSection" class="tool-section active flex-1 flex overflow-hidden">
-        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0" style="min-height: 0;">
-            <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
-                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Videos</label>
+        <aside class="w-80 border-r border-white/5 bg-black/30 backdrop-blur-xl flex flex-col shrink-0 animate-fade-in">
+            <div class="p-5 border-b border-white/5">
+                <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Search Background Videos</label>
                 <div class="flex gap-2 mb-3">
                     <input type="text" id="videoSearchInput" placeholder="e.g., nature, forest, ocean..." 
-                           class="flex-1 bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
-                    <button id="searchVideoBtn" class="bg-accent-500 hover:bg-accent-600 text-white px-3 py-2 rounded-md transition">
+                           class="flex-1 input-field rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none">
+                    <button id="searchVideoBtn" class="btn-primary text-white px-4 py-2.5 rounded-xl transition">
                         <i data-lucide="search" class="w-4 h-4"></i>
                     </button>
                 </div>
                 <div id="videoSearchResults" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto hidden"></div>
-                <div id="selectedVideoIndicator" class="hidden mt-3 p-2 bg-accent-500/10 border border-accent-500/30 rounded-lg items-center gap-2">
-                    <i data-lucide="check-circle" class="w-4 h-4 text-accent-500"></i>
-                    <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
+                <div id="selectedVideoIndicator" class="hidden mt-3 p-3 bg-primary-500/10 border border-primary-500/30 rounded-xl flex items-center gap-2 animate-scale-in">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-primary-500"></i>
+                    <span class="text-xs text-primary-400 font-medium flex-1">Background selected</span>
                     <button id="changeVideoBtn" class="text-xs text-white/60 hover:text-white underline">Change</button>
                 </div>
             </div>
 
-            <div class="p-4 border-b border-white/5 shrink-0">
-                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Content Type</label>
-                <select id="contentTypeSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500 mb-3">
+            <div class="p-5 border-b border-white/5">
+                <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Content Type</label>
+                <select id="contentTypeSelect" class="w-full input-field rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none mb-3">
                     <option value="quran">Quran</option>
                     <option value="hadith">Hadith (Sahih Bukhari)</option>
                 </select>
 
                 <div id="quranSelector">
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
-                    <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                    <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Surah</label>
+                    <select id="surahSelect" class="w-full input-field rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none">
                         <option value="">Loading...</option>
                     </select>
                 </div>
 
                 <div id="hadithSelector" class="hidden">
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Hadith Number (1 - 7563)</label>
+                    <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Hadith Number (1 - 7563)</label>
                     <div class="flex gap-2">
                         <input type="number" id="hadithNumberInput" min="1" max="7563" placeholder="e.g., 1" 
-                               class="flex-1 bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
-                        <button id="loadHadithBtn" class="bg-accent-500 hover:bg-accent-600 text-white px-3 py-2 rounded-md transition">
+                               class="flex-1 input-field rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none">
+                        <button id="loadHadithBtn" class="btn-primary text-white px-4 py-2.5 rounded-xl transition">
                             <i data-lucide="search" class="w-4 h-4"></i>
                         </button>
                     </div>
@@ -202,12 +513,12 @@
                 </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-2" style="min-height: 0;">
+            <div class="flex-1 overflow-y-auto p-3" style="min-height: 0;">
                 <div class="flex items-center justify-between px-2 py-2 mb-2 shrink-0">
-                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Verses</span>
+                    <span class="text-xs font-semibold text-white/60 uppercase tracking-wider">Verses</span>
                     <div class="flex gap-2">
-                        <button id="selectAllBtn" class="text-xs text-white/40 hover:text-white">All</button>
-                        <button id="clearAllBtn" class="text-xs text-white/40 hover:text-white">None</button>
+                        <button id="selectAllBtn" class="text-xs text-white/40 hover:text-white transition">All</button>
+                        <button id="clearAllBtn" class="text-xs text-white/40 hover:text-white transition">None</button>
                     </div>
                 </div>
                 <div id="ayahList" class="space-y-1">
@@ -215,75 +526,80 @@
                 </div>
             </div>
             
-            <div class="p-4 border-t border-white/5 bg-dark-900/50 shrink-0">
+            <div class="p-4 border-t border-white/5 bg-black/20 shrink-0">
                 <div class="flex items-center justify-between text-xs text-white/60 mb-2">
                     <span>Selected</span>
-                    <span id="selectedCount" class="font-mono text-white">0</span>
+                    <span id="selectedCount" class="font-mono text-white bg-white/10 px-2 py-1 rounded">0</span>
                 </div>
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative min-w-0 overflow-hidden">
-            <div class="flex flex-col items-center justify-center max-h-full">
-                <canvas id="previewCanvas" width="1080" height="1920"></canvas>
-                <p class="mt-6 text-xs text-white/30 font-mono">9:16 Canvas Preview • Click to Play/Pause</p>
+        <main class="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-black/50 via-primary-900/10 to-black/50 p-8 relative min-w-0 overflow-hidden">
+            <div class="flex flex-col items-center justify-center max-h-full animate-scale-in">
+                <div class="canvas-container">
+                    <canvas id="previewCanvas" width="1080" height="1920"></canvas>
+                </div>
+                <p class="mt-6 text-xs text-white/40 font-mono flex items-center gap-2">
+                    <i data-lucide="info" class="w-3 h-3"></i>
+                    9:16 Canvas Preview • Click to Play/Pause
+                </p>
             </div>
         </main>
 
-        <aside class="w-72 border-l border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto" style="min-height: 0;">
-            <div class="p-4 border-b border-white/5">
-                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reciter</label>
-                <select id="reciterSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+        <aside class="w-72 border-l border-white/5 bg-black/30 backdrop-blur-xl flex flex-col shrink-0 overflow-y-auto animate-fade-in" style="min-height: 0;">
+            <div class="p-5 border-b border-white/5">
+                <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Reciter</label>
+                <select id="reciterSelect" class="w-full input-field rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none">
                     <option value="7">Mishary Rashid Alafasy</option>
                     <option value="9">Abdul Basit (Murattal)</option>
                     <option value="10">Mahmoud Khalil Al-Husary</option>
                     <option value="12">Abdur-Rahman as-Sudais</option>
                 </select>
                 
-                <div class="mt-3 pt-3 border-t border-white/5">
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Or Use Your Own Audio</label>
-                    <label class="flex items-center justify-center gap-2 w-full bg-dark-700 hover:bg-dark-600 border border-white/10 hover:border-accent-500/50 rounded-md px-3 py-2 text-xs text-white/80 cursor-pointer transition">
-                        <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                <div class="mt-4 pt-4 border-t border-white/5">
+                    <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Or Use Your Own Audio</label>
+                    <label class="flex items-center justify-center gap-2 w-full glass-card rounded-xl px-4 py-3 text-xs text-white/80 cursor-pointer transition">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
                         <span id="customAudioLabel">Upload MP3</span>
                         <input type="file" id="customAudioInput" accept="audio/mp3,audio/mpeg,audio/*" class="hidden">
                     </label>
-                    <div id="customAudioInfo" class="hidden mt-2 p-2 bg-accent-500/10 border border-accent-500/30 rounded-md flex items-center gap-2">
-                        <i data-lucide="music" class="w-3.5 h-3.5 text-accent-500 flex-shrink-0"></i>
-                        <span id="customAudioName" class="text-xs text-accent-500 flex-1 truncate"></span>
+                    <div id="customAudioInfo" class="hidden mt-3 p-3 bg-primary-500/10 border border-primary-500/30 rounded-xl flex items-center gap-2 animate-scale-in">
+                        <i data-lucide="music" class="w-4 h-4 text-primary-500 flex-shrink-0"></i>
+                        <span id="customAudioName" class="text-xs text-primary-400 flex-1 truncate"></span>
                         <button id="removeCustomAudio" class="text-white/40 hover:text-white text-xs underline flex-shrink-0">Remove</button>
                     </div>
-                    <p class="text-[10px] text-white/40 mt-2 leading-tight">Upload your own recitation or background audio. <strong class="text-accent-500">Required for Hadith reels.</strong></p>
+                    <p class="text-[10px] text-white/40 mt-2 leading-relaxed">Upload your own recitation or background audio. <strong class="text-primary-400">Required for Hadith reels.</strong></p>
                 </div>
             </div>
 
-            <div class="p-4 border-b border-white/5">
-                <button id="generateBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 rounded-md flex items-center justify-center gap-2 transition text-sm mb-3">
+            <div class="p-5 border-b border-white/5">
+                <button id="generateBtn" class="w-full btn-primary text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 transition text-sm mb-3">
                     <i data-lucide="wand-2" class="w-4 h-4"></i> <span id="generateBtnText">Generate Reel</span>
                 </button>
                 <div id="statusMsg" class="mt-3 text-xs text-center hidden"></div>
             </div>
 
-            <div id="tagsSection" class="hidden p-4 border-b border-white/5">
+            <div id="tagsSection" class="hidden p-5 border-b border-white/5">
                 <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider">Auto-Generated Tags</span>
-                    <button id="toggleTagFormat" class="text-xs text-accent-500 hover:text-accent-400 font-medium">Switch Format</button>
+                    <span class="text-xs font-semibold text-white/60 uppercase tracking-wider">Auto-Generated Tags</span>
+                    <button id="toggleTagFormat" class="text-xs text-primary-400 hover:text-primary-300 font-medium transition">Switch Format</button>
                 </div>
                 <div class="mb-3">
-                    <button id="copyTagsBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
+                    <button id="copyTagsBtn" class="w-full bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1 mb-2">
                         <i data-lucide="copy" class="w-3 h-3"></i> Copy Tags
                     </button>
-                    <div id="tagsContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-24 overflow-y-auto break-words"></div>
+                    <div id="tagsContainer" class="text-xs text-white/70 bg-white/5 p-3 rounded-xl max-h-24 overflow-y-auto break-words"></div>
                 </div>
                 <div>
-                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider block mb-2">Caption</span>
-                    <button id="copyCaptionBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
+                    <span class="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-2">Caption</span>
+                    <button id="copyCaptionBtn" class="w-full bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1 mb-2">
                         <i data-lucide="copy" class="w-3 h-3"></i> Copy Caption
                     </button>
-                    <div id="captionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap"></div>
+                    <div id="captionContainer" class="text-xs text-white/70 bg-white/5 p-3 rounded-xl max-h-32 overflow-y-auto whitespace-pre-wrap"></div>
                 </div>
             </div>
 
-            <div class="p-4 mt-auto">
+            <div class="p-5 mt-auto">
                 <div class="disclaimer-box">
                     <div class="flex items-start gap-2">
                         <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
@@ -303,57 +619,57 @@
 
     <!-- POST MAKER SECTION -->
     <div id="postSection" class="tool-section flex-1 flex overflow-hidden">
-        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto" style="min-height: 0;">
+        <aside class="w-80 border-r border-white/5 bg-black/30 backdrop-blur-xl flex flex-col shrink-0 overflow-y-auto animate-fade-in" style="min-height: 0;">
             <!-- Mode Selection -->
-            <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
-                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Post Mode</label>
+            <div class="p-5 border-b border-white/5">
+                <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Post Mode</label>
                 <div class="grid grid-cols-2 gap-2">
-                    <button class="mode-btn active bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-mode="manual">
+                    <button class="mode-btn active glass-card rounded-xl px-4 py-3 text-xs text-white/80" data-mode="manual">
                         Manual Input
                     </button>
-                    <button class="mode-btn bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-mode="hadith">
+                    <button class="mode-btn glass-card rounded-xl px-4 py-3 text-xs text-white/80" data-mode="hadith">
                         Select Hadith
                     </button>
                 </div>
             </div>
 
             <!-- Manual Mode -->
-            <div id="manualModeSection" class="p-4 border-b border-white/5 shrink-0 space-y-3">
+            <div id="manualModeSection" class="p-5 border-b border-white/5 space-y-4">
                 <div>
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Arabic Quote / Hadith</label>
+                    <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2 block">Arabic Quote / Hadith</label>
                     <textarea id="arabicQuote" rows="3" placeholder="Enter Arabic text..." 
-                              class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white font-arabic text-right focus:outline-none focus:border-accent-500 resize-none" dir="rtl"></textarea>
+                              class="w-full input-field rounded-xl px-4 py-3 text-sm text-white font-arabic text-right focus:outline-none resize-none" dir="rtl"></textarea>
                     <div id="arabicCharCount" class="text-[10px] text-white/40 mt-1 text-right">0 chars</div>
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">English Translation</label>
+                    <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2 block">English Translation</label>
                     <textarea id="englishQuote" rows="2" placeholder="Enter English translation..." 
-                              class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500 resize-none"></textarea>
+                              class="w-full input-field rounded-xl px-4 py-3 text-sm text-white focus:outline-none resize-none"></textarea>
                     <div id="englishCharCount" class="text-[10px] text-white/40 mt-1 text-right">0 chars</div>
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reference (Optional)</label>
+                    <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2 block">Reference (Optional)</label>
                     <input type="text" id="quoteReference" placeholder="e.g., Surah Al-Baqarah 2:286" 
-                           class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
+                           class="w-full input-field rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none">
                 </div>
             </div>
 
             <!-- Hadith Mode -->
-            <div id="hadithModeSection" class="hidden p-4 border-b border-white/5 shrink-0 space-y-3">
+            <div id="hadithModeSection" class="hidden p-5 border-b border-white/5 space-y-4">
                 <div>
-                    <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Hadith Number (1 - 7563)</label>
+                    <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2 block">Hadith Number (1 - 7563)</label>
                     <div class="flex gap-2">
                         <input type="number" id="postHadithNumberInput" min="1" max="7563" placeholder="e.g., 1" 
-                               class="flex-1 bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
-                        <button id="loadPostHadithBtn" class="bg-accent-500 hover:bg-accent-600 text-white px-3 py-2 rounded-md transition">
+                               class="flex-1 input-field rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none">
+                        <button id="loadPostHadithBtn" class="btn-primary text-white px-4 py-2.5 rounded-xl transition">
                             <i data-lucide="search" class="w-4 h-4"></i>
                         </button>
                     </div>
                 </div>
                 
-                <div id="hadithContentSection" class="hidden space-y-3">
-                    <div class="p-3 bg-dark-700 rounded-md">
-                        <p class="text-xs text-white/60 mb-2">Select what to display:</p>
+                <div id="hadithContentSection" class="hidden space-y-4">
+                    <div class="glass-card rounded-xl p-4">
+                        <p class="text-xs text-white/60 mb-3">Select what to display:</p>
                         <label class="checkbox-label text-sm text-white mb-2">
                             <input type="checkbox" id="showHadithText" checked>
                             <span>Arabic Text</span>
@@ -370,7 +686,7 @@
                         <div class="border-t border-white/10 pt-3 mt-3">
                             <label class="checkbox-label text-sm text-white mb-2">
                                 <input type="checkbox" id="showFullHadithText">
-                                <span class="text-accent-500 font-medium">Show full text (smaller font)</span>
+                                <span class="text-primary-400 font-medium">Show full text (smaller font)</span>
                             </label>
                             <p class="text-[10px] text-white/40 mt-1">When unchecked, long hadiths are smart-truncated at sentence boundaries</p>
                         </div>
@@ -395,55 +711,55 @@
             </div>
 
             <!-- Image Search -->
-            <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
-                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Search Background Images</label>
+            <div class="p-5 border-b border-white/5">
+                <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Search Background Images</label>
                 <div class="flex gap-2 mb-3">
                     <input type="text" id="imageSearchInput" placeholder="e.g., nature, mosque, sky..." 
-                           class="flex-1 bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
-                    <button id="searchImageBtn" class="bg-accent-500 hover:bg-accent-600 text-white px-3 py-2 rounded-md transition">
+                           class="flex-1 input-field rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none">
+                    <button id="searchImageBtn" class="btn-primary text-white px-4 py-2.5 rounded-xl transition">
                         <i data-lucide="search" class="w-4 h-4"></i>
                     </button>
                 </div>
                 <div id="imageSearchResults" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto hidden"></div>
-                <div id="selectedImageIndicator" class="hidden mt-3 p-2 bg-accent-500/10 border border-accent-500/30 rounded-lg items-center gap-2">
-                    <i data-lucide="check-circle" class="w-4 h-4 text-accent-500"></i>
-                    <span class="text-xs text-accent-500 font-medium flex-1">Background selected</span>
+                <div id="selectedImageIndicator" class="hidden mt-3 p-3 bg-primary-500/10 border border-primary-500/30 rounded-xl flex items-center gap-2 animate-scale-in">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-primary-500"></i>
+                    <span class="text-xs text-primary-400 font-medium flex-1">Background selected</span>
                     <button id="changeImageBtn" class="text-xs text-white/60 hover:text-white underline">Change</button>
                 </div>
             </div>
 
-            <div class="p-4 border-b border-white/5 shrink-0">
-                <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Aspect Ratio</label>
+            <div class="p-5 border-b border-white/5">
+                <label class="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Aspect Ratio</label>
                 <div class="grid grid-cols-3 gap-2">
-                    <button class="size-btn active bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-ratio="9:16" data-width="1080" data-height="1920">
+                    <button class="size-btn active glass-card rounded-xl px-4 py-3 text-xs text-white/80" data-ratio="9:16" data-width="1080" data-height="1920">
                         9:16<br><span class="text-[10px] text-white/40">Stories</span>
                     </button>
-                    <button class="size-btn bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-ratio="1:1" data-width="1080" data-height="1080">
+                    <button class="size-btn glass-card rounded-xl px-4 py-3 text-xs text-white/80" data-ratio="1:1" data-width="1080" data-height="1080">
                         1:1<br><span class="text-[10px] text-white/40">Square</span>
                     </button>
-                    <button class="size-btn bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-xs text-white/80 hover:border-accent-500/50" data-ratio="16:9" data-width="1920" data-height="1080">
+                    <button class="size-btn glass-card rounded-xl px-4 py-3 text-xs text-white/80" data-ratio="16:9" data-width="1920" data-height="1080">
                         16:9<br><span class="text-[10px] text-white/40">Landscape</span>
                     </button>
                 </div>
             </div>
 
-            <div class="p-4 border-b border-white/5">
-                <button id="generatePostBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 rounded-md flex items-center justify-center gap-2 transition text-sm mb-3">
+            <div class="p-5 border-b border-white/5">
+                <button id="generatePostBtn" class="w-full btn-primary text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 transition text-sm mb-3">
                     <i data-lucide="wand-2" class="w-4 h-4"></i> Generate Post
                 </button>
             </div>
 
-            <div id="postTagsSection" class="hidden p-4 border-b border-white/5">
+            <div id="postTagsSection" class="hidden p-5 border-b border-white/5">
                 <div class="mb-3">
-                    <span class="text-xs font-medium text-white/60 uppercase tracking-wider block mb-2">Caption</span>
-                    <button id="copyPostCaptionBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
+                    <span class="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-2">Caption</span>
+                    <button id="copyPostCaptionBtn" class="w-full bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1 mb-2">
                         <i data-lucide="copy" class="w-3 h-3"></i> Copy Caption
                     </button>
-                    <div id="postCaptionContainer" class="text-xs text-white/70 bg-dark-700/50 p-2 rounded max-h-48 overflow-y-auto whitespace-pre-wrap"></div>
+                    <div id="postCaptionContainer" class="text-xs text-white/70 bg-white/5 p-3 rounded-xl max-h-48 overflow-y-auto whitespace-pre-wrap"></div>
                 </div>
             </div>
 
-            <div class="p-4 mt-auto">
+            <div class="p-5 mt-auto">
                 <div class="disclaimer-box">
                     <div class="flex items-start gap-2">
                         <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
@@ -456,48 +772,98 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col items-center justify-center bg-dark-900 p-8 relative min-w-0 overflow-hidden">
-            <div class="flex flex-col items-center justify-center max-h-full">
-                <canvas id="postCanvas" width="1080" height="1920"></canvas>
-                <p class="mt-6 text-xs text-white/30 font-mono">Post Preview</p>
+        <main class="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-black/50 via-primary-900/10 to-black/50 p-8 relative min-w-0 overflow-hidden">
+            <div class="flex flex-col items-center justify-center max-h-full animate-scale-in">
+                <div class="canvas-container">
+                    <canvas id="postCanvas" width="1080" height="1920"></canvas>
+                </div>
+                <p class="mt-6 text-xs text-white/40 font-mono">Post Preview</p>
             </div>
         </main>
     </div>
 
-    <div id="loadingOverlay" class="fixed inset-0 z-50 bg-dark-900/95 backdrop-blur-xl hidden flex-col items-center justify-center">
-        <div class="max-w-sm w-full text-center">
-            <div class="w-16 h-16 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin mx-auto mb-6"></div>
-            <h3 class="text-xl font-semibold text-white mb-2">Preparing Your Reel</h3>
-            <p class="text-white/60 text-sm mb-8">Syncing recitation and rendering backgrounds...</p>
-            <div class="flex items-center justify-center gap-2 text-white/80 mb-8">
+    <!-- Loading Overlay for Reels -->
+    <div id="loadingOverlay" class="loading-screen hidden flex-col items-center justify-center animate-fade-in">
+        <div class="max-w-md w-full text-center p-8">
+            <div class="w-20 h-20 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin mx-auto mb-8"></div>
+            <h3 class="text-2xl font-display font-semibold text-white mb-3">Preparing Your Reel</h3>
+            <p class="text-white/60 text-sm mb-10">Syncing recitation and rendering backgrounds...</p>
+            <div class="flex items-center justify-center gap-2 text-white/80 mb-10">
                 <span class="text-sm">Reel starts in</span>
-                <span id="countdownTimer" class="font-mono font-bold text-accent-500 text-lg">1:30</span>
+                <span id="countdownTimer" class="font-mono font-bold text-primary-400 text-2xl">1:30</span>
             </div>
-            <div class="glass rounded-lg p-6 text-left">
+            <div class="glass rounded-2xl p-6 text-left">
                 <h4 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                    <i data-lucide="heart" class="w-4 h-4 text-accent-500"></i> The Heart Behind ReelDeen
+                    <i data-lucide="heart" class="w-4 h-4 text-primary-500"></i> The Heart Behind ReelDeen
                 </h4>
                 <p class="text-xs text-white/60 leading-relaxed mb-4">I'm a 28-year-old engineer supporting a family of six on a tight budget. I built ReelDeen as a Sadaqah Jariyah—a project for my Akhira.</p>
-                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full bg-accent-500 hover:bg-accent-600 text-white text-xs font-medium py-2.5 rounded text-center transition">Support ReelDeen & Our Charity</a>
+                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full btn-primary text-white text-xs font-medium py-3 rounded-xl text-center transition">Support ReelDeen & Our Charity</a>
             </div>
         </div>
     </div>
 
-    <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
-        <div class="bg-dark-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
+    <!-- Loading Overlay for Posts (30 seconds) -->
+    <div id="postLoadingOverlay" class="loading-screen hidden flex-col items-center justify-center animate-fade-in">
+        <div class="max-w-md w-full text-center p-8">
+            <div class="w-20 h-20 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin mx-auto mb-8"></div>
+            <h3 class="text-2xl font-display font-semibold text-white mb-3">Preparing Your Post</h3>
+            <p class="text-white/60 text-sm mb-10">Optimizing image and applying effects...</p>
+            <div class="flex items-center justify-center gap-2 text-white/80 mb-10">
+                <span class="text-sm">Post ready in</span>
+                <span id="postCountdownTimer" class="font-mono font-bold text-primary-400 text-2xl">0:30</span>
+            </div>
+            <div class="glass rounded-2xl p-6 text-left">
+                <h4 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                    <i data-lucide="heart" class="w-4 h-4 text-primary-500"></i> The Heart Behind ReelDeen
+                </h4>
+                <p class="text-xs text-white/60 leading-relaxed mb-4">I'm a 28-year-old engineer supporting a family of six on a tight budget. I built ReelDeen as a Sadaqah Jariyah—a project for my Akhira.</p>
+                <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full btn-primary text-white text-xs font-medium py-3 rounded-xl text-center transition">Support ReelDeen & Our Charity</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prayer Reminder Modal -->
+    <div id="prayerReminder" class="prayer-reminder hidden">
+        <div class="glass rounded-2xl p-6 max-w-sm border border-primary-500/30 shadow-2xl shadow-primary-500/20">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary-500/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="clock" class="w-5 h-5 text-primary-400"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold text-white">Prayer Time</h4>
+                        <p class="text-xs text-white/60" id="prayerTimeText">It's time for prayer</p>
+                    </div>
+                </div>
+                <button id="closePrayerReminder" class="text-white/40 hover:text-white transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="space-y-2">
+                <p class="text-xs text-white/60">Take a moment to remember Allah and fulfill your prayer.</p>
+                <button onclick="document.getElementById('prayerReminder').classList.add('hidden')" class="w-full btn-primary text-white text-xs font-medium py-2.5 rounded-xl mt-3">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Story Modal -->
+    <div id="storyModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4 animate-fade-in">
+        <div class="bg-gradient-to-br from-gray-900 to-black rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10 animate-scale-in">
             <div class="p-8">
                 <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-white">The Story Behind ReelDeen</h2>
+                    <h2 class="text-2xl font-display font-bold text-white">The Story Behind ReelDeen</h2>
                     <button id="closeStoryBtn" class="text-white/40 hover:text-white transition"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
-                <p class="text-accent-500 mb-6 text-sm">One project for my Dunya, one for my Akhira.</p>
+                <p class="text-primary-400 mb-6 text-sm font-medium">One project for my Dunya, one for my Akhira.</p>
                 <div class="space-y-4 text-white/80 leading-relaxed text-sm">
                     <p>Assalamu Alaikum. I'm a 28-year-old engineer, and I'm the sole provider for my family of six.</p>
                     <p>My dream is simple but heavy on my heart: to one day buy a home, get married, and achieve financial independence.</p>
                     <p>I made a vow to Allah: if He grants me financial stability, I will take <em>Kafalah</em>, give generously to the poor, and provide for my family with dignity.</p>
                 </div>
-                <div class="mt-8 p-6 glass rounded-lg text-center">
-                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 px-6 rounded-lg transition text-sm">Support ReelDeen</a>
+                <div class="mt-8 p-6 glass rounded-2xl text-center">
+                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block btn-primary text-white font-medium py-3 px-8 rounded-xl transition text-sm">Support ReelDeen</a>
                 </div>
             </div>
         </div>
@@ -589,7 +955,6 @@
         function smartTruncate(text, maxChars) {
             if (!text || text.length <= maxChars) return { text: text, truncated: false };
             
-            // Try to find a sentence boundary (period, question mark, exclamation, or Arabic sentence end)
             const sentenceEndings = /[.!?؟۔]/g;
             let lastSentenceEnd = -1;
             let match;
@@ -602,19 +967,16 @@
                 }
             }
             
-            // If we found a sentence boundary, use it
             if (lastSentenceEnd > maxChars * 0.4) {
                 return { text: text.substring(0, lastSentenceEnd).trim() + '...', truncated: true };
             }
             
-            // Fallback: find last word boundary
             const truncated = text.substring(0, maxChars);
             const lastSpace = truncated.lastIndexOf(' ');
             if (lastSpace > maxChars * 0.4) {
                 return { text: truncated.substring(0, lastSpace).trim() + '...', truncated: true };
             }
             
-            // Last resort: hard cut
             return { text: truncated.trim() + '...', truncated: true };
         }
 
@@ -734,11 +1096,9 @@
                 document.getElementById('hadithContentSection').classList.remove('hidden');
                 document.getElementById('hadithPreviewSection').classList.remove('hidden');
                 
-                // Display full text preview
                 document.getElementById('hadithArabicPreview').textContent = selectedHadithData.arabic;
                 document.getElementById('hadithEnglishPreview').textContent = selectedHadithData.english;
                 
-                // Show length warning if text is long
                 const warningEl = document.getElementById('hadithLengthWarning');
                 const msgEl = document.getElementById('hadithLengthMsg');
                 if (selectedHadithData.english.length > 400 || selectedHadithData.arabic.length > 500) {
@@ -757,7 +1117,6 @@
             }
         });
 
-        // Checkbox listeners
         ['showHadithText', 'showHadithTranslation', 'showHadithSource', 'showFullHadithText'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', updatePostFromHadith);
         });
@@ -770,12 +1129,10 @@
             const showSource = document.getElementById('showHadithSource').checked;
             const showFull = document.getElementById('showFullHadithText').checked;
             
-            // Apply smart truncation if not showing full text
             let arabicText = selectedHadithData.arabic;
             let englishText = selectedHadithData.english;
             
             if (!showFull) {
-                // Smart truncate based on reasonable limits
                 const arabicResult = smartTruncate(arabicText, 600);
                 const englishResult = smartTruncate(englishText, 400);
                 arabicText = arabicResult.text;
@@ -897,7 +1254,6 @@
             let allImages = [];
             
             try {
-                // Pixabay Images
                 try {
                     const pixabayRes = await fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=12`);
                     if (pixabayRes.ok) {
@@ -912,7 +1268,6 @@
                     }
                 } catch (e) { console.warn('Pixabay failed:', e); }
                 
-                // Pexels Images
                 try {
                     const pexelsRes = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12`);
                     if (pexelsRes.ok) {
@@ -944,7 +1299,7 @@
             
             images.forEach((img, idx) => {
                 const div = document.createElement('div');
-                div.className = `image-thumbnail rounded-lg overflow-hidden border-2 ${selectedImageUrl === img.url || pendingImageUrl === img.url ? 'selected' : ''}`;
+                div.className = `media-thumbnail image-thumbnail rounded-xl overflow-hidden border-2 ${selectedImageUrl === img.url || pendingImageUrl === img.url ? 'selected' : ''}`;
                 
                 const imgEl = document.createElement('img');
                 imgEl.src = img.thumbnail;
@@ -953,7 +1308,6 @@
                 imgEl.style.opacity = '1';
                 imgEl.crossOrigin = 'anonymous';
                 
-                // Add error handler for broken images
                 imgEl.onerror = () => {
                     imgEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23333" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
                 };
@@ -966,7 +1320,7 @@
                 div.appendChild(checkEl);
                 
                 div.onclick = () => {
-                    document.querySelectorAll('#imageSearchResults .image-thumbnail').forEach(el => el.classList.remove('selected'));
+                    document.querySelectorAll('#imageSearchResults .media-thumbnail').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
                     selectImage(img, img.url);
                 };
@@ -1034,7 +1388,6 @@
             
             ctx.clearRect(0, 0, W, H);
             
-            // Draw background image if available
             if (postBgImage && postBgImage.complete && postBgImage.naturalWidth > 0) {
                 const imgAspect = postBgImage.naturalWidth / postBgImage.naturalHeight;
                 const canvasAspect = W / H;
@@ -1054,7 +1407,6 @@
                 
                 ctx.drawImage(postBgImage, drawX, drawY, drawWidth, drawHeight);
             } else {
-                // Fallback gradient background
                 const grad = ctx.createLinearGradient(0, 0, 0, H);
                 grad.addColorStop(0, '#1a3a3a');
                 grad.addColorStop(1, '#0a1a1a');
@@ -1062,7 +1414,6 @@
                 ctx.fillRect(0, 0, W, H);
             }
             
-            // Dark overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
             overlay.addColorStop(0, 'rgba(0,0,0,0.6)');
             overlay.addColorStop(0.5, 'rgba(0,0,0,0.4)');
@@ -1076,7 +1427,6 @@
             
             if (!arabicText && !englishText) return;
             
-            // Check if we should use full text mode
             const showFull = document.getElementById('showFullHadithText')?.checked || false;
             
             const padding = W * 0.08;
@@ -1084,16 +1434,13 @@
             const safeZoneBottom = H - padding - (reference ? 60 : 0);
             const availableHeight = safeZoneBottom - safeZoneTop;
             
-            // Calculate font sizes based on text length and canvas size
             const totalTextLength = arabicText.length + englishText.length;
             const isLongText = totalTextLength > 800;
             const isVeryLongText = totalTextLength > 1500;
             
-            // Dynamic font sizing based on content length
             let arabicFontSize, englishFontSize;
             
             if (showFull && isLongText) {
-                // Smaller fonts for full long text
                 arabicFontSize = Math.min(48, W / 16);
                 englishFontSize = Math.min(22, W / 40);
             } else if (isVeryLongText) {
@@ -1107,7 +1454,6 @@
                 englishFontSize = Math.min(32, W / 28);
             }
             
-            // Set minimum font sizes
             const MIN_ARABIC = showFull ? 28 : 40;
             const MIN_ENGLISH = showFull ? 14 : 18;
             
@@ -1116,7 +1462,6 @@
             const arabicLineHeight = arabicFontSize * 1.8;
             const englishLineHeight = englishFontSize * 1.4;
             
-            // Calculate heights
             ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
             const arabicLines = wrapText(ctx, arabicText, arabicMaxWidth);
             const arabicTotalHeight = arabicLines.length * arabicLineHeight;
@@ -1128,9 +1473,7 @@
             const gap = arabicText && englishText ? 30 : 0;
             const totalContentHeight = arabicTotalHeight + englishTotalHeight + gap;
             
-            // If content still doesn't fit and we're not in full mode, truncate more
             if (totalContentHeight > availableHeight && !showFull) {
-                // Progressive truncation
                 const ratio = availableHeight / totalContentHeight;
                 const newArabicMaxChars = Math.floor(arabicText.length * ratio * 0.9);
                 const newEnglishMaxChars = Math.floor(englishText.length * ratio * 0.9);
@@ -1140,7 +1483,6 @@
                     arabicText = result.text;
                     ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
                     const newArabicLines = wrapText(ctx, arabicText, arabicMaxWidth);
-                    // Update for rendering
                 }
                 if (englishText) {
                     const result = smartTruncate(englishText, Math.max(80, newEnglishMaxChars));
@@ -1148,7 +1490,6 @@
                 }
             }
             
-            // Recalculate after potential truncation
             ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
             const finalArabicLines = arabicText ? wrapText(ctx, arabicText, arabicMaxWidth) : [];
             const finalArabicHeight = finalArabicLines.length * arabicLineHeight;
@@ -1163,7 +1504,6 @@
             const startY = safeZoneTop + (availableHeight - finalTotalHeight) / 2;
             let currentY = startY;
             
-            // Draw Arabic
             if (arabicText && finalArabicLines.length > 0) {
                 ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
                 ctx.textAlign = 'center';
@@ -1184,7 +1524,6 @@
                 currentY += finalArabicHeight + finalGap;
             }
             
-            // Draw English
             if (englishText && finalEnglishLines.length > 0) {
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
                 ctx.textAlign = 'center';
@@ -1196,7 +1535,6 @@
                 });
             }
             
-            // Draw reference
             if (reference) {
                 ctx.font = '500 20px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center';
@@ -1205,7 +1543,6 @@
                 ctx.fillText(reference, W / 2, H - padding - 30);
             }
             
-            // Watermark
             ctx.font = '600 16px Inter, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
@@ -1223,7 +1560,7 @@
                 if (match) surahName = match[1] || 'Bukhari';
             }
             
-            const emojis = ['📖', '✨', '🤍', '', '💫'];
+            const emojis = ['', '✨', '🤍', '', '💫'];
             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
             
             const caption = `${randomEmoji} A reminder your heart needs to hear today.
@@ -1627,7 +1964,7 @@ The Hadith: Sahih al-Bukhari ${hadithNum}
 "${currentAyahs[0]?.translation || ''}"
 
 📌 Save this post.
-🤍 Share with someone who needs it. (Sadaqah Jariyah)
+ Share with someone who needs it. (Sadaqah Jariyah)
 💬 Comment 'Alhamdulillah' if this reached you at the perfect time.
 
 🎙️ Source: Sahih al-Bukhari
@@ -1767,7 +2104,7 @@ ${hashtagFormat}`;
                 const thumbnail = video.image;
                 if (!videoUrl) return;
                 const div = document.createElement('div');
-                div.className = `video-thumbnail rounded-lg overflow-hidden border-2 ${selectedVideoUrl === videoUrl || pendingVideoUrl === videoUrl ? 'selected' : ''}`;
+                div.className = `media-thumbnail rounded-xl overflow-hidden border-2 ${selectedVideoUrl === videoUrl || pendingVideoUrl === videoUrl ? 'selected' : ''}`;
                 const videoEl = document.createElement('video');
                 videoEl.muted = true; videoEl.loop = true; videoEl.playsInline = true;
                 videoEl.preload = 'metadata'; videoEl.src = videoUrl;
@@ -1780,7 +2117,7 @@ ${hashtagFormat}`;
                 div.addEventListener('mouseenter', () => { videoEl.play().catch(() => {}); });
                 div.addEventListener('mouseleave', () => { videoEl.pause(); videoEl.currentTime = 0; });
                 div.onclick = () => {
-                    document.querySelectorAll('.video-thumbnail').forEach(el => el.classList.remove('selected'));
+                    document.querySelectorAll('.media-thumbnail').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
                     selectVideo(video, videoUrl);
                 };
@@ -2384,6 +2721,31 @@ ${hashtagFormat}`;
         bgVideo.loop = true; bgVideo.muted = true; bgVideo.playsInline = true;
         bgVideo.crossOrigin = 'anonymous'; bgVideo.style.display = 'none';
         document.body.appendChild(bgVideo);
+
+        // Prayer Reminder - Every 15 minutes
+        let prayerReminderShown = false;
+        function showPrayerReminder() {
+            const prayerReminder = document.getElementById('prayerReminder');
+            prayerReminder.classList.remove('hidden');
+            prayerReminderShown = true;
+            
+            // Auto-hide after 30 seconds
+            setTimeout(() => {
+                prayerReminder.classList.add('hidden');
+            }, 30000);
+        }
+
+        // Show prayer reminder every 15 minutes (900000 ms)
+        setInterval(() => {
+            if (!prayerReminderShown) {
+                showPrayerReminder();
+            }
+        }, 900000);
+
+        document.getElementById('closePrayerReminder').addEventListener('click', () => {
+            document.getElementById('prayerReminder').classList.add('hidden');
+            prayerReminderShown = false;
+        });
 
         init();
     </script>
