@@ -72,50 +72,34 @@
             padding: 10px 12px;
             margin-top: 12px;
         }
-        .social-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .social-icon { display: flex; align-items: center; justify-content: center; }
+        .social-icon svg { width: 16px; height: 16px; }
+        .tab-active { background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: #10b981; }
+        .size-btn, .mode-btn { transition: all 0.2s; }
+        .size-btn.active, .mode-btn.active { background: #10b981; color: white; border-color: #10b981; }
+        .tool-section { display: none !important; }
+        .tool-section.active { display: flex !important; }
+        .nav-tab { min-width: 140px; text-align: center; justify-content: center; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .checkbox-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: #10b981; cursor: pointer; }
+        .char-warning { 
+            background: rgba(251, 191, 36, 0.1); 
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            margin-top: 6px;
         }
-        .social-icon svg {
-            width: 16px;
-            height: 16px;
-        }
-        .tab-active {
-            background: rgba(16, 185, 129, 0.15);
-            color: #10b981;
-            border-color: #10b981;
-        }
-        .size-btn, .mode-btn {
-            transition: all 0.2s;
-        }
-        .size-btn.active, .mode-btn.active {
-            background: #10b981;
-            color: white;
-            border-color: #10b981;
-        }
-        .tool-section {
-            display: none !important;
-        }
-        .tool-section.active {
-            display: flex !important;
-        }
-        .nav-tab {
-            min-width: 140px;
-            text-align: center;
-            justify-content: center;
-        }
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
-        .checkbox-label input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: #10b981;
-            cursor: pointer;
+        .full-text-preview {
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 6px;
+            padding: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -150,13 +134,11 @@
                         <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
                     </svg>
                 </a>
-                
                 <a href="https://www.threads.net/@reeldeen.app" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Threads">
                     <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.27 18.354 1.5 15.246 1.5 12c0-3.219.904-6.162 2.615-8.514C6.005.9 8.754 0 12 0h.035c3.252.011 5.998.914 8.161 2.687 2.17 1.779 3.302 4.273 3.36 7.413a1.05 1.05 0 0 1-1.027 1.07h-.023a1.05 1.05 0 0 1-1.049-1.022c-.028-1.617-.523-2.868-1.509-3.818-1.036-.999-2.564-1.528-4.539-1.573h-.066c-1.905.005-3.39.49-4.404 1.443-1.039.977-1.582 2.365-1.615 4.125-.033 1.789.476 3.215 1.512 4.246 1.026 1.021 2.496 1.538 4.373 1.538h.034c1.885-.005 3.372-.507 4.416-1.493 1.056-.998 1.61-2.414 1.646-4.208a1.05 1.05 0 0 1 1.05-1.027h.023a1.05 1.05 0 0 1 1.027 1.073c-.058 3.14-1.19 5.634-3.36 7.413-2.163 1.773-4.909 2.676-8.161 2.687h-.007zm-.137-7.127c-1.443 0-2.678-.508-3.578-1.473-.903-.968-1.389-2.28-1.371-3.694.018-1.416.538-2.714 1.463-3.656.921-.938 2.174-1.423 3.622-1.402 1.448.02 2.682.544 3.578 1.514.893.967 1.375 2.278 1.357 3.693-.018 1.416-.538 2.714-1.463 3.656-.921.938-2.174 1.423-3.622 1.402h.014z"/>
                     </svg>
                 </a>
-                
                 <a href="https://www.facebook.com/profile.php?viewas=100000686899395&id=61590823768385" target="_blank" class="text-white/60 hover:text-white transition social-icon" title="Facebook">
                     <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -200,7 +182,6 @@
                     <option value="hadith">Hadith (Sahih Bukhari)</option>
                 </select>
 
-                <!-- Quran Selector -->
                 <div id="quranSelector">
                     <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Surah</label>
                     <select id="surahSelect" class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
@@ -208,7 +189,6 @@
                     </select>
                 </div>
 
-                <!-- Hadith Selector -->
                 <div id="hadithSelector" class="hidden">
                     <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Hadith Number (1 - 7563)</label>
                     <div class="flex gap-2">
@@ -309,11 +289,11 @@
                         <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
                         <div class="text-[10px] text-yellow-200/80 leading-relaxed">
                             <strong class="text-yellow-400 block mb-1">Sources & Attribution</strong>
-                            <strong>Video Backgrounds:</strong> Pexels API & Pixabay API (Creative Commons Zero / Public Domain media).<br>
-                            <strong>Quran Text & Translations:</strong> Quran.com API (Uthmani script text with open-source translations).<br>
-                            <strong>Hadith Text:</strong> Sahih al-Bukhari (Open Source Dataset).<br>
-                            <strong>Audio Recitations:</strong> Quran.com API (recitations hosted on verses.quran.com CDN).<br><br>
-                            While the Quran and Hadith texts are public domain, specific recitations may occasionally be flagged by automated copyright systems. <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload and must ensure they hold the rights to use it.</strong>
+                            <strong>Video Backgrounds:</strong> Pexels API & Pixabay API.<br>
+                            <strong>Quran Text:</strong> Quran.com API.<br>
+                            <strong>Hadith Text:</strong> Sahih al-Bukhari (Open Source).<br>
+                            <strong>Audio:</strong> Quran.com API.<br><br>
+                            <strong class="text-yellow-300">Users are solely responsible for any custom audio they upload.</strong>
                         </div>
                     </div>
                 </div>
@@ -323,7 +303,7 @@
 
     <!-- POST MAKER SECTION -->
     <div id="postSection" class="tool-section flex-1 flex overflow-hidden">
-        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0" style="min-height: 0;">
+        <aside class="w-80 border-r border-white/5 bg-dark-800 flex flex-col shrink-0 overflow-y-auto" style="min-height: 0;">
             <!-- Mode Selection -->
             <div class="p-4 border-b border-white/5 bg-dark-800 shrink-0">
                 <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Post Mode</label>
@@ -343,15 +323,17 @@
                     <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Arabic Quote / Hadith</label>
                     <textarea id="arabicQuote" rows="3" placeholder="Enter Arabic text..." 
                               class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white font-arabic text-right focus:outline-none focus:border-accent-500 resize-none" dir="rtl"></textarea>
+                    <div id="arabicCharCount" class="text-[10px] text-white/40 mt-1 text-right">0 chars</div>
                 </div>
                 <div>
                     <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">English Translation</label>
                     <textarea id="englishQuote" rows="2" placeholder="Enter English translation..." 
                               class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500 resize-none"></textarea>
+                    <div id="englishCharCount" class="text-[10px] text-white/40 mt-1 text-right">0 chars</div>
                 </div>
                 <div>
                     <label class="text-xs font-medium text-white/60 uppercase tracking-wider mb-2 block">Reference (Optional)</label>
-                    <input type="text" id="quoteReference" placeholder="e.g., Surah Al-Baqarah 2:286 or Sahih Bukhari 1" 
+                    <input type="text" id="quoteReference" placeholder="e.g., Surah Al-Baqarah 2:286" 
                            class="w-full bg-dark-700 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500">
                 </div>
             </div>
@@ -380,10 +362,34 @@
                             <input type="checkbox" id="showHadithTranslation" checked>
                             <span>English Translation</span>
                         </label>
-                        <label class="checkbox-label text-sm text-white">
+                        <label class="checkbox-label text-sm text-white mb-3">
                             <input type="checkbox" id="showHadithSource" checked>
                             <span>Source Reference</span>
                         </label>
+                        
+                        <div class="border-t border-white/10 pt-3 mt-3">
+                            <label class="checkbox-label text-sm text-white mb-2">
+                                <input type="checkbox" id="showFullHadithText">
+                                <span class="text-accent-500 font-medium">Show full text (smaller font)</span>
+                            </label>
+                            <p class="text-[10px] text-white/40 mt-1">When unchecked, long hadiths are smart-truncated at sentence boundaries</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Full Text Preview -->
+                    <div id="hadithPreviewSection" class="hidden">
+                        <p class="text-xs text-white/60 mb-2 flex items-center gap-1">
+                            <i data-lucide="eye" class="w-3 h-3"></i>
+                            Full Hadith Preview
+                        </p>
+                        <div class="full-text-preview">
+                            <p class="text-white/80 font-arabic text-right mb-2" dir="rtl" id="hadithArabicPreview"></p>
+                            <p class="text-white/60 italic" id="hadithEnglishPreview"></p>
+                        </div>
+                        <div id="hadithLengthWarning" class="char-warning hidden mt-2">
+                            <i data-lucide="alert-triangle" class="w-3 h-3 inline mr-1"></i>
+                            <span id="hadithLengthMsg">This hadith is long and will be auto-truncated</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -427,7 +433,7 @@
                 </button>
             </div>
 
-            <div id="postTagsSection" class="hidden p-4 border-b border-white/5 flex-1 overflow-y-auto">
+            <div id="postTagsSection" class="hidden p-4 border-b border-white/5">
                 <div class="mb-3">
                     <span class="text-xs font-medium text-white/60 uppercase tracking-wider block mb-2">Caption</span>
                     <button id="copyPostCaptionBtn" class="w-full bg-accent-500/20 hover:bg-accent-500/30 text-accent-500 text-xs py-2 rounded transition flex items-center justify-center gap-1 mb-2">
@@ -443,7 +449,7 @@
                         <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"></i>
                         <div class="text-[10px] text-yellow-200/80 leading-relaxed">
                             <strong class="text-yellow-400 block mb-1">Image Sources</strong>
-                            Background images from Pexels & Pixabay (Creative Commons Zero / Public Domain).
+                            Background images from Pexels & Pixabay (Creative Commons Zero).
                         </div>
                     </div>
                 </div>
@@ -471,8 +477,7 @@
                 <h4 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                     <i data-lucide="heart" class="w-4 h-4 text-accent-500"></i> The Heart Behind ReelDeen
                 </h4>
-                <p class="text-xs text-white/60 leading-relaxed mb-4">I'm a 28-year-old engineer supporting a family of six on a tight budget. I built ReelDeen as a Sadaqah Jariyah—a project for my Akhira. My dream is to one day buy a home, get married, and fulfill a vow I made to Allah to sponsor a child's education (Kafalah) and give to the poor.</p>
-                <p class="text-xs text-white/60 leading-relaxed mb-4">ReelDeen is and always will be 100% free. But if this tool benefits you, and you wish to help a brother realize his dreams, you can support me below. <strong class="text-white">5% of every donation goes directly to charity.</strong></p>
+                <p class="text-xs text-white/60 leading-relaxed mb-4">I'm a 28-year-old engineer supporting a family of six on a tight budget. I built ReelDeen as a Sadaqah Jariyah—a project for my Akhira.</p>
                 <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="block w-full bg-accent-500 hover:bg-accent-600 text-white text-xs font-medium py-2.5 rounded text-center transition">Support ReelDeen & Our Charity</a>
             </div>
         </div>
@@ -487,22 +492,12 @@
                 </div>
                 <p class="text-accent-500 mb-6 text-sm">One project for my Dunya, one for my Akhira.</p>
                 <div class="space-y-4 text-white/80 leading-relaxed text-sm">
-                    <p>Assalamu Alaikum. I'm a 28-year-old engineer, and I'm the sole provider for my family of six. Like many, I've been navigating the heavy realities of low wages and financial strain, constantly searching for a way to build a stable future. I've built two AI tools: one is a premium subscription service for my <em>dunya</em> (worldly life), and the other is ReelDeen—a completely free project for my <em>Akhira</em> (hereafter).</p>
-                    <p>My dream is simple but heavy on my heart: to one day buy a home, get married, and achieve the financial independence that has always felt just out of reach. I've knocked on many doors, but I am waiting to walk through the one where Allah has placed my <em>rizq</em>.</p>
-                    <p>I made a vow to Allah: if He grants me financial stability through this project, I will take <em>Kafalah</em> (sponsor the education of an orphan), give generously to the poor, support my friends, and most importantly, continue to provide for my family with dignity.</p>
-                    <p>If you're reading this, thank you from the bottom of my heart. May Allah increase you in <em>rizq</em> and <em>barakah</em>.</p>
+                    <p>Assalamu Alaikum. I'm a 28-year-old engineer, and I'm the sole provider for my family of six.</p>
+                    <p>My dream is simple but heavy on my heart: to one day buy a home, get married, and achieve financial independence.</p>
+                    <p>I made a vow to Allah: if He grants me financial stability, I will take <em>Kafalah</em>, give generously to the poor, and provide for my family with dignity.</p>
                 </div>
                 <div class="mt-8 p-6 glass rounded-lg text-center">
-                    <h3 class="text-lg font-bold mb-3 flex items-center justify-center gap-2 text-white">
-                        <i data-lucide="heart" class="w-5 h-5 text-accent-500"></i> Support the Mission
-                    </h3>
-                    <p class="text-white/60 text-sm mb-4">ReelDeen will always be 100% free. But if this tool brings light to your day and you wish to help a brother realize his dreams, you can support me here.</p>
-                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 px-6 rounded-lg transition text-sm mb-3">Support ReelDeen</a>
-                    <div class="mt-6 pt-6 border-t border-white/10">
-                        <p class="text-xs text-white/60 mb-2">As a promise to Allah, 5% of every donation goes directly to charity.</p>
-                        <div class="text-3xl font-bold text-accent-500 mb-1">$<span id="charityCounter">0</span></div>
-                        <p class="text-xs text-white/50 font-medium uppercase tracking-widest">Raised for Charity</p>
-                    </div>
+                    <a href="https://buymeacoffee.com/reeldeen" target="_blank" class="inline-block bg-accent-500 hover:bg-accent-600 text-white font-medium py-2.5 px-6 rounded-lg transition text-sm">Support ReelDeen</a>
                 </div>
             </div>
         </div>
@@ -526,8 +521,6 @@
         let audioPlayer = document.getElementById('audioPlayer');
         let videoPool = [];
         let videoPoolIndex = 0;
-        let mediaRecorder = null;
-        let recordedChunks = [];
         let isRecording = false;
         let currentTagFormat = 'hashtags';
         let renderLoopId = null;
@@ -544,7 +537,7 @@
         let currentPostRatio = { width: 1080, height: 1920, ratio: '9:16' };
         let postBgImage = new Image();
         let postCaptionData = null;
-        let currentPostMode = 'manual'; // 'manual' or 'hadith'
+        let currentPostMode = 'manual';
         let selectedHadithData = null;
         
         const previewCanvas = document.getElementById('previewCanvas');
@@ -590,7 +583,74 @@
             sharedAudioStream = sharedDestNode.stream;
         }
 
-        // Tab switching
+        // ============================================
+        // SMART TRUNCATION - Breaks at sentence boundaries
+        // ============================================
+        function smartTruncate(text, maxChars) {
+            if (!text || text.length <= maxChars) return { text: text, truncated: false };
+            
+            // Try to find a sentence boundary (period, question mark, exclamation, or Arabic sentence end)
+            const sentenceEndings = /[.!?؟。]/g;
+            let lastSentenceEnd = -1;
+            let match;
+            
+            while ((match = sentenceEndings.exec(text)) !== null) {
+                if (match.index < maxChars) {
+                    lastSentenceEnd = match.index + 1;
+                } else {
+                    break;
+                }
+            }
+            
+            // If we found a sentence boundary, use it
+            if (lastSentenceEnd > maxChars * 0.4) {
+                return { text: text.substring(0, lastSentenceEnd).trim() + '...', truncated: true };
+            }
+            
+            // Fallback: find last word boundary
+            const truncated = text.substring(0, maxChars);
+            const lastSpace = truncated.lastIndexOf(' ');
+            if (lastSpace > maxChars * 0.4) {
+                return { text: truncated.substring(0, lastSpace).trim() + '...', truncated: true };
+            }
+            
+            // Last resort: hard cut
+            return { text: truncated.trim() + '...', truncated: true };
+        }
+
+        // ============================================
+        // CHARACTER COUNTERS FOR MANUAL MODE
+        // ============================================
+        function updateCharCounters() {
+            const arabicLen = document.getElementById('arabicQuote').value.length;
+            const englishLen = document.getElementById('englishQuote').value.length;
+            
+            const arabicCountEl = document.getElementById('arabicCharCount');
+            const englishCountEl = document.getElementById('englishCharCount');
+            
+            if (arabicCountEl) {
+                arabicCountEl.textContent = `${arabicLen} chars`;
+                arabicCountEl.className = arabicLen > 500 ? 'text-[10px] text-yellow-400 mt-1 text-right' : 'text-[10px] text-white/40 mt-1 text-right';
+            }
+            if (englishCountEl) {
+                englishCountEl.textContent = `${englishLen} chars`;
+                englishCountEl.className = englishLen > 400 ? 'text-[10px] text-yellow-400 mt-1 text-right' : 'text-[10px] text-white/40 mt-1 text-right';
+            }
+        }
+
+        document.getElementById('arabicQuote').addEventListener('input', () => {
+            updateCharCounters();
+            renderPostFrame();
+        });
+        document.getElementById('englishQuote').addEventListener('input', () => {
+            updateCharCounters();
+            renderPostFrame();
+        });
+        document.getElementById('quoteReference').addEventListener('input', renderPostFrame);
+
+        // ============================================
+        // TAB SWITCHING
+        // ============================================
         document.getElementById('reelTab').addEventListener('click', () => {
             document.getElementById('reelTab').classList.add('tab-active');
             document.getElementById('reelTab').classList.remove('text-white/60');
@@ -621,7 +681,9 @@
             downloadBtn.style.display = 'none';
         });
 
-        // Post Maker Mode Switching
+        // ============================================
+        // POST MAKER MODE SWITCHING
+        // ============================================
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -637,10 +699,13 @@
                     document.getElementById('manualModeSection').classList.add('hidden');
                     document.getElementById('hadithModeSection').classList.remove('hidden');
                 }
+                renderPostFrame();
             });
         });
 
-        // Load Hadith for Post Maker
+        // ============================================
+        // LOAD HADITH FOR POST MAKER
+        // ============================================
         document.getElementById('loadPostHadithBtn').addEventListener('click', async () => {
             const num = parseInt(document.getElementById('postHadithNumberInput').value);
             if (!num || num < 1 || num > 7563) {
@@ -667,9 +732,24 @@
                 };
                 
                 document.getElementById('hadithContentSection').classList.remove('hidden');
+                document.getElementById('hadithPreviewSection').classList.remove('hidden');
                 
-                // Update preview
+                // Display full text preview
+                document.getElementById('hadithArabicPreview').textContent = selectedHadithData.arabic;
+                document.getElementById('hadithEnglishPreview').textContent = selectedHadithData.english;
+                
+                // Show length warning if text is long
+                const warningEl = document.getElementById('hadithLengthWarning');
+                const msgEl = document.getElementById('hadithLengthMsg');
+                if (selectedHadithData.english.length > 400 || selectedHadithData.arabic.length > 500) {
+                    warningEl.classList.remove('hidden');
+                    msgEl.textContent = `This hadith is long (${selectedHadithData.english.length} chars). It will be auto-truncated unless "Show full text" is enabled.`;
+                } else {
+                    warningEl.classList.add('hidden');
+                }
+                
                 updatePostFromHadith();
+                lucide.createIcons();
                 
             } catch (e) {
                 console.error('Failed to load hadith:', e);
@@ -677,8 +757,8 @@
             }
         });
 
-        // Checkbox listeners for Hadith mode
-        ['showHadithText', 'showHadithTranslation', 'showHadithSource'].forEach(id => {
+        // Checkbox listeners
+        ['showHadithText', 'showHadithTranslation', 'showHadithSource', 'showFullHadithText'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', updatePostFromHadith);
         });
 
@@ -688,15 +768,31 @@
             const showArabic = document.getElementById('showHadithText').checked;
             const showEnglish = document.getElementById('showHadithTranslation').checked;
             const showSource = document.getElementById('showHadithSource').checked;
+            const showFull = document.getElementById('showFullHadithText').checked;
             
-            document.getElementById('arabicQuote').value = showArabic ? selectedHadithData.arabic : '';
-            document.getElementById('englishQuote').value = showEnglish ? selectedHadithData.english : '';
+            // Apply smart truncation if not showing full text
+            let arabicText = selectedHadithData.arabic;
+            let englishText = selectedHadithData.english;
+            
+            if (!showFull) {
+                // Smart truncate based on reasonable limits
+                const arabicResult = smartTruncate(arabicText, 600);
+                const englishResult = smartTruncate(englishText, 400);
+                arabicText = arabicResult.text;
+                englishText = englishResult.text;
+            }
+            
+            document.getElementById('arabicQuote').value = showArabic ? arabicText : '';
+            document.getElementById('englishQuote').value = showEnglish ? englishText : '';
             document.getElementById('quoteReference').value = showSource ? selectedHadithData.reference : '';
             
+            updateCharCounters();
             renderPostFrame();
         }
 
-        // Content Type Switching for Reels
+        // ============================================
+        // CONTENT TYPE SWITCHING FOR REELS
+        // ============================================
         const contentTypeSelect = document.getElementById('contentTypeSelect');
         const quranSelector = document.getElementById('quranSelector');
         const hadithSelector = document.getElementById('hadithSelector');
@@ -740,13 +836,10 @@
                 const engData = await engRes.json();
                 const araData = await araRes.json();
                 
-                const engText = engData.hadiths[0]?.text || '';
-                const araText = araData.hadiths[0]?.text || '';
-                
                 const hadithObj = {
                     numberInSurah: num,
-                    text: araText,
-                    translation: engText,
+                    text: araData.hadiths[0]?.text || '',
+                    translation: engData.hadiths[0]?.text || '',
                     verseKey: `Bukhari:${num}`,
                     isHadith: true
                 };
@@ -764,11 +857,13 @@
                 
             } catch (e) {
                 console.error('Failed to load hadith:', e);
-                ayahList.innerHTML = `<div class="text-center text-red-400 text-sm py-8">Error: Hadith #${num} not found. Please try another number.</div>`;
+                ayahList.innerHTML = `<div class="text-center text-red-400 text-sm py-8">Error: Hadith #${num} not found.</div>`;
             }
         });
 
-        // Post Maker - Size selection with proper canvas resizing
+        // ============================================
+        // POST MAKER - SIZE SELECTION
+        // ============================================
         document.querySelectorAll('.size-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
@@ -778,23 +873,21 @@
                 const newHeight = parseInt(btn.dataset.height);
                 const newRatio = btn.dataset.ratio;
                 
-                // Update canvas dimensions
                 postCanvas.width = newWidth;
                 postCanvas.height = newHeight;
                 
-                // Update CSS aspect ratio
                 const aspectRatioValue = newRatio === '1:1' ? '1/1' : newRatio === '16:9' ? '16/9' : '9/16';
                 postCanvas.style.aspectRatio = aspectRatioValue;
                 
-                // Update current ratio
                 currentPostRatio = { width: newWidth, height: newHeight, ratio: newRatio };
                 
-                // Re-render the frame with new dimensions
                 renderPostFrame();
             });
         });
 
-        // Post Maker - Image search using Pexels and Pixabay (same as reels)
+        // ============================================
+        // POST MAKER - IMAGE SEARCH
+        // ============================================
         async function searchImages(query) {
             if (!query) return;
             const resultsDiv = document.getElementById('imageSearchResults');
@@ -804,7 +897,6 @@
             let allImages = [];
             
             try {
-                // Pixabay Images
                 try {
                     const pixabayRes = await fetch(`/api/pixabay?query=${encodeURIComponent(query)}&per_page=12`);
                     if (pixabayRes.ok) {
@@ -819,7 +911,6 @@
                     }
                 } catch (e) { console.warn('Pixabay failed:', e); }
                 
-                // Pexels Images
                 try {
                     const pexelsRes = await fetch(`/api/pexels?query=${encodeURIComponent(query)}&per_page=12`);
                     if (pexelsRes.ok) {
@@ -837,7 +928,7 @@
                 if (allImages.length > 0) {
                     displayImageSearchResults(allImages);
                 } else {
-                    resultsDiv.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No images found. Try: nature, mosque, sky, ocean</div>';
+                    resultsDiv.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No images found. Try: nature, mosque, sky</div>';
                 }
             } catch (e) {
                 console.error('Image search failed:', e);
@@ -926,7 +1017,9 @@
             }
         });
 
-        // Post rendering
+        // ============================================
+        // POST RENDERING WITH SMART TRUNCATION
+        // ============================================
         function renderPostFrame() {
             const W = postCanvas.width;
             const H = postCanvas.height;
@@ -934,6 +1027,7 @@
             
             ctx.clearRect(0, 0, W, H);
             
+            // Draw background
             if (postBgImage && postBgImage.complete && postBgImage.naturalWidth > 0) {
                 const imgAspect = postBgImage.naturalWidth / postBgImage.naturalHeight;
                 const canvasAspect = W / H;
@@ -960,6 +1054,7 @@
                 ctx.fillRect(0, 0, W, H);
             }
             
+            // Dark overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, H);
             overlay.addColorStop(0, 'rgba(0,0,0,0.6)');
             overlay.addColorStop(0.5, 'rgba(0,0,0,0.4)');
@@ -967,22 +1062,101 @@
             ctx.fillStyle = overlay;
             ctx.fillRect(0, 0, W, H);
             
-            const arabicText = document.getElementById('arabicQuote').value.trim();
-            const englishText = document.getElementById('englishQuote').value.trim();
+            let arabicText = document.getElementById('arabicQuote').value.trim();
+            let englishText = document.getElementById('englishQuote').value.trim();
             const reference = document.getElementById('quoteReference').value.trim();
             
             if (!arabicText && !englishText) return;
             
+            // Check if we should use full text mode
+            const showFull = document.getElementById('showFullHadithText')?.checked || false;
+            
             const padding = W * 0.08;
             const safeZoneTop = padding;
-            const safeZoneBottom = H - padding;
+            const safeZoneBottom = H - padding - (reference ? 60 : 0);
             const availableHeight = safeZoneBottom - safeZoneTop;
             
-            if (arabicText) {
-                const arabicMaxWidth = W * 0.85;
-                const arabicFontSize = Math.min(72, W / 12);
-                const arabicLineHeight = arabicFontSize * 1.8;
+            // Calculate font sizes based on text length and canvas size
+            const totalTextLength = arabicText.length + englishText.length;
+            const isLongText = totalTextLength > 800;
+            const isVeryLongText = totalTextLength > 1500;
+            
+            // Dynamic font sizing based on content length
+            let arabicFontSize, englishFontSize;
+            
+            if (showFull && isLongText) {
+                // Smaller fonts for full long text
+                arabicFontSize = Math.min(48, W / 16);
+                englishFontSize = Math.min(22, W / 40);
+            } else if (isVeryLongText) {
+                arabicFontSize = Math.min(56, W / 14);
+                englishFontSize = Math.min(24, W / 36);
+            } else if (isLongText) {
+                arabicFontSize = Math.min(64, W / 13);
+                englishFontSize = Math.min(28, W / 32);
+            } else {
+                arabicFontSize = Math.min(72, W / 12);
+                englishFontSize = Math.min(32, W / 28);
+            }
+            
+            // Set minimum font sizes
+            const MIN_ARABIC = showFull ? 28 : 40;
+            const MIN_ENGLISH = showFull ? 14 : 18;
+            
+            const arabicMaxWidth = W * 0.85;
+            const englishMaxWidth = W * 0.75;
+            const arabicLineHeight = arabicFontSize * 1.8;
+            const englishLineHeight = englishFontSize * 1.4;
+            
+            // Calculate heights
+            ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
+            const arabicLines = wrapText(ctx, arabicText, arabicMaxWidth);
+            const arabicTotalHeight = arabicLines.length * arabicLineHeight;
+            
+            ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
+            const englishLines = wrapText(ctx, englishText, englishMaxWidth);
+            const englishTotalHeight = englishLines.length * englishLineHeight;
+            
+            const gap = arabicText && englishText ? 30 : 0;
+            const totalContentHeight = arabicTotalHeight + englishTotalHeight + gap;
+            
+            // If content still doesn't fit and we're not in full mode, truncate more
+            if (totalContentHeight > availableHeight && !showFull) {
+                // Progressive truncation
+                const ratio = availableHeight / totalContentHeight;
+                const newArabicMaxChars = Math.floor(arabicText.length * ratio * 0.9);
+                const newEnglishMaxChars = Math.floor(englishText.length * ratio * 0.9);
                 
+                if (arabicText) {
+                    const result = smartTruncate(arabicText, Math.max(100, newArabicMaxChars));
+                    arabicText = result.text;
+                    ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
+                    const newArabicLines = wrapText(ctx, arabicText, arabicMaxWidth);
+                    // Update for rendering
+                }
+                if (englishText) {
+                    const result = smartTruncate(englishText, Math.max(80, newEnglishMaxChars));
+                    englishText = result.text;
+                }
+            }
+            
+            // Recalculate after potential truncation
+            ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
+            const finalArabicLines = arabicText ? wrapText(ctx, arabicText, arabicMaxWidth) : [];
+            const finalArabicHeight = finalArabicLines.length * arabicLineHeight;
+            
+            ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
+            const finalEnglishLines = englishText ? wrapText(ctx, englishText, englishMaxWidth) : [];
+            const finalEnglishHeight = finalEnglishLines.length * englishLineHeight;
+            
+            const finalGap = arabicText && englishText ? 30 : 0;
+            const finalTotalHeight = finalArabicHeight + finalEnglishHeight + finalGap;
+            
+            const startY = safeZoneTop + (availableHeight - finalTotalHeight) / 2;
+            let currentY = startY;
+            
+            // Draw Arabic
+            if (arabicText && finalArabicLines.length > 0) {
                 ctx.font = `700 ${arabicFontSize}px "Scheherazade New", serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -991,42 +1165,30 @@
                 ctx.shadowBlur = 20;
                 ctx.shadowOffsetY = 4;
                 
-                const arabicLines = wrapText(ctx, arabicText, arabicMaxWidth);
-                const arabicTotalHeight = arabicLines.length * arabicLineHeight;
-                
-                const startY = safeZoneTop + (availableHeight - arabicTotalHeight) / 2 - (englishText ? arabicLineHeight : 0);
-                
-                arabicLines.forEach((line, i) => {
-                    ctx.fillText(line, W / 2, startY + (i * arabicLineHeight) + arabicLineHeight / 2);
+                finalArabicLines.forEach((line, i) => {
+                    ctx.fillText(line, W / 2, currentY + (i * arabicLineHeight) + arabicLineHeight / 2);
                 });
                 
                 ctx.shadowColor = 'transparent';
                 ctx.shadowBlur = 0;
                 ctx.shadowOffsetY = 0;
+                
+                currentY += finalArabicHeight + finalGap;
             }
             
-            if (englishText) {
-                const englishMaxWidth = W * 0.75;
-                const englishFontSize = Math.min(32, W / 28);
-                const englishLineHeight = englishFontSize * 1.4;
-                
+            // Draw English
+            if (englishText && finalEnglishLines.length > 0) {
                 ctx.font = `italic 400 ${englishFontSize}px Inter, sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = 'rgba(255,255,255,0.85)';
                 
-                const englishLines = wrapText(ctx, englishText, englishMaxWidth);
-                const englishTotalHeight = englishLines.length * englishLineHeight;
-                
-                const startY = arabicText ? 
-                    safeZoneTop + (availableHeight - (arabicText.split('\n').length * 72 * 1.8 + englishTotalHeight + 40)) / 2 + (arabicText.split('\n').length * 72 * 1.8) + 40 :
-                    safeZoneTop + (availableHeight - englishTotalHeight) / 2;
-                
-                englishLines.forEach((line, i) => {
-                    ctx.fillText(line, W / 2, startY + (i * englishLineHeight) + englishLineHeight / 2);
+                finalEnglishLines.forEach((line, i) => {
+                    ctx.fillText(line, W / 2, currentY + (i * englishLineHeight) + englishLineHeight / 2);
                 });
             }
             
+            // Draw reference
             if (reference) {
                 ctx.font = '500 20px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center';
@@ -1035,6 +1197,7 @@
                 ctx.fillText(reference, W / 2, H - padding - 30);
             }
             
+            // Watermark
             ctx.font = '600 16px Inter, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
@@ -1052,7 +1215,7 @@
                 if (match) surahName = match[1] || 'Bukhari';
             }
             
-            const emojis = ['', '✨', '🤍', '🌙', '💫'];
+            const emojis = ['📖', '✨', '🤍', '🌙', '💫'];
             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
             
             const caption = `${randomEmoji} A reminder your heart needs to hear today.
@@ -1062,7 +1225,7 @@ The Verse: ${reference || 'Quran'}
 Translation: "${englishText || arabicText}"
 
 Reflection:
-In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometimes we get so caught up in the noise of the world that we forget the ultimate source of peace is just a reflection away. Take a moment to let these words settle in your heart.
+In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometimes we get so caught up in the noise of the world that we forget the ultimate source of peace is just a reflection away.
 
 📌 Save this post to return to whenever you need a moment of peace.
 🤍 Share this with someone who needs to hear it today. (Sadaqah Jariyah)
@@ -1124,11 +1287,9 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
             }, 'image/png', 1.0);
         });
 
-        document.getElementById('arabicQuote').addEventListener('input', renderPostFrame);
-        document.getElementById('englishQuote').addEventListener('input', renderPostFrame);
-        document.getElementById('quoteReference').addEventListener('input', renderPostFrame);
-
-        // Existing reel functions
+        // ============================================
+        // REEL FUNCTIONS (unchanged)
+        // ============================================
         function splitWordsIntoChunks(words, numChunks) {
             const chunks = [];
             const wordsPerChunk = Math.ceil(words.length / numChunks);
@@ -1190,12 +1351,8 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
 
         function buildAudioUrl(audioFileUrl) {
             if (!audioFileUrl) return null;
-            if (audioFileUrl.startsWith('http://') || audioFileUrl.startsWith('https://')) {
-                return audioFileUrl;
-            }
-            if (audioFileUrl.startsWith('/')) {
-                return VERSES_QURAN_COM + audioFileUrl;
-            }
+            if (audioFileUrl.startsWith('http://') || audioFileUrl.startsWith('https://')) return audioFileUrl;
+            if (audioFileUrl.startsWith('/')) return VERSES_QURAN_COM + audioFileUrl;
             return VERSES_QURAN_COM + '/' + audioFileUrl;
         }
 
@@ -1212,7 +1369,6 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
                 }
                 return null;
             } catch (error) {
-                console.error('Error fetching audio URL:', error);
                 return null;
             }
         }
@@ -1234,8 +1390,7 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
                     return { numberInSurah: verseNum, text: v.text_uthmani, translation, verseKey: v.verse_key };
                 });
             } catch (error) {
-                console.error('Error loading verses:', error);
-                throw new Error('Failed to load verses from Quran.com API');
+                throw new Error('Failed to load verses');
             }
         }
 
@@ -1320,16 +1475,10 @@ In this verse, Allah (SWT) reminds us of His infinite wisdom and mercy. Sometime
                         const timePerAyah = audioPlayer.duration / currentAyahs.length;
                         const timeInAyah = audioPlayer.currentTime - (currentAyahIndex * timePerAyah);
                         const timePerPart = timePerAyah / parts.length;
-                        currentPartIndex = Math.max(0, Math.min(
-                            Math.floor(timeInAyah / timePerPart),
-                            parts.length - 1
-                        ));
+                        currentPartIndex = Math.max(0, Math.min(Math.floor(timeInAyah / timePerPart), parts.length - 1));
                     } else {
                         const progress = audioPlayer.currentTime / audioPlayer.duration;
-                        currentPartIndex = Math.max(0, Math.min(
-                            Math.floor(progress * parts.length),
-                            parts.length - 1
-                        ));
+                        currentPartIndex = Math.max(0, Math.min(Math.floor(progress * parts.length), parts.length - 1));
                     }
                 } else {
                     currentPartIndex = 0;
@@ -1469,14 +1618,11 @@ The Hadith: Sahih al-Bukhari ${hadithNum}
 
 "${currentAyahs[0]?.translation || ''}"
 
-Reflection:
-The words of our beloved Prophet Muhammad () continue to guide us through the complexities of life. Let this hadith be a source of peace and motivation for your day. Take a moment to reflect on how you can apply this beautiful teaching in your daily life.
+📌 Save this post.
+🤍 Share with someone who needs it. (Sadaqah Jariyah)
+💬 Comment 'Alhamdulillah' if this reached you at the perfect time.
 
- Save this post to return to whenever you need a moment of peace.
-🤍 Share this with someone who needs to hear it today. (Sadaqah Jariyah)
-💬 Comment 'Alhamdulillah' if this reached your timeline at the perfect time.
-
-️ Source: Sahih al-Bukhari
+🎙️ Source: Sahih al-Bukhari
 🎥 Footage: ReelDeen Studio
 
 .
@@ -1491,7 +1637,7 @@ ${hashtagFormat}`;
                 const uniqueTags = [...new Set(allTags)].slice(0, 25);
                 const hashtagFormat = uniqueTags.map(t => `#${t}`).join(' ');
                 const commaFormat = uniqueTags.join(', ');
-                const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.parts?.[0]?.translation || currentAyahs[0]?.translation || ''}"\n\nBeautiful recitation to brighten your day\n\n💫 Save this for later & share with someone who needs it!\n\n${hashtagFormat}`;
+                const caption = `📖 ${surahName} - Reflection\n\n✨ "${currentAyahs[0]?.parts?.[0]?.translation || currentAyahs[0]?.translation || ''}"\n\n💫 Save this for later & share!\n\n${hashtagFormat}`;
                 tagsData = { hashtags: hashtagFormat, comma: commaFormat, caption };
             }
             
@@ -1532,8 +1678,7 @@ ${hashtagFormat}`;
                 currentSurahData = { ayahs: normalized, surahNum, surahName: surah?.name_simple || 'Quran' };
                 renderAyahList();
             } catch (e) {
-                console.error('Failed to load ayahs:', e);
-                ayahList.innerHTML = `<div class="text-center text-red-400 text-sm py-8">Error: ${e.message}. Please try again.</div>`;
+                ayahList.innerHTML = `<div class="text-center text-red-400 text-sm py-8">Error: ${e.message}</div>`;
             }
         });
 
@@ -1600,9 +1745,8 @@ ${hashtagFormat}`;
                     }
                 } catch (e) { console.warn('Pexels failed:', e); }
                 if (allVideos.length > 0) displayVideoSearchResults(allVideos);
-                else videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found. Try: nature, forest, ocean, sky</div>';
+                else videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-white/40 text-xs py-4">No videos found</div>';
             } catch (e) {
-                console.error('Video search failed:', e);
                 videoSearchResults.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Error loading videos</div>';
             }
         }
@@ -1732,7 +1876,7 @@ ${hashtagFormat}`;
                     return;
                 }
                 if (!customAudioUrl) {
-                    alert('For Hadith reels, please upload your own audio recitation or background audio first.');
+                    alert('For Hadith reels, please upload your own audio first.');
                     return;
                 }
             } else {
@@ -1895,11 +2039,11 @@ ${hashtagFormat}`;
             const file = e.target.files[0];
             if (!file) return;
             if (!file.type.startsWith('audio/')) {
-                alert('Please select an audio file (MP3, WAV, etc.)');
+                alert('Please select an audio file');
                 return;
             }
             if (file.size > 50 * 1024 * 1024) {
-                alert('File too large. Maximum size is 50MB.');
+                alert('File too large. Maximum 50MB.');
                 return;
             }
             if (customAudioUrl) URL.revokeObjectURL(customAudioUrl);
@@ -2200,7 +2344,7 @@ ${hashtagFormat}`;
                     downloadLabel.textContent = 'Recording (WebM)...';
                     blob = await recordWithWebM();
                     ext = 'webm';
-                    alert('Your browser does not support direct MP4 recording.\n\nThe video was saved as .webm instead.\n\nTo convert it to MP4, upload it to: cloudconvert.com/webm-to-mp4\n(Free, no account needed)');
+                    alert('Your browser does not support direct MP4 recording.\n\nThe video was saved as .webm instead.\n\nTo convert it to MP4, upload it to: cloudconvert.com/webm-to-mp4');
                 }
 
                 if (blob && blob.size > 0) {
@@ -2213,12 +2357,12 @@ ${hashtagFormat}`;
                     document.body.removeChild(a);
                     setTimeout(() => URL.revokeObjectURL(url), 5000);
                 } else {
-                    alert('Recording failed — no data was captured. Please try again.');
+                    alert('Recording failed — no data was captured.');
                 }
 
             } catch (err) {
                 console.error('Download failed:', err);
-                alert('Download failed: ' + err.message + '\n\nPlease try again.');
+                alert('Download failed: ' + err.message);
             } finally {
                 isRecording = false;
                 isPlaying = false;
